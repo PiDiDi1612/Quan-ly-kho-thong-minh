@@ -1,0 +1,397 @@
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield } from 'lucide-react';
+import { User, UserRole, Permission } from '../../types';
+import { ROLE_PERMISSIONS, PERMISSIONS } from '../../constants';
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { apiService } from '../../services/api';
+
+interface UserManagementProps {
+    users: User[];
+    currentUser: User | null;
+    onUpdate: () => void;
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onUpdate }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [formData, setFormData] = useState<Partial<User>>({
+        username: '',
+        password: '',
+        fullName: '',
+        email: '',
+        role: 'STAFF',
+        permissions: [],
+        isActive: true
+    });
+
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { }
+    });
+
+    const handleOpenModal = (user?: User) => {
+        if (user) {
+            setEditingUser(user);
+            setFormData({
+                ...user,
+                password: '',
+                // Ensure ADMIN always shows all permissions even if DB had less (for consistency)
+                permissions: user.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : user.permissions
+            });
+        } else {
+            setEditingUser(null);
+            setFormData({
+                username: '',
+                password: '',
+                fullName: '',
+                email: '',
+                role: 'STAFF',
+                permissions: ROLE_PERMISSIONS.STAFF,
+                isActive: true
+            });
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleSave = async () => {
+        if (!formData.username || !formData.fullName || (!editingUser && !formData.password)) {
+            alert('Vui lòng điền đầy đủ thông tin bắt buộc.');
+            return;
+        }
+
+        try {
+            const userToSave = {
+                ...formData,
+                id: editingUser ? editingUser.id : `U${Date.now()}`,
+                // Force ADMIN to have all permissions on save
+                permissions: formData.role === 'ADMIN' ? Object.keys(PERMISSIONS) : (formData.permissions?.length ? formData.permissions : ROLE_PERMISSIONS[formData.role as UserRole]),
+                createdAt: editingUser ? editingUser.createdAt : new Date().toISOString().split('T')[0],
+                createdBy: editingUser ? editingUser.createdBy : currentUser?.id
+            };
+
+            await apiService.post('/api/users/save', userToSave);
+
+            // Log activity
+            const action = editingUser ? `Cập nhật người dùng ${formData.username}` : `Tạo người dùng mới ${formData.username}`;
+            await apiService.post('/api/activity_logs/save', {
+                id: `log-${Date.now()}`,
+                userId: currentUser?.id,
+                username: currentUser?.username,
+                action: action,
+                entityType: 'USER',
+                entityId: userToSave.id,
+                details: action,
+                timestamp: new Date().toISOString()
+            });
+
+            setIsModalOpen(false);
+            onUpdate();
+        } catch (error) {
+            console.error('Failed to save user:', error);
+            alert('Lỗi khi lưu người dùng');
+        }
+    };
+
+    const handleDelete = async (userId: string) => {
+        setConfirmState({
+            isOpen: true,
+            title: 'Xóa người dùng',
+            message: `Bạn có chắc chắn muốn xóa người dùng này? Thao tác này không thể hoàn tác.`,
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await apiService.post('/api/users/delete', { id: userId });
+                    // Log activity
+                    await apiService.post('/api/activity_logs/save', {
+                        id: `log-${Date.now()}`,
+                        userId: currentUser?.id,
+                        username: currentUser?.username,
+                        action: `Xóa người dùng ${users.find(u => u.id === userId)?.username}`,
+                        entityType: 'USER',
+                        entityId: userId,
+                        details: 'Xóa người dùng',
+                        timestamp: new Date().toISOString()
+                    });
+                    onUpdate();
+                } catch (error) {
+                    console.error('Failed to delete user:', error);
+                    alert('Lỗi khi xóa người dùng');
+                }
+            }
+        });
+    };
+
+    const handleToggleStatus = async (user: User) => {
+        try {
+            const updatedUser = { ...user, isActive: !user.isActive };
+            await apiService.post('/api/users/save', updatedUser);
+            // Log activity
+            await apiService.post('/api/activity_logs/save', {
+                id: `log-${Date.now()}`,
+                userId: currentUser?.id,
+                username: currentUser?.username,
+                action: `${updatedUser.isActive ? 'Kích hoạt' : 'Vô hiệu hóa'} người dùng ${user.username}`,
+                entityType: 'USER',
+                entityId: user.id,
+                details: 'Thay đổi trạng thái',
+                timestamp: new Date().toISOString()
+            });
+            onUpdate();
+        } catch (error) {
+            console.error('Failed to toggle status:', error);
+        }
+    };
+
+    const togglePermission = (perm: Permission) => {
+        // ADMIN always has all permissions - cannot be changed
+        if (formData.role === 'ADMIN') return;
+
+        const currentPerms = formData.permissions || [];
+        if (currentPerms.includes(perm)) {
+            setFormData({ ...formData, permissions: currentPerms.filter(p => p !== perm) });
+        } else {
+            setFormData({ ...formData, permissions: [...currentPerms, perm] });
+        }
+    };
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="flex justify-between items-center">
+                <p className="text-sm text-slate-500 font-medium">
+                    Tổng số người dùng: <span className="text-blue-600 font-bold">{users.length}</span>
+                </p>
+                <Button
+                    onClick={() => handleOpenModal()}
+                    leftIcon={<Plus size={16} />}
+                    className="shadow-lg shadow-blue-500/20"
+                >
+                    Thêm người dùng
+                </Button>
+            </div>
+
+            <div className="bg-transparent">
+                <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
+                    <thead>
+                        <tr>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Người dùng</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Vai trò</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Quyền hạn</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Trạng thái</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(u => (
+                            <tr key={u.id} className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group">
+                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-bold text-sm">
+                                            {(u.fullName || u.username || '?')[0].toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{u.fullName || u.username}</p>
+                                            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">@{u.username} {u.email && `• ${u.email}`}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.role === 'ADMIN' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                                        u.role === 'MANAGER' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                                            'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                        }`}>
+                                        {u.role}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{u.permissions.length} quyền</p>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-600 font-medium">
+                                        {u.lastLogin ? `Đăng nhập: ${new Date(u.lastLogin).toLocaleDateString('en-GB')}` : 'Chưa đăng nhập'}
+                                    </p>
+                                </td>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.isActive ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                        }`}>
+                                        {u.isActive ? 'Hoạt động' : 'Vô hiệu'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50 text-right">
+                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleOpenModal(u)}
+                                            className="!p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600"
+                                        >
+                                            <Edit2 size={18} />
+                                        </Button>
+                                        {u.id !== currentUser?.id && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleToggleStatus(u)}
+                                                    className={`!p-2 hover:bg-opacity-50 ${u.isActive ? 'text-slate-400 hover:text-orange-500' : 'text-slate-400 hover:text-green-500'}`}
+                                                >
+                                                    {u.isActive ? <X size={18} /> : <CheckCircle2 size={18} />}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(u.id)}
+                                                    className="!p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingUser ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+            >
+                <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Tên đăng nhập"
+                            value={formData.username}
+                            onChange={e => setFormData({ ...formData, username: e.target.value })}
+                            icon={<UserIcon size={16} />}
+                            placeholder="VD: admin"
+                            disabled={!!editingUser}
+                        />
+                        <Input
+                            label="Họ và tên"
+                            value={formData.fullName}
+                            onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                            icon={<UserIcon size={16} />}
+                            placeholder="VD: Nguyễn Văn A"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Mật khẩu"
+                            type="password"
+                            value={formData.password}
+                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                            icon={<Lock size={16} />}
+                            placeholder={editingUser ? "Để trống nếu không đổi" : "******"}
+                        />
+                        <Input
+                            label="Email"
+                            type="email"
+                            value={formData.email || ''}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                            icon={<Mail size={16} />}
+                            placeholder="VD: email@example.com"
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vai trò & Trạng thái</label>
+                        {editingUser?.role === 'ADMIN' && (
+                            <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-100 flex items-center gap-2">
+                                <Shield size={14} /> Không thể thay đổi vai trò của Quản trị viên.
+                            </p>
+                        )}
+                        <div className="flex gap-4">
+                            {(['ADMIN', 'MANAGER', 'STAFF'] as UserRole[]).map(r => (
+                                <button
+                                    key={r}
+                                    disabled={editingUser?.role === 'ADMIN'}
+                                    onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
+                                    className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all ${formData.role === r
+                                            ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                            : editingUser?.role === 'ADMIN'
+                                                ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                                : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-blue-200'
+                                        }`}
+                                >
+                                    {r}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <Shield size={14} /> Phân quyền chi tiết
+                            </label>
+                            <span className="text-[10px] text-slate-400">{formData.role === 'ADMIN' ? Object.keys(PERMISSIONS).length : formData.permissions?.length} quyền được chọn</span>
+                        </div>
+
+                        {formData.role === 'ADMIN' && (
+                            <p className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 flex items-center gap-2">
+                                <Lock size={14} /> Vai trò Quản trị viên luôn được cấp toàn quyền.
+                            </p>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            {(Object.keys(PERMISSIONS) as Permission[]).map(perm => {
+                                const isChecked = formData.role === 'ADMIN' || formData.permissions?.includes(perm);
+                                const isDisabled = formData.role === 'ADMIN';
+
+                                return (
+                                    <label
+                                        key={perm}
+                                        className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${isDisabled ? 'opacity-70 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800'
+                                            } ${isChecked ? 'border-blue-200 bg-blue-50/50' : 'border-slate-100 dark:border-slate-700'}`}
+                                    >
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'
+                                            }`}>
+                                            {isChecked && <CheckCircle2 size={12} className="text-white" />}
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="hidden"
+                                            checked={isChecked}
+                                            disabled={isDisabled}
+                                            onChange={() => togglePermission(perm)}
+                                        />
+                                        <span className={`text-xs font-medium ${isDisabled ? 'text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                                            {PERMISSIONS[perm]}
+                                        </span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end gap-3">
+                        <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
+                        <Button onClick={handleSave}>Lưu thông tin</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <ConfirmModal
+                isOpen={confirmState.isOpen}
+                onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmState.onConfirm}
+                title={confirmState.title}
+                message={confirmState.message}
+                type={confirmState.type}
+            />
+        </div>
+    );
+};

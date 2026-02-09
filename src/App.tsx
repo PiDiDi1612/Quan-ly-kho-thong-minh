@@ -1,0 +1,1271 @@
+﻿import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Calendar,
+  Package,
+  ArrowUpRight,
+  ArrowDownLeft,
+  History,
+  Plus,
+  Search,
+  AlertTriangle,
+  X,
+  Warehouse,
+  FileText,
+  Printer,
+  Trash2,
+  Edit2,
+  Check,
+  RefreshCcw,
+  ArrowRightLeft,
+  CheckCircle2,
+  Minus,
+  List,
+  ChevronRight,
+  Filter,
+  ShoppingCart,
+  HelpCircle,
+  FileSpreadsheet,
+  Download,
+  Users,
+  Settings,
+  Activity,
+  Shield,
+  ListChecks,
+  Save,
+  AlertCircle,
+  Info,
+  Heart,
+  Inbox,
+  Moon,
+  Sun,
+  Eye,
+  EyeOff,
+  ClipboardList
+} from 'lucide-react';
+
+import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
+import { INITIAL_MATERIALS, INITIAL_TRANSACTIONS, CLASSIFICATIONS, WORKSHOPS, INITIAL_USERS, PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
+import * as XLSX from 'xlsx-js-style';
+
+import { io } from 'socket.io-client';
+import { UserManagement } from './features/admin/UserManagement';
+import { MaterialManagement } from './features/warehouse/MaterialManagement';
+import { WarehouseTransfer } from './features/warehouse/WarehouseTransfer';
+import { WarehouseReceipt } from './features/warehouse/WarehouseReceipt';
+import { CustomerCodeManagement } from './features/warehouse/CustomerCodeManagement';
+import { PlanningProjects } from './features/planning/PlanningProjects';
+import { PlanningEstimates } from './features/planning/PlanningEstimates';
+import { ReportViewer } from './features/reports/ReportViewer';
+import { AuthScreen } from './features/auth/AuthScreen';
+import { AccountModal, type AccountForm } from './features/account/AccountModal';
+import { AppSidebar, type AppTab } from './features/layout/AppSidebar';
+import { apiService } from './services/api';
+import { authApi } from './services/authApi';
+import { ToastContainer } from './components/ui/ToastContainer';
+import { useToast } from './hooks/useToast';
+import { jwtDecode } from 'jwt-decode';
+import {
+  clearAuthSession,
+  clearRememberedUsername,
+  getAuthToken,
+  getAuthUser,
+  getRememberedUsername,
+  hasRememberedLogin,
+  setAuthSession,
+  setRememberedUsername
+} from './utils/authStorage';
+
+// Socket instance (initialized dynamically)
+let socket: any;
+
+const App: React.FC = () => {
+  const toast = useToast();
+  // --- CONNECTION CONFIG ---
+  const [connectionConfig, setConnectionConfig] = useState<{ mode: 'SERVER' | 'CLIENT' | null, serverIp: string }>(() => {
+    const saved = localStorage.getItem('connection_config');
+    if (saved) return JSON.parse(saved);
+    return { mode: null, serverIp: '' };
+  });
+
+  const [baseUrl, setBaseUrl] = useState(() => {
+    // 1. If running from file system (Production Electron), ALWAYS use localhost:3000
+    if (window.location.protocol === 'file:') {
+      return 'http://localhost:3000';
+    }
+
+    // 2. Load saved config
+    const saved = localStorage.getItem('connection_config');
+    if (saved) {
+      const config = JSON.parse(saved);
+      if (config.mode === 'SERVER') {
+        // FORCE localhost:3000 for Server Mode to avoid empty string errors
+        // This addresses issues where Electron might load via http://localhost fallback or other protocols
+        return 'http://localhost:3000';
+      }
+      return `http://${config.serverIp}:3000`;
+    }
+
+    // 3. Default fallback
+    return '';
+  });
+
+  // --- AUTH STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('STAFF');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authToken, setAuthToken] = useState<string>(''); // Start with empty token - no auto-login
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [isConnectionSetupOpen, setIsConnectionSetupOpen] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  // Removed: rememberPassword feature for security
+
+  // --- DATA STATE ---
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  // Budgets moved to OrderManagement
+  const [users, setUsers] = useState<User[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [budgets, setBudgets] = useState<OrderBudget[]>([]);
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  // Helper for date formatting dd/mm/yyyy
+  const formatLocalDate = (dateStr?: string | number) => {
+    const d = dateStr ? new Date(dateStr) : new Date();
+    return d.toLocaleDateString('en-GB'); // Formats as dd/mm/yyyy
+  };
+
+  const formatNumber = (val: number | string | undefined): string => {
+    if (val === null || val === undefined) return '0,00';
+    const num = typeof val === 'number' ? val : parseFloat(val.toString().replace(',', '.'));
+    return isNaN(num) ? '0,00' : num.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  // --- UI STATE ---
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const parsed = getAuthUser();
+    if (authToken && parsed) {
+      setCurrentUser(parsed);
+      setUserRole(parsed.role);
+      setIsAuthenticated(true);
+    } else if (!authToken) {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    }
+  }, [authToken]);
+
+  // --- SYSTEM INFO ---
+  const [serverIp, setServerIp] = useState<string>('');
+
+  useEffect(() => {
+    if (connectionConfig.mode === 'SERVER' && baseUrl) {
+      apiCall('/api/system-info', 'GET')
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => setServerIp(data.ip))
+        .catch(() => { });
+    }
+  }, [connectionConfig.mode, baseUrl]);
+
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
+  const loadData = async (isBackground = false) => {
+    if (isSyncing && !isBackground) return;
+    if (!isBackground) setIsSyncing(true);
+
+    const maxRetries = 2;
+    let attempt = 0;
+
+    const performLoad = async () => {
+      try {
+        const [matRes, txRes] = await Promise.all([
+          apiCall('/api/materials', 'GET'),
+          apiCall('/api/transactions', 'GET')
+        ]);
+
+        if (matRes.ok) setMaterials(await matRes.json());
+        if (txRes.ok) setTransactions(await txRes.json());
+        if (hasPermission('MANAGE_USERS')) {
+          const userRes = await apiCall('/api/users', 'GET');
+          if (userRes.ok) {
+            const data = await userRes.json();
+            setUsers(data);
+            if (currentUser) {
+              const updatedSelf = data.find((u: User) => u.id === currentUser.id);
+              if (updatedSelf) setCurrentUser(updatedSelf);
+            }
+          }
+        }
+        if (hasPermission('VIEW_ACTIVITY_LOG')) {
+          const logRes = await apiCall('/api/activity_logs', 'GET');
+          if (logRes.ok) setActivityLogs(await logRes.json());
+        } else {
+          setActivityLogs([]);
+        }
+
+        // Load Projects & Budgets
+        const [projRes, budRes] = await Promise.all([
+          apiCall('/api/projects', 'GET'),
+          apiCall('/api/budgets', 'GET')
+        ]);
+        if (projRes.ok) setProjects(await projRes.json());
+        if (budRes.ok) setBudgets(await budRes.json());
+        setLastSync(new Date());
+        setIsFirstLoad(false);
+        return true;
+      } catch (error) {
+        console.error("Failed to load data", error);
+        return false;
+      }
+    };
+
+    let success = await performLoad();
+    while (!success && attempt < maxRetries) {
+      attempt++;
+      console.log(`Retrying data load... Attempt ${attempt}`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      success = await performLoad();
+    }
+
+    if (!isBackground) setIsSyncing(false);
+  };
+
+  // Helper to parse numbers from string inputs (supports comma and dot)
+  const parseNumber = (val: string | number | undefined): number => {
+    if (val === undefined || val === '' || val === null) return 0;
+    if (typeof val === 'number') return val;
+    // Replace comma with dot
+    const cleanVal = val.toString().replace(/,/g, '.');
+    const floatVal = parseFloat(cleanVal);
+    // Return 0 if NaN, otherwise round to 2 decimals
+    return isNaN(floatVal) ? 0 : Math.round(floatVal * 100) / 100;
+  };
+
+  // Helper for API calls
+  const apiCall = async (endpoint: string, method: string, body?: any) => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (authToken) headers.Authorization = `Bearer ${authToken}`;
+      const res = await fetch(`${baseUrl}${endpoint}`, {
+        method,
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        try {
+          const errorText = await res.clone().text();
+          console.error(`API Error ${baseUrl}${endpoint}: ${res.status}`, errorText);
+        } catch (e) {
+          console.error(`API Error ${baseUrl}${endpoint}: ${res.status} (body unreadable)`);
+        }
+      }
+      return res;
+    } catch (e) {
+      console.error(`API Network Error ${baseUrl}${endpoint}:`, e);
+      // Removed blocking alert to prevent UI hanging
+      throw e;
+    }
+  };
+
+  const [tempIp, setTempIp] = useState('');
+
+  const handleSaveConnection = (mode: 'SERVER' | 'CLIENT', ip?: string) => {
+    const config = { mode, serverIp: ip || '' };
+    localStorage.setItem('connection_config', JSON.stringify(config));
+
+    // Determine base URL based on environment and mode
+    let newUrl = '';
+    if (mode === 'SERVER') {
+      // FORCE localhost:3000 for Server Mode
+      newUrl = 'http://localhost:3000';
+    } else {
+      newUrl = `http://${ip}:3000`;
+    }
+
+    setConnectionConfig(config);
+    setBaseUrl(newUrl);
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    if (!connectionConfig.mode) return;
+    const username = getRememberedUsername();
+    if (username) {
+      setLoginForm(prev => ({ ...prev, username }));
+      // Removed: setRememberPassword(true) - auto-login disabled
+    }
+  }, [connectionConfig.mode, baseUrl]);
+
+  useEffect(() => {
+    if (!connectionConfig.mode || !isAuthenticated) return;
+
+    // Initialize socket with correct URL
+    if (socket) socket.disconnect();
+    socket = io(baseUrl || window.location.origin, {
+      auth: authToken ? { token: authToken } : undefined,
+      extraHeaders: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+    });
+
+    loadData();
+    // Poll every 10 seconds to keep data synced
+    const interval = setInterval(loadData, 10000);
+
+    // Socket.io for Real-time sync
+    socket.on('data_updated', loadData);
+
+    return () => {
+      clearInterval(interval);
+      if (socket) socket.off('data_updated', loadData);
+    };
+  }, [connectionConfig.mode, baseUrl, isAuthenticated, authToken]);
+
+  // Token expiry check - auto-logout when JWT expires
+  useEffect(() => {
+    if (!isAuthenticated || !authToken) return;
+
+    const checkTokenExpiry = () => {
+      try {
+        const decoded: any = jwtDecode(authToken);
+        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+          // Token expired
+          clearAuthSession();
+          setIsAuthenticated(false);
+          setAuthToken('');
+          setCurrentUser(null);
+          toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        }
+      } catch (err) {
+        console.error('Token decode error:', err);
+      }
+    };
+
+    // Check immediately on mount
+    checkTokenExpiry();
+
+    // Then check every minute
+    const interval = setInterval(checkTokenExpiry, 60000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, authToken, toast]);
+
+
+  // --- NAVIGATION STATE ---
+  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+
+
+  // --- MODALS STATE ---
+
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string; type: 'danger' | 'info'; onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', type: 'info', onConfirm: () => { } });
+
+  // --- FORM STATES ---
+
+  const [receiptType, setReceiptType] = useState<TransactionType>(TransactionType.OUT);
+  const [receiptWorkshop, setReceiptWorkshop] = useState<WorkshopCode>('OG');
+  const [receiptSearchWorkshop, setReceiptSearchWorkshop] = useState<WorkshopCode | 'ALL'>('ALL');
+  const [receiptSearchClass, setReceiptSearchClass] = useState<'ALL' | 'Vật tư chính' | 'Vật tư phụ'>('ALL');
+  const [orderCode, setOrderCode] = useState('');
+  const [receiptId, setReceiptId] = useState('');
+  const [receiptSupplier, setReceiptSupplier] = useState('');
+  const [receiptTime, setReceiptTime] = useState('');
+  const [receiptTimeDisplay, setReceiptTimeDisplay] = useState('');
+  const [selectedItems, setSelectedItems] = useState<{ materialId: string, quantity: number }[]>([]);
+  const [materialSearch, setMaterialSearch] = useState('');
+
+  const [transferForm, setTransferForm] = useState({
+    items: [] as { materialId: string, quantity: number }[],
+    fromWorkshop: 'OG' as WorkshopCode,
+    toWorkshop: 'CK' as WorkshopCode,
+    orderCode: '',
+    receiptId: '',
+    search: ''
+  });
+
+  // Budget state moved to OrderManagement
+
+  const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopCode>('OG');
+  // ordersWorkshopFilter moved to OrderManagement
+
+
+
+  const [accountForm, setAccountForm] = useState<AccountForm>({
+    currentPassword: '', newPassword: '', confirmPassword: '', fullName: '', email: ''
+  });
+
+
+
+  // Tự động tạo mã phiếu khi chuyển tab hoặc khi receiptType/receiptWorkshop thay đổi
+  useEffect(() => {
+    if (activeTab === 'warehouse_receipt') {
+      setReceiptId(generateReceiptId(receiptType, receiptWorkshop));
+
+      // Init Date
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      setReceiptTime(`${yyyy}-${mm}-${dd}`);
+      setReceiptTimeDisplay(`${dd}/${mm}/${yyyy}`);
+
+      setReceiptSupplier('');
+    }
+    if (activeTab === 'warehouse_transfer') {
+      setTransferForm(prev => ({
+        ...prev,
+        receiptId: generateReceiptId(TransactionType.TRANSFER, prev.fromWorkshop),
+        transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      }));
+    }
+  }, [activeTab, receiptType, receiptWorkshop]);
+
+  // --- LOGIC ---
+
+  // Hàm tính toán mã phiếu tự động dựa trên dữ liệu hiện có
+  const generateReceiptId = (type: TransactionType, workshop: WorkshopCode) => {
+    const year = new Date().getFullYear().toString().slice(-2);
+    const prefix = type === TransactionType.IN ? 'PNK' : type === TransactionType.OUT ? 'PXK' : 'PDC';
+
+    // Tìm các giao dịch cùng loại, xưởng và năm hiện tại
+    const sameTypeTxs = transactions.filter(t =>
+      t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`)
+    );
+
+    let nextNum = 1;
+    if (sameTypeTxs.length > 0) {
+      // Trich xuat phan s tu ma phieu (index 3 sau khi split '/')
+      const nums = sameTypeTxs.map(t => {
+        const parts = t.receiptId.split('/');
+        return parseInt(parts[3], 10) || 0;
+      });
+      nextNum = Math.max(...nums) + 1;
+    }
+
+    const paddedCount = nextNum.toString().padStart(5, '0');
+    return `${prefix}/${workshop}/${year}/${paddedCount}`;
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const u = loginForm.username.trim().toLowerCase();
+    const p = loginForm.password.trim();
+
+    try {
+      const res = await authApi.login(baseUrl, u, p);
+      const data = await authApi.parseLoginResponse(res);
+      if (!data.success) {
+        setLoginError('Thông tin đăng nhập không chính xác hoặc tài khoản đã bị vô hiệu hóa');
+        setTimeout(() => setLoginError(null), 3000);
+        return;
+      }
+
+      const user: User = data.user;
+      const token: string = data.token;
+
+      setAuthToken(token);
+      setAuthSession(token, user);
+
+      setCurrentUser(user);
+      setUserRole(user.role);
+      setIsAuthenticated(true);
+
+      // Removed: remember password feature for security
+      // Username is never auto-saved anymore
+
+      setLoginError(null);
+    } catch (error) {
+      console.error(error);
+      setLoginError('Không thể kết nối máy chủ.');
+      setTimeout(() => setLoginError(null), 3000);
+    }
+  };
+
+  const handleLogout = () => {
+    authApi.logout(baseUrl, authToken).catch(() => { });
+    clearAuthSession();
+    setAuthToken('');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
+
+  // Helper function to log activities
+  const logActivity = (action: string, entityType: ActivityLog['entityType'], entityId?: string, details?: string) => {
+    if (!currentUser) return;
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}`,
+      userId: currentUser.id,
+      username: currentUser.username,
+      action,
+      entityType,
+      entityId,
+      details: details || action,
+      timestamp: new Date().toISOString()
+    };
+    setActivityLogs(prev => [newLog, ...prev]);
+    apiCall('/api/activity_logs/save', 'POST', newLog);
+  };
+
+  // Helper function to check permissions
+  const hasPermission = (permission: Permission): boolean => {
+    if (!currentUser) return false;
+    return currentUser.permissions.includes(permission) || currentUser.role === 'ADMIN';
+  };
+
+  const canModify = hasPermission('MANAGE_MATERIALS');
+  const isStaff = userRole === 'STAFF';
+
+  const summary = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayTransactions = transactions.filter(t => t.date === today);
+    const todayIn = todayTransactions.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + t.quantity, 0);
+    const todayOut = todayTransactions.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + t.quantity, 0);
+
+    // Dữ liệu cho biểu đồ xưởng
+    const workshopData = WORKSHOPS.map(w => ({
+      name: w.code,
+      total: materials.filter(m => m.workshop === w.code).length,
+      quantity: materials.filter(m => m.workshop === w.code).reduce((sum, m) => sum + m.quantity, 0)
+    }));
+
+    // Dữ liệu cho biểu đồ hoạt động (7 ngày gần nhất)
+    const activityData = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = d.toISOString().split('T')[0];
+      const txs = transactions.filter(t => t.date === dateStr);
+      return {
+        name: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+        inCount: txs.filter(t => t.type === TransactionType.IN).length,
+        outCount: txs.filter(t => t.type === TransactionType.OUT).length
+      };
+    });
+
+    return {
+      totalItems: materials.length,
+      lowStockItems: materials.filter(m => m.quantity <= m.minThreshold),
+      lowStockCount: materials.filter(m => m.quantity <= m.minThreshold).length,
+      mainItems: materials.filter(m => m.classification === 'Vật tư chính').length,
+      txCount: transactions.length,
+      todayIn,
+      todayOut,
+      workshopData,
+      activityData
+    };
+  }, [materials, transactions]);
+
+
+
+
+
+  // Hàm tạo mã vật tư tự động theo định dạng VT/Xưởng/00001
+  const generateMaterialId = (workshop: WorkshopCode) => {
+    const sameWorkshopMaterials = materials.filter(m => m.workshop === workshop && m.id.startsWith(`VT/${workshop}/`));
+    let nextNum = 1;
+    if (sameWorkshopMaterials.length > 0) {
+      const nums = sameWorkshopMaterials.map(m => {
+        const parts = m.id.split('/');
+        return parseInt(parts[2], 10) || 0;
+      });
+      nextNum = Math.max(...nums) + 1;
+    }
+    const paddedCount = nextNum.toString().padStart(5, '0');
+    return `VT/${workshop}/${paddedCount}`;
+  };
+
+  const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
+  };
+
+
+
+  const quickRestock = (material: Material) => {
+    setReceiptType(TransactionType.IN);
+    setReceiptWorkshop(material.workshop);
+    setSelectedItems([{ materialId: material.id, quantity: material.minThreshold * 2 }]);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleCreateReceipt = () => {
+    if (selectedItems.length === 0) return;
+
+    if (selectedItems.length === 0) return;
+
+    // Removed budget validation logic here as budgets are now managed in OrderManagement
+    // Future refactor should centralize "Create Receipt" to verify against OrderModule if needed.
+
+    requestConfirm('Xác nhận lập phiếu', `Hệ thống sẽ ${receiptType === 'IN' ? 'Nhập' : 'Xuất'} hàng vào kho ${receiptWorkshop}.`, async () => {
+      const finalReceiptId = receiptId.trim() || generateReceiptId(receiptType, receiptWorkshop);
+      try {
+        const commitRes = await apiCall('/api/transactions/commit', 'POST', {
+          mode: 'RECEIPT',
+          payload: {
+            receiptType,
+            receiptWorkshop,
+            receiptId: finalReceiptId,
+            receiptTime: receiptTime || new Date().toISOString().split('T')[0],
+            transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            receiptSupplier: receiptSupplier || undefined,
+            orderCode: orderCode || undefined,
+            user: currentUser?.fullName || userRole,
+            items: selectedItems
+          }
+        });
+
+        if (!commitRes.ok) {
+          const errBody = await commitRes.json().catch(() => ({ error: 'Lưu phiếu thất bại' }));
+          setModalError(errBody.error || 'Lưu phiếu thất bại');
+          return;
+        }
+
+        await loadData();
+        logActivity(`Lập phiếu ${receiptType === 'IN' ? 'Nhập' : 'Xuất'} ${finalReceiptId}`, 'TRANSACTION', finalReceiptId);
+        setActiveTab('warehouse_inventory');
+        setModalError(null);
+        setSelectedItems([]);
+        setOrderCode('');
+        setReceiptId('');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      } catch (err) {
+        console.error("Lỗi đồng bộ backend:", err);
+        setModalError('Không thể lưu phiếu. Vui lòng thử lại.');
+      }
+    });
+  };
+
+  const handleTransfer = () => {
+    const { items, fromWorkshop, toWorkshop, orderCode, receiptId } = transferForm;
+    if (items.length === 0 || fromWorkshop === toWorkshop) {
+      setModalError('Vui lòng chọn vật tư và kho đích khác kho nguồn.'); return;
+    }
+
+    requestConfirm('Xác nhận điều chuyển', `Chuyển ${items.length} loại vật tư từ ${fromWorkshop} sang ${toWorkshop}?`, async () => {
+      const finalReceiptId = receiptId.trim() || generateReceiptId(TransactionType.TRANSFER, fromWorkshop);
+      try {
+        const commitRes = await apiCall('/api/transactions/commit', 'POST', {
+          mode: 'TRANSFER',
+          payload: {
+            fromWorkshop,
+            toWorkshop,
+            receiptId: finalReceiptId,
+            transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            orderCode: orderCode || undefined,
+            user: currentUser?.fullName || userRole,
+            items
+          }
+        });
+
+        if (!commitRes.ok) {
+          const errBody = await commitRes.json().catch(() => ({ error: 'Điều chuyển thất bại' }));
+          setModalError(errBody.error || 'Điều chuyển thất bại');
+          return;
+        }
+
+        await loadData();
+        logActivity(`Điều chuyển ${items.length} loại vật tư từ ${fromWorkshop} sang ${toWorkshop}`, 'TRANSACTION', finalReceiptId);
+        setActiveTab('warehouse_inventory');
+        setModalError(null);
+        setTransferForm(prev => ({ ...prev, items: [], orderCode: '', receiptId: '' }));
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      } catch (err) {
+        console.error("Lỗi đồng bộ điều chuyển:", err);
+        setModalError('Không thể điều chuyển. Vui lòng thử lại.');
+      }
+    });
+  };
+
+  const handleDeleteTransaction = (tx: Transaction) => {
+    requestConfirm(
+      'Xóa phiếu giao dịch',
+      `Bạn có chắc chắn muốn xóa phiếu ${tx.receiptId}? Tồn kho sẽ được hoàn tác tự động.`,
+      async () => {
+        try {
+          const res = await apiCall('/api/transactions/delete_with_revert', 'POST', { id: tx.id });
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({ error: 'Xóa giao dịch thất bại' }));
+            setModalError(errBody.error || 'Xóa giao dịch thất bại');
+            return;
+          }
+          await loadData();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        } catch (e) {
+          console.error(e);
+          toast.error('Xóa giao dịch thất bại');
+        }
+      },
+      'danger'
+    );
+  };
+
+
+
+
+
+
+
+
+
+  const handleUpdateAccount = () => {
+    if (!accountForm.currentPassword) {
+      toast.warning('Vui lòng nhập mật khẩu hiện tại.');
+      return;
+    }
+
+    if (accountForm.newPassword && accountForm.newPassword !== accountForm.confirmPassword) {
+      toast.warning('Mật khẩu mới và xác nhận không khớp.');
+      return;
+    }
+
+    apiCall('/api/users/update_self', 'POST', {
+      fullName: accountForm.fullName || currentUser?.fullName || '',
+      email: accountForm.email || currentUser?.email || '',
+      currentPassword: accountForm.currentPassword,
+      newPassword: accountForm.newPassword || undefined
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: 'Cập nhật thất bại' }));
+          toast.error(body.error || 'Cập nhật thất bại');
+          return;
+        }
+        const body = await res.json();
+        const updated = body.user as User;
+        setCurrentUser(updated);
+        setAuthSession(authToken, updated);
+        setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
+        logActivity('Cập nhật thông tin tài khoản', 'USER', updated.id);
+        setIsAccountModalOpen(false);
+        setAccountForm({ currentPassword: '', newPassword: '', confirmPassword: '', fullName: updated.fullName || '', email: updated.email || '' });
+        toast.success('Cập nhật thông tin thành công!');
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error('Không thể cập nhật tài khoản.');
+      });
+  };
+
+  const handleBackup = async () => {
+    try {
+      const res = await apiCall('/api/backup', 'POST');
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Đã sao lưu dữ liệu thành công ra Desktop!\nFile: ${data.path}`);
+      } else {
+        toast.error('Lỗi khi sao lưu dữ liệu.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+
+
+
+  // --- RENDER LOGIN ---
+  if (!isAuthenticated) {
+    return (
+      <>
+        <ToastContainer />
+        <AuthScreen
+          isConnectionSetupOpen={isConnectionSetupOpen}
+          setIsConnectionSetupOpen={setIsConnectionSetupOpen}
+          handleSaveConnection={handleSaveConnection}
+          tempIp={tempIp}
+          setTempIp={setTempIp}
+          handleLogin={handleLogin}
+          loginForm={loginForm}
+          setLoginForm={setLoginForm}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          loginError={loginError}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div className="app-bg-gradient app-readable flex h-screen font-inter text-slate-600 selection:bg-blue-100 selection:text-blue-700">
+      <ToastContainer />
+      {/* SIDEBAR */}
+      <AppSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        hasPermission={hasPermission}
+        currentUser={currentUser}
+        userRole={userRole}
+        onLogout={handleLogout}
+        onOpenAccount={() => setIsAccountModalOpen(true)}
+      />
+
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+
+
+        <header className="glass-panel print:hidden flex items-center justify-between px-8 py-6 border-b border-slate-200/60 dark:border-slate-800/70 sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-4">
+            <div className="w-1.5 h-8 bg-blue-600 rounded-full shadow-[0_0_12px_rgba(59,130,246,0.4)]"></div>
+            <div>
+              {activeTab !== 'dashboard' && (
+                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">
+                  <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => setActiveTab('dashboard')}>SmartStock</span>
+                  <>
+                    <ChevronRight size={12} />
+                    <span>
+                      {(activeTab === 'warehouse_inventory' || activeTab === 'warehouse_transfer' || activeTab === 'warehouse_receipt' || activeTab === 'warehouse_customers') ? 'Phòng kho' :
+                        (activeTab === 'reports_history' || activeTab === 'reports_activity') ? 'Báo cáo' :
+                          (activeTab === 'planning_projects' || activeTab === 'planning_estimates') ? 'Phòng kế hoạch' :
+                            activeTab === 'users' ? 'Người dùng' :
+                              'Hệ thống'}
+                    </span>
+                  </>
+                </div>
+              )}
+              <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight capitalize">
+                {activeTab === 'dashboard' ? 'Tổng quan' :
+                  activeTab === 'warehouse_inventory' ? 'Danh sách vật tư' :
+                    activeTab === 'warehouse_transfer' ? 'Điều chuyển vật tư' :
+                      activeTab === 'warehouse_receipt' ? 'Lập phiếu kho' :
+                        activeTab === 'warehouse_customers' ? 'Cấu hình mã khách' :
+                          activeTab === 'planning_projects' ? 'Cấu hình dự án' :
+                            activeTab === 'planning_estimates' ? 'Lập dự toán' :
+                              activeTab === 'reports_history' ? 'Lịch sử nhập xuất' :
+                                activeTab === 'reports_activity' ? 'Nhật ký hoạt động' :
+                                  activeTab === 'users' ? 'Quản lý người dùng' :
+                                    'Tác giả'}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {activeTab === 'dashboard' && (
+              <select
+                value={selectedWorkshop}
+                onChange={e => setSelectedWorkshop(e.target.value as WorkshopCode)}
+                className="px-4 py-2.5 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm transition-colors"
+              >
+                {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+              </select>
+            )}
+
+            {!isStaff && (activeTab === 'warehouse_inventory') && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-material-modal'));
+                }} className="px-5 py-3 text-[11px] font-extrabold text-white bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 rounded-xl hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 uppercase tracking-widest"><Plus size={16} /> Thêm mới</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('import-excel'))} className="px-4 py-3 text-[11px] font-bold text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-all flex items-center gap-2 uppercase tracking-widest border border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"><FileSpreadsheet size={16} /> Nhập Excel</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('export-excel'))} className="px-4 py-3 text-[11px] font-bold text-amber-600 bg-amber-50 rounded-xl hover:bg-amber-100 transition-all flex items-center gap-2 uppercase tracking-widest border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"><Download size={16} /> Xuất Excel</button>
+              </div>
+            )}
+
+            <button
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
+            >
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl ml-group relative transition-colors">
+              <div className={`w-2 h-2 rounded-full ${lastSync ? 'bg-green-500' : 'bg-red-500'} ${isSyncing ? 'animate-pulse' : ''}`} />
+              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase">{isSyncing ? 'Đang đồng bộ...' : lastSync ? `Đồng bộ: ${lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Mất kết nối'}</span>
+              <button onClick={() => loadData()} className="p-1 text-slate-400 hover:text-blue-600 transition-all"><RefreshCcw size={12} className={isSyncing ? 'animate-spin' : ''} /></button>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 p-8 px-6 py-8 xl:px-12 overflow-y-auto no-scrollbar print:hidden">
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    label: 'TỔNG VẬT TƯ',
+                    value: summary.totalItems,
+                    color: 'text-blue-600 dark:text-blue-400',
+                    bg: 'bg-blue-50 dark:bg-blue-900/20',
+                    icon: Package,
+                    description: 'Loại vật tư đang quản lý'
+                  },
+                  {
+                    label: 'NHẬP HÔM NAY',
+                    value: summary.todayIn,
+                    color: 'text-green-600 dark:text-green-400',
+                    bg: 'bg-green-50 dark:bg-green-900/20',
+                    icon: ArrowDownLeft,
+                    description: 'Tổng số lượng nhập'
+                  },
+                  {
+                    label: 'XUẤT HÔM NAY',
+                    value: summary.todayOut,
+                    color: 'text-orange-600 dark:text-orange-400',
+                    bg: 'bg-orange-50 dark:bg-orange-900/20',
+                    icon: ArrowUpRight,
+                    description: 'Tổng số lượng xuất'
+                  },
+                  {
+                    label: 'CẢNH BÁO TỒN',
+                    value: summary.lowStockCount,
+                    color: 'text-red-600 dark:text-red-400',
+                    bg: 'bg-red-50 dark:bg-red-900/20',
+                    icon: AlertTriangle,
+                    description: 'Cần bổ sung ngay'
+                  },
+                ].map((stat, i) => (
+                  <div
+                    key={i}
+                    className={`bg-white dark:bg-[#1e293b] p-6 rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden border-t-4 ${i === 0 ? 'border-t-blue-500' :
+                      i === 1 ? 'border-t-green-500' :
+                        i === 2 ? 'border-t-orange-500' :
+                          'border-t-red-500'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                        <stat.icon size={24} />
+                      </div>
+                    </div>
+                    <p className="text-4xl font-extrabold text-slate-800 dark:text-white mb-1 tracking-tight">{stat.value}</p>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 group-hover:text-slate-500 transition-colors">{stat.label}</p>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{stat.description}</p>
+                  </div>
+                ))}
+              </div>
+
+
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Cảnh báo tồn kho thấp */}
+                <div className="bg-white dark:bg-[#1e293b] rounded-[20px] border border-slate-100 dark:border-slate-700 p-8 flex flex-col shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">Cảnh báo tồn kho thấp</h3>
+                    <span className="text-sm font-bold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-3 py-1 rounded-full">{summary.lowStockCount} mục</span>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
+                    {summary.lowStockItems.length > 0 ? (
+                      <div className="w-full space-y-3">
+                        {summary.lowStockItems.map(m => (
+                          <div key={m.id} className="p-4 bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-100 dark:border-slate-700 group transition-all hover:border-blue-200 dark:hover:border-blue-500/30 hover:shadow-sm flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                              <AlertTriangle size={20} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate uppercase">{m.name}</p>
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 uppercase">{m.workshop} - Tồn: <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(m.quantity)} {m.unit}</span></p>
+                            </div>
+                            {!isStaff && (
+                              <button onClick={() => quickRestock(m)} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"><ShoppingCart size={16} /></button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-4">
+                        <AlertTriangle size={64} className="text-slate-200 dark:text-slate-700" />
+                        <p className="text-base font-bold text-slate-400 dark:text-slate-500">Không có cảnh báo</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Giao dịch gần đây */}
+                <div className="bg-white dark:bg-[#1e293b] rounded-3xl border border-slate-100 dark:border-slate-700 p-8 flex flex-col shadow-sm card-elevated">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tight">Giao dịch gần đây</h3>
+                    <span className="text-base font-extrabold text-blue-600 dark:text-blue-400">{transactions.slice(0, 5).length} giao dịch</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+                    {transactions.slice(0, 5).map(t => (
+                      <div key={t.id} className="p-5 bg-slate-50 dark:bg-[#0f172a] rounded-2xl border border-slate-100 dark:border-slate-700 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all">
+                        <div className="flex items-start gap-4">
+                          <div className={`p-3 rounded-xl ${t.type === TransactionType.IN ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                            {t.type === TransactionType.IN ? <ArrowDownLeft size={22} /> : t.type === TransactionType.OUT ? <ArrowUpRight size={22} /> : <ArrowRightLeft size={22} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base uppercase truncate">{t.materialName}</p>
+                            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">{t.date}  {t.receiptId}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-extrabold ${t.type === TransactionType.IN ? 'text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                              {t.type === TransactionType.IN ? '+' : '-'}{formatNumber(t.quantity)}
+                            </p>
+                            <p className={`text-[10px] font-extrabold uppercase ${t.type === TransactionType.IN ? 'text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                              {t.type === TransactionType.IN ? 'NHẬP' : t.type === TransactionType.OUT ? 'XUẤT' : 'CHUYỂN'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {transactions.length === 0 && (
+                      <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-3 py-12">
+                        <History size={48} />
+                        <p className="text-sm font-bold text-slate-400 dark:text-slate-500">Chưa có giao dịch</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'warehouse_inventory' && (
+            <MaterialManagement
+              materials={materials}
+              transactions={transactions}
+              currentUser={currentUser}
+              onUpdate={() => {
+                // Refresh data logic
+                loadData();
+              }}
+              canManage={hasPermission('MANAGE_MATERIALS')}
+            />
+          )}
+
+          {(activeTab === 'reports_history' || activeTab === 'reports_activity') && (
+            <ReportViewer
+              transactions={transactions}
+              activityLogs={activityLogs}
+              materials={materials}
+              currentUser={currentUser}
+              onRefresh={loadData}
+              initialTab={activeTab === 'reports_history' ? 'history' : 'activity'}
+            />
+          )}
+
+          {activeTab === 'users' && hasPermission('MANAGE_USERS') && (
+            <UserManagement
+              users={users}
+              currentUser={currentUser}
+              onUpdate={() => {
+                // Refresh users data
+                apiCall('/api/users', 'GET').then(data => {
+                  if (Array.isArray(data)) setUsers(data);
+                });
+              }}
+            />
+          )}
+
+          {activeTab === 'credits' && (
+            <div className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-[#1e293b] rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm min-h-[600px] relative overflow-hidden text-center">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+              <div className="max-w-4xl w-full text-center space-y-12 relative z-10 text-center">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center justify-center p-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-500 rounded-2xl shadow-sm mb-2 animate-bounce">
+                    <Heart size={48} fill="currentColor" />
+                  </div>
+                  <div>
+                    <h2 className="text-5xl font-extrabold tracking-tighter uppercase leading-tight text-slate-800 dark:text-white">
+                      Smart<span className="text-red-600 dark:text-red-500">Stock</span>
+                    </h2>
+                    <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mt-2">Professional Warehouse Management</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                  {/* Card 1: Info */}
+                  {/* Card 1: Info */}
+                  <div className="bg-slate-50 dark:bg-[#0f172a] p-8 rounded-[24px] border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all group duration-300">
+                    <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                      <div className="w-1 h-5 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+                      Thông tin phát triển
+                    </h3>
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white dark:bg-[#1e293b] rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">
+                          <Users size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Tác giả & Ý tưởng</p>
+                          <p className="text-lg font-extrabold text-slate-800 dark:text-white">Phạm Đức Duy</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white dark:bg-[#1e293b] rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">
+                          <Info size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Phiên bản hiện tại</p>
+                          <p className="text-lg font-extrabold text-slate-800 dark:text-white">v3.7.0 <span className="text-blue-600 dark:text-blue-400 text-sm">PRO PREMIUM</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Gratitude */}
+                  <div className="bg-slate-50 dark:bg-[#0f172a] p-8 rounded-[24px] border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all relative overflow-hidden group">
+                    <div className="absolute -right-8 -bottom-8 opacity-[0.03] dark:opacity-[0.05] group-hover:scale-110 transition-transform duration-500">
+                      <Warehouse size={160} />
+                    </div>
+                    <div className="relative z-10">
+                      <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+                        Lời tri ân
+                      </h3>
+                      <p className="text-base font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                        "Ứng dụng này được xây dựng bởi <span className="font-extrabold text-slate-800 dark:text-white">Phạm Đức Duy</span> với niềm đam mê dành tặng riêng cho các anh chị em bộ phận <span className="font-extrabold text-slate-800 dark:text-white uppercase italic">Kho - HL Windows</span>.
+                        <br /><br />
+                        Chúc mọi người luôn mạnh khỏe, hạnh phúc và thành công trên mọi chặng đường."
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-slate-100 dark:border-slate-700">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">Designed & Developed with ❤️ for You</p>
+                  <p className="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase mt-4">Copyright © 2026 SmartStock. All Rights Reserved.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'warehouse_transfer' && (
+            <WarehouseTransfer
+              materials={materials}
+              transferForm={transferForm}
+              setTransferForm={setTransferForm}
+              modalError={modalError}
+              handleTransfer={handleTransfer}
+              formatNumber={formatNumber}
+              parseNumber={parseNumber}
+              receiptSearchClass={receiptSearchClass}
+              setReceiptSearchClass={setReceiptSearchClass}
+            />
+          )}
+
+          {activeTab === 'warehouse_receipt' && (
+            <WarehouseReceipt
+              receiptType={receiptType}
+              setReceiptType={setReceiptType}
+              receiptWorkshop={receiptWorkshop}
+              setReceiptWorkshop={setReceiptWorkshop}
+              receiptId={receiptId}
+              setReceiptId={setReceiptId}
+              receiptTimeDisplay={receiptTimeDisplay}
+              setReceiptTimeDisplay={setReceiptTimeDisplay}
+              receiptTime={receiptTime}
+              setReceiptTime={setReceiptTime}
+              orderCode={orderCode}
+              setOrderCode={setOrderCode}
+              receiptSupplier={receiptSupplier}
+              setReceiptSupplier={setReceiptSupplier}
+              selectedItems={selectedItems}
+              setSelectedItems={setSelectedItems}
+              materials={materials}
+              receiptSearchWorkshop={receiptSearchWorkshop}
+              setReceiptSearchWorkshop={setReceiptSearchWorkshop}
+              receiptSearchClass={receiptSearchClass}
+              setReceiptSearchClass={setReceiptSearchClass}
+              materialSearch={materialSearch}
+              setMaterialSearch={setMaterialSearch}
+              modalError={modalError}
+              handleCreateReceipt={handleCreateReceipt}
+              requestConfirm={requestConfirm}
+              formatNumber={formatNumber}
+              parseNumber={parseNumber}
+            />
+          )}
+
+          {activeTab === 'warehouse_customers' && (
+            <CustomerCodeManagement
+              onUpdate={loadData}
+            />
+          )}
+
+          {activeTab === 'planning_projects' && (
+            <PlanningProjects
+              projects={projects}
+              currentUser={currentUser}
+              onUpdate={loadData}
+            />
+          )}
+
+          {activeTab === 'planning_estimates' && (
+            <PlanningEstimates
+              budgets={budgets}
+              projects={projects}
+              materials={materials}
+              transactions={transactions}
+              currentUser={currentUser}
+              onUpdate={loadData}
+            />
+          )}
+        </div>
+      </main>
+
+      {/* CONFIRM DIALOG */}
+      {
+        confirmDialog.isOpen && (
+          <div className="print:hidden fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6 modal-backdrop transition-all duration-200">
+            <div className="w-full max-w-sm bg-white dark:bg-[#1e293b] rounded-2xl p-6 shadow-xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700">
+              <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-2xl ${confirmDialog.type === 'danger' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                {confirmDialog.type === 'danger' ? <AlertTriangle size={32} /> : <HelpCircle size={32} />}
+              </div>
+              <div>
+                <h4 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{confirmDialog.title}</h4>
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">Hủy</button>
+                <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 text-white font-bold rounded-xl text-sm shadow-md transition-all ${confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>Xác nhận</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+
+
+
+
+
+
+
+      {/* MODAL: BUDGET OVERHAUL */}
+      {/* Budget Modal moved to OrderManagement */}
+
+      {/* MODAL: USER MANAGEMENT */}
+
+
+      {/* MODAL: ACCOUNT MANAGEMENT */}
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        currentUser={currentUser}
+        modalError={modalError}
+        accountForm={accountForm}
+        setAccountForm={setAccountForm}
+        isServerMode={connectionConfig.mode === 'SERVER'}
+        onClose={() => setIsAccountModalOpen(false)}
+        onBackup={handleBackup}
+        onUpdate={handleUpdateAccount}
+      />
+      {/* MODAL: EXCEL IMPORT */}
+
+    </div >
+  );
+};
+
+export default App;
