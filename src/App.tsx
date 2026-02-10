@@ -51,6 +51,7 @@ import { io } from 'socket.io-client';
 import { UserManagement } from './features/admin/UserManagement';
 import { MaterialManagement } from './features/warehouse/MaterialManagement';
 import { WarehouseTransfer } from './features/warehouse/WarehouseTransfer';
+import { useWarehouseTransfer } from './features/warehouse/hooks/useWarehouseTransfer';
 import { WarehouseReceipt } from './features/warehouse/WarehouseReceipt';
 import { CustomerCodeManagement } from './features/warehouse/CustomerCodeManagement';
 import { PlanningProjects } from './features/planning/PlanningProjects';
@@ -403,19 +404,14 @@ const App: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<{ materialId: string, quantity: number }[]>([]);
   const [materialSearch, setMaterialSearch] = useState('');
 
-  const [transferForm, setTransferForm] = useState({
-    items: [] as { materialId: string, quantity: number }[],
-    fromWorkshop: 'OG' as WorkshopCode,
-    toWorkshop: 'CK' as WorkshopCode,
-    orderCode: '',
-    receiptId: '',
-    search: ''
-  });
+
 
   // Budget state moved to OrderManagement
 
   const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopCode>('OG');
   // ordersWorkshopFilter moved to OrderManagement
+
+
 
 
 
@@ -439,13 +435,6 @@ const App: React.FC = () => {
       setReceiptTimeDisplay(`${dd}/${mm}/${yyyy}`);
 
       setReceiptSupplier('');
-    }
-    if (activeTab === 'warehouse_transfer') {
-      setTransferForm(prev => ({
-        ...prev,
-        receiptId: generateReceiptId(TransactionType.TRANSFER, prev.fromWorkshop),
-        transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      }));
     }
   }, [activeTab, receiptType, receiptWorkshop]);
 
@@ -662,46 +651,28 @@ const App: React.FC = () => {
     });
   };
 
-  const handleTransfer = () => {
-    const { items, fromWorkshop, toWorkshop, orderCode, receiptId } = transferForm;
-    if (items.length === 0 || fromWorkshop === toWorkshop) {
-      setModalError('Vui lòng chọn vật tư và kho đích khác kho nguồn.'); return;
-    }
 
-    requestConfirm('Xác nhận điều chuyển', `Chuyển ${items.length} loại vật tư từ ${fromWorkshop} sang ${toWorkshop}?`, async () => {
-      const finalReceiptId = receiptId.trim() || generateReceiptId(TransactionType.TRANSFER, fromWorkshop);
-      try {
-        const commitRes = await apiCall('/api/transactions/commit', 'POST', {
-          mode: 'TRANSFER',
-          payload: {
-            fromWorkshop,
-            toWorkshop,
-            receiptId: finalReceiptId,
-            transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            orderCode: orderCode || undefined,
-            user: currentUser?.fullName || userRole,
-            items
-          }
-        });
 
-        if (!commitRes.ok) {
-          const errBody = await commitRes.json().catch(() => ({ error: 'Điều chuyển thất bại' }));
-          setModalError(errBody.error || 'Điều chuyển thất bại');
-          return;
-        }
 
-        await loadData();
-        logActivity(`Điều chuyển ${items.length} loại vật tư từ ${fromWorkshop} sang ${toWorkshop}`, 'TRANSACTION', finalReceiptId);
-        setActiveTab('warehouse_inventory');
-        setModalError(null);
-        setTransferForm(prev => ({ ...prev, items: [], orderCode: '', receiptId: '' }));
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-      } catch (err) {
-        console.error("Lỗi đồng bộ điều chuyển:", err);
-        setModalError('Không thể điều chuyển. Vui lòng thử lại.');
-      }
-    });
-  };
+  const {
+    transferForm,
+    setTransferForm,
+    handleTransfer,
+    receiptSearchClass: transferSearchClass,
+    setReceiptSearchClass: setTransferSearchClass
+  } = useWarehouseTransfer({
+    transactions,
+    currentUser,
+    userRole,
+    activeTab,
+    apiCall,
+    loadData,
+    logActivity,
+    setActiveTab,
+    requestConfirm,
+    setModalError,
+    closeConfirmDialog: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+  });
 
   const handleDeleteTransaction = (tx: Transaction) => {
     requestConfirm(
@@ -1151,8 +1122,8 @@ const App: React.FC = () => {
               handleTransfer={handleTransfer}
               formatNumber={formatNumber}
               parseNumber={parseNumber}
-              receiptSearchClass={receiptSearchClass}
-              setReceiptSearchClass={setReceiptSearchClass}
+              receiptSearchClass={transferSearchClass}
+              setReceiptSearchClass={setTransferSearchClass}
             />
           )}
 
