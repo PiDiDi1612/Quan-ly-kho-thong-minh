@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Transaction, User, UserRole, WorkshopCode, TransactionType } from '../../../types';
 import { AppTab } from '../../layout/AppSidebar';
+import { transactionService } from '../../../domain/services/TransactionService';
+import { useToast } from '../../../hooks/useToast';
 
 interface UseWarehouseTransferProps {
     transactions: Transaction[];
     currentUser: User | null;
     userRole: UserRole;
     activeTab: AppTab;
-    apiCall: (endpoint: string, method: string, body?: any) => Promise<any>;
-    loadData: () => Promise<any>; // Changed return type to any to match App.tsx usage
+    // apiCall removed
+    loadData: () => Promise<any>;
     logActivity: (action: string, entityType: any, entityId?: string, details?: string) => void;
     setActiveTab: (tab: AppTab) => void;
     requestConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'info') => void;
@@ -21,7 +23,6 @@ export const useWarehouseTransfer = ({
     currentUser,
     userRole,
     activeTab,
-    apiCall,
     loadData,
     logActivity,
     setActiveTab,
@@ -70,6 +71,8 @@ export const useWarehouseTransfer = ({
         }
     }, [activeTab, transferForm.fromWorkshop, transactions]);
 
+    const toast = useToast();
+
     const handleTransfer = () => {
         const { items, fromWorkshop, toWorkshop, orderCode, receiptId } = transferForm;
         if (items.length === 0 || fromWorkshop === toWorkshop) {
@@ -79,22 +82,17 @@ export const useWarehouseTransfer = ({
         requestConfirm('Xác nhận điều chuyển', `Chuyển ${items.length} loại vật tư từ ${fromWorkshop} sang ${toWorkshop}?`, async () => {
             const finalReceiptId = receiptId.trim() || generateReceiptId(TransactionType.TRANSFER, fromWorkshop);
             try {
-                const commitRes = await apiCall('/api/transactions/commit', 'POST', {
-                    mode: 'TRANSFER',
-                    payload: {
-                        fromWorkshop,
-                        toWorkshop,
-                        receiptId: finalReceiptId,
-                        transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-                        orderCode: orderCode || undefined,
-                        user: currentUser?.fullName || userRole,
-                        items
-                    }
+                const result = await transactionService.createBatchTransfer({
+                    receiptId: finalReceiptId,
+                    fromWorkshop,
+                    toWorkshop,
+                    orderCode: orderCode || undefined,
+                    user: currentUser?.fullName || userRole,
+                    items
                 });
 
-                if (!commitRes.ok) {
-                    const errBody = await commitRes.json().catch(() => ({ error: 'Điều chuyển thất bại' }));
-                    setModalError(errBody.error || 'Điều chuyển thất bại');
+                if (!result.success) {
+                    setModalError(result.error || 'Điều chuyển thất bại');
                     return;
                 }
 
@@ -104,9 +102,10 @@ export const useWarehouseTransfer = ({
                 setModalError(null);
                 setTransferForm(prev => ({ ...prev, items: [], orderCode: '', receiptId: '' }));
                 closeConfirmDialog();
-            } catch (err) {
+                toast.success('Điều chuyển vật tư thành công!');
+            } catch (err: any) {
                 console.error("Lỗi đồng bộ điều chuyển:", err);
-                setModalError('Không thể điều chuyển. Vui lòng thử lại.');
+                setModalError(err.message || 'Không thể điều chuyển. Vui lòng thử lại.');
             }
         });
     };

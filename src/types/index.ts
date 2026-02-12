@@ -61,6 +61,12 @@ export interface Material {
   workshop: WorkshopCode;
   origin: string; // Xuất xứ vật tư
   image?: string; // Hình ảnh vật tư (base64)
+
+  // Stock Report Fields (populated by API when date range provided)
+  openingStock?: number;
+  closingStock?: number;
+  periodIn?: number;
+  periodOut?: number;
   note?: string;
 }
 
@@ -112,4 +118,33 @@ export interface Transaction {
   supplier?: string;
   transactionTime?: string;
   note?: string;
+}
+
+export interface CreateUserData {
+  username: string;
+  fullName: string;
+  password?: string;
+  role: UserRole;
+  email?: string;
+  permissions?: Permission[];
+  createdBy?: string;
+}
+
+export interface UpdateUserData {
+  fullName?: string;
+  password?: string;
+  role?: UserRole;
+  email?: string;
+  permissions?: Permission[];
+  isActive?: boolean;
+}
+
+export interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
 }

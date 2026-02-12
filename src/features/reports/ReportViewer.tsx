@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/Input';
 import { DateInput } from '../../components/ui/DateInput';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { apiService } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 
 interface ReportViewerProps {
     transactions: Transaction[];
@@ -30,6 +31,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
     onRefresh,
     initialTab = 'history'
 }) => {
+    const toast = useToast();
     const toStartOfDay = (value: string) => {
         const d = new Date(value);
         d.setHours(0, 0, 0, 0);
@@ -119,7 +121,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            alert("Lỗi khi in hàng loạt");
+            toast.error("Lỗi khi in hàng loạt");
         }
     };
 
@@ -146,7 +148,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            alert("Lỗi khi in phiếu");
+            toast.error("Lỗi khi in phiếu");
         }
     };
 
@@ -262,7 +264,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                     onRefresh();
                 } catch (error) {
                     console.error(error);
-                    alert("Lỗi khi xóa giao dịch");
+                    toast.error("Lỗi khi xóa giao dịch");
                 }
             }
         });
@@ -291,7 +293,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                     await apiService.post('/api/activity_logs/delete', { id });
                     onRefresh();
                 } catch (e) {
-                    alert('Lỗi xóa nhật ký');
+                    toast.error('Lỗi xóa nhật ký');
                 }
             }
         });
@@ -308,7 +310,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                     await apiService.post('/api/activity_logs/clear', {});
                     onRefresh();
                 } catch (e) {
-                    alert('Lỗi xóa tất cả nhật ký');
+                    toast.error('Lỗi xóa tất cả nhật ký');
                 }
             }
         });

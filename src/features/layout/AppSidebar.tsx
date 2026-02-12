@@ -18,10 +18,11 @@ export type AppTab =
   | 'warehouse_inventory'
   | 'warehouse_transfer'
   | 'warehouse_receipt'
+  | 'warehouse_history'
+  | 'warehouse_merge'
   | 'warehouse_customers'
   | 'planning_projects'
   | 'planning_estimates'
-  | 'reports_history'
   | 'reports_activity'
   | 'users'
   | 'account'
@@ -53,7 +54,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onLogout,
   onOpenAccount
 }) => {
-  const [expandedItems, setExpandedItems] = React.useState<string[]>(['warehouse', 'reports', 'planning_dept']);
+  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev =>
@@ -71,7 +72,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: 'warehouse_inventory', label: 'Danh sách vật tư' },
         { id: 'warehouse_transfer', label: 'Điều chuyển' },
         { id: 'warehouse_receipt', label: 'Lập phiếu' },
-        { id: 'warehouse_customers', label: 'Cấu hình mã khách' }
+        { id: 'warehouse_history', label: 'Lịch sử nhập xuất' },
+        { id: 'warehouse_merge', label: 'Hợp nhất vật tư' },
+        { id: 'warehouse_customers', label: 'Quản lý NCC' }
       ]
     },
     {
@@ -88,7 +91,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       icon: FileText,
       label: 'Báo cáo',
       subItems: [
-        { id: 'reports_history', label: 'Lịch sử nhập xuất' },
         { id: 'reports_activity', label: 'Nhật ký hoạt động' }
       ]
     },

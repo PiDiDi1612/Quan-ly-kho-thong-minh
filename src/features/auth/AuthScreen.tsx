@@ -22,6 +22,8 @@ interface AuthScreenProps {
   showPassword: boolean;
   setShowPassword: (v: boolean) => void;
   loginError: string | null;
+  rememberMe: boolean;
+  setRememberMe: (v: boolean) => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
@@ -35,7 +37,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   setLoginForm,
   showPassword,
   setShowPassword,
-  loginError
+  loginError,
+  rememberMe,
+  setRememberMe
 }) => {
   return (
     <div className="app-bg-gradient app-readable flex min-h-screen items-center justify-center p-6 font-inter transition-colors duration-300">
@@ -92,11 +96,32 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors z-10 p-1"
+                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 transition-all checked:border-blue-600 checked:bg-blue-600 dark:border-slate-600 dark:checked:border-blue-500 dark:checked:bg-blue-500"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              </div>
+              <label htmlFor="remember-me" className="cursor-pointer text-sm font-bold text-slate-600 dark:text-slate-300 select-none">
+                Ghi nhớ đăng nhập
+              </label>
             </div>
 
             {loginError && (
@@ -105,7 +130,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </div>
             )}
 
-            <button type="submit" className="w-full py-5 btn-primary text-white rounded-2xl font-extrabold uppercase text-sm tracking-widest active:scale-95">
+            <button
+              type="submit"
+              disabled={!loginForm.username || !loginForm.password}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+            >
               Đăng nhập
             </button>
           </form>

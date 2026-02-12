@@ -7,6 +7,7 @@ import { Project, User } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { apiService } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 
 interface PlanningProjectsProps {
     projects: Project[];
@@ -15,6 +16,7 @@ interface PlanningProjectsProps {
 }
 
 export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, currentUser, onUpdate }) => {
+    const toast = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -41,7 +43,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
 
     const handleSave = async () => {
         if (!formData.name) {
-            alert('Vui lòng nhập tên dự án');
+            toast.warning('Vui lòng nhập tên dự án');
             return;
         }
 
@@ -56,7 +58,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
             onUpdate();
         } catch (e) {
             console.error(e);
-            alert('Lỗi khi lưu cấu hình dự án');
+            toast.error('Lỗi khi lưu cấu hình dự án');
         }
     };
 
@@ -67,7 +69,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
             onUpdate();
         } catch (e) {
             console.error(e);
-            alert('Lỗi khi xóa dự án');
+            toast.error('Lỗi khi xóa dự án');
         }
     };
 
@@ -104,10 +106,10 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                     await apiService.post('/api/projects/save', project);
                 }
                 onUpdate();
-                alert('Đã nhập thành công danh sách dự án!');
+                toast.success('Đã nhập thành công danh sách dự án!');
             } catch (err) {
                 console.error(err);
-                alert('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng.');
+                toast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng.');
             }
         };
         reader.readAsBinaryString(file);

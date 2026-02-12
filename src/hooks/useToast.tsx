@@ -22,12 +22,12 @@ interface ToastStore {
 export const useToast = create<ToastStore>((set) => ({
     toasts: [],
 
-    addToast: (type, message, duration = 4000) => {
+    addToast: (type, message, duration = 5000) => {
         const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const toast: Toast = { id, type, message, duration };
 
         set((state) => ({
-            toasts: [...state.toasts, toast].slice(-3) // Keep max 3 toasts
+            toasts: [...state.toasts, toast].slice(-4) // Keep max 4 toasts
         }));
 
         if (duration > 0) {

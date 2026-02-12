@@ -40,6 +40,7 @@ interface WarehouseReceiptProps {
     materialSearch: string;
     setMaterialSearch: (s: string) => void;
     modalError: string | null;
+    suppliers: any[]; // Danh sách NCC
     handleCreateReceipt: () => void;
     requestConfirm: (title: string, msg: string, onConfirm: () => void, type?: any) => void;
     formatNumber: (n: any) => string;
@@ -71,6 +72,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
     materialSearch,
     setMaterialSearch,
     modalError,
+    suppliers,
     handleCreateReceipt,
     requestConfirm,
     formatNumber,
@@ -153,14 +155,62 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã đơn hàng</label>
-                                    <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-blue-500 shadow-sm" placeholder="DH..." value={orderCode} onChange={e => setOrderCode(e.target.value.toUpperCase())} />
-                                </div>
                                 {receiptType === TransactionType.IN && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Nhà cung cấp</label>
-                                        <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm" placeholder="VD: NCC A" value={receiptSupplier} onChange={e => setReceiptSupplier(e.target.value)} />
+                                    <>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã NCC</label>
+                                            <input
+                                                type="text"
+                                                list="supplier-codes"
+                                                className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-blue-500 shadow-sm transition-all"
+                                                placeholder="Gõ hoặc chọn mã NCC"
+                                                value={orderCode}
+                                                onChange={e => {
+                                                    const inputCode = e.target.value.toUpperCase();
+                                                    setOrderCode(inputCode);
+                                                    // Tự động điền tên NCC khi tìm thấy mã khớp
+                                                    const matchedSupplier = suppliers.find(s => s.code === inputCode);
+                                                    if (matchedSupplier) {
+                                                        setReceiptSupplier(matchedSupplier.name);
+                                                    }
+                                                }}
+                                            />
+                                            <datalist id="supplier-codes">
+                                                {suppliers.map(s => (
+                                                    <option key={s.id} value={s.code}>{s.name}</option>
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Tên NCC</label>
+                                            <input
+                                                type="text"
+                                                list="supplier-names"
+                                                className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm transition-all"
+                                                placeholder="Gõ hoặc chọn tên NCC"
+                                                value={receiptSupplier}
+                                                onChange={e => {
+                                                    const inputName = e.target.value;
+                                                    setReceiptSupplier(inputName);
+                                                    // Tự động điền mã NCC khi tìm thấy tên khớp
+                                                    const matchedSupplier = suppliers.find(s => s.name === inputName);
+                                                    if (matchedSupplier) {
+                                                        setOrderCode(matchedSupplier.code);
+                                                    }
+                                                }}
+                                            />
+                                            <datalist id="supplier-names">
+                                                {suppliers.map(s => (
+                                                    <option key={s.id} value={s.name}>{s.code}</option>
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                    </>
+                                )}
+                                {receiptType === TransactionType.OUT && (
+                                    <div className="space-y-1.5 col-span-2">
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã đơn hàng</label>
+                                        <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-blue-500 shadow-sm" placeholder="DH..." value={orderCode} onChange={e => setOrderCode(e.target.value.toUpperCase())} />
                                     </div>
                                 )}
                             </div>
@@ -218,16 +268,10 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
 
                 {/* CỘT PHẢI: TÌM VẬT TƯ NGUỒN (WIDER) */}
                 <div className="col-span-12 xl:col-span-8 bg-slate-50 dark:bg-slate-800/20 rounded-[20px] p-6 flex flex-col overflow-hidden border border-slate-200/60 dark:border-slate-700/50 shadow-inner">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 shrink-0">
+                    <div className="grid grid-cols-1 gap-4 mb-4 shrink-0">
                         <div className="relative">
                             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input type="text" placeholder="Gõ tên vật tư để tìm kiếm..." className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-sm text-slate-800 dark:text-slate-200 outline-none shadow-sm focus:border-blue-500 transition-all" value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-1 p-1 bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar shadow-sm">
-                                <button onClick={() => setReceiptSearchWorkshop('ALL')} className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-all ${receiptSearchWorkshop === 'ALL' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Tất cả Xưởng</button>
-                                {WORKSHOPS.map(w => <button key={w.code} onClick={() => setReceiptSearchWorkshop(w.code)} className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-all ${receiptSearchWorkshop === w.code ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>{w.code}</button>)}
-                            </div>
                         </div>
                     </div>
 
@@ -241,7 +285,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {materials.filter(m => {
                                 const matchSearch = m.name.toLowerCase().includes(materialSearch.toLowerCase());
-                                const matchWorkshop = receiptSearchWorkshop === 'ALL' || m.workshop === receiptSearchWorkshop;
+                                const matchWorkshop = m.workshop === receiptWorkshop; // Auto-filter by selected receiptWorkshop
                                 const matchClass = receiptSearchClass === 'ALL' || m.classification === receiptSearchClass;
                                 return matchSearch && matchWorkshop && matchClass;
                             }).map(m => {

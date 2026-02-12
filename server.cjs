@@ -280,22 +280,15 @@ const isTableEmpty = (tableName) => {
 };
 
 // Seed Data (Inlined)
-const SEED_MATERIALS = [
-    { id: '1', name: 'Xi măng Hà Tiên PC40', classification: 'Vật tư chính', unit: 'Bao', quantity: 150, minThreshold: 50, lastUpdated: '2024-05-15', workshop: 'OG', origin: 'Việt Nam', note: 'Vật tư nhập lô lớn' },
-    { id: '2', name: 'Thép phi 10', classification: 'Vật tư chính', unit: 'Cây', quantity: 200, minThreshold: 30, lastUpdated: '2024-05-16', workshop: 'CK', origin: 'Hòa Phát' },
-    { id: '3', name: 'Gỗ MDF An Cường', classification: 'Vật tư chính', unit: 'Tấm', quantity: 45, minThreshold: 10, lastUpdated: '2024-05-14', workshop: 'NT', origin: 'Việt Nam' },
-    { id: '4', name: 'Bulong M10x50', classification: 'Vật tư phụ', unit: 'Cái', quantity: 500, minThreshold: 100, lastUpdated: '2024-05-17', workshop: 'CK', origin: 'Đài Loan', note: 'Dùng cho dự án PCCC' },
-];
+// REMOVED: SEED_MATERIALS - App should start with empty material database
+// Users will add their own materials as needed
 
 const SEED_USERS = [
     { id: 'u1', username: 'admin', password: '123', fullName: 'Quản trị viên', email: 'admin@smartstock.com', role: 'ADMIN', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'MANAGE_USERS', 'VIEW_ACTIVITY_LOG', 'MANAGE_SETTINGS']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
     { id: 'u2', username: 'manager', password: '123', fullName: 'Quản lý kho', email: 'manager@smartstock.com', role: 'MANAGER', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'VIEW_ACTIVITY_LOG']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
 ];
 
-if (isTableEmpty('materials')) {
-    const insert = db.prepare(`INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image) VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image)`);
-    SEED_MATERIALS.forEach(m => insert.run({ note: null, image: null, ...m }));
-}
+// REMOVED: Material seed initialization - database starts empty
 
 if (isTableEmpty('users')) {
     const insert = db.prepare(`INSERT INTO users (id, username, password, fullName, email, role, permissions, isActive, createdAt, lastLogin, createdBy) VALUES (@id, @username, @password, @fullName, @email, @role, @permissions, @isActive, @createdAt, @lastLogin, @createdBy)`);
@@ -313,14 +306,33 @@ for (const user of legacyUsers) {
 
 app.get('/api/system-info', (req, res) => {
     const nets = os.networkInterfaces();
+    let fallbacks = [];
+
     for (const name of Object.keys(nets)) {
         for (const net of nets[name] || []) {
-            if (net.family === 'IPv4' && !net.internal) {
-                return res.json({ ip: net.address });
+            // Support both net.family='IPv4' (older Node) and net.family=4 (newer Node)
+            const isIPv4 = net.family === 'IPv4' || net.family === 4;
+            if (isIPv4 && !net.internal) {
+                // Priority for common local ranges
+                const isPrivate =
+                    net.address.startsWith('192.168.') ||
+                    net.address.startsWith('10.') ||
+                    net.address.startsWith('172.16.') ||
+                    net.address.startsWith('172.17.') ||
+                    net.address.startsWith('172.18.') ||
+                    net.address.startsWith('172.19.') ||
+                    net.address.startsWith('172.20.') ||
+                    net.address.startsWith('172.31.');
+
+                if (isPrivate) {
+                    return res.json({ ip: net.address });
+                }
+                fallbacks.push(net.address);
             }
         }
     }
-    return res.json({ ip: '127.0.0.1' });
+    // Return the first non-internal IPv4 found if no private one matched
+    return res.json({ ip: fallbacks.length > 0 ? fallbacks[0] : '127.0.0.1' });
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -362,7 +374,88 @@ app.post('/api/auth/logout', (req, res) => {
 app.use('/api', authMiddleware);
 
 // API Endpoints
-app.get('/api/materials', (req, res) => res.json(db.prepare('SELECT * FROM materials').all()));
+app.get('/api/materials', (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+        return res.json(db.prepare('SELECT * FROM materials').all());
+    }
+
+    // Logic: Calculate Opening and Closing stock relative to Current Stock
+    // Closing (at endDate) = Current - (Net Change after endDate)
+    // Opening (at startDate) = Current - (Net Change >= startDate)
+
+    // Net Change = (In + TransferIn) - (Out + TransferOut)
+
+    const sql = `
+        SELECT 
+            m.*,
+            (m.quantity - COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
+                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
+                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN -t.quantity
+                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN -t.quantity
+                        ELSE 0 
+                    END
+                )
+                FROM transactions t
+                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
+                  AND t.date > @endDate
+            ), 0)) as closingStock,
+            
+            (m.quantity - COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
+                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
+                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN -t.quantity
+                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN -t.quantity
+                        ELSE 0 
+                    END
+                )
+                FROM transactions t
+                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
+                  AND t.date >= @startDate
+            ), 0)) as openingStock,
+            
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
+                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
+                        ELSE 0 
+                    END
+                )
+                FROM transactions t
+                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
+                  AND t.date >= @startDate AND t.date <= @endDate
+            ), 0) as periodIn,
+            
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN t.quantity
+                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
+                        ELSE 0 
+                    END
+                )
+                FROM transactions t
+                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
+                  AND t.date >= @startDate AND t.date <= @endDate
+            ), 0) as periodOut
+        FROM materials m
+    `;
+
+    try {
+        const materials = db.prepare(sql).all({ startDate, endDate });
+        res.json(materials);
+    } catch (error) {
+        console.error("Error calculating stock:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
 app.get('/api/transactions', (req, res) => res.json(db.prepare('SELECT * FROM transactions ORDER BY date DESC').all()));
 app.get('/api/users', requirePermission('MANAGE_USERS'), (req, res) => res.json(db.prepare('SELECT * FROM users').all().map(sanitizeUser)));
 app.get('/api/budgets', (req, res) => res.json(db.prepare('SELECT * FROM budgets').all().map(b => ({ ...b, items: parseJsonSafe(b.items, []) }))));
@@ -371,22 +464,38 @@ app.get('/api/projects', (req, res) => res.json(db.prepare('SELECT * FROM projec
 app.get('/api/suppliers', (req, res) => res.json(db.prepare('SELECT * FROM suppliers ORDER BY createdAt DESC').all()));
 
 
-app.post('/api/materials/save', (req, res) => {
+app.post('/api/materials/save', verifyToken, (req, res) => {
     const material = { note: '', image: '', ...req.body };
     db.prepare(`INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image) VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image) ON CONFLICT(id) DO UPDATE SET name=excluded.name, classification=excluded.classification, unit=excluded.unit, quantity=excluded.quantity, minThreshold=excluded.minThreshold, lastUpdated=excluded.lastUpdated, workshop=excluded.workshop, origin=excluded.origin, note=excluded.note, image=excluded.image`).run(material);
     notifyUpdate();
     res.json({ success: true });
 });
 
-app.post('/api/materials/delete', (req, res) => {
-    db.prepare('DELETE FROM materials WHERE id = ?').run(req.body.id);
+app.delete('/api/materials/:id', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+    const { id } = req.params;
+
+    // Check if material has transactions
+    const hasTransactions = db.prepare('SELECT COUNT(*) as count FROM transactions WHERE materialId = ? OR targetMaterialId = ?').get(id, id);
+
+    if (hasTransactions.count > 0) {
+        return res.status(400).json({
+            success: false,
+            error: `Không thể xóa vật tư này vì đã có ${hasTransactions.count} giao dịch liên quan. Vui lòng hợp nhất thay vì xóa.`
+        });
+    }
+
+    db.prepare('DELETE FROM materials WHERE id = ?').run(id);
     notifyUpdate();
     res.json({ success: true });
 });
 
+
+
+
+
 app.post('/api/transactions/save', (req, res) => {
     const tx = req.body;
-    db.prepare(`INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note) VALUES (@id, @receiptId, @materialId, @materialName, @type, @quantity, @date, @transactionTime, @user, @workshop, @targetWorkshop, @targetMaterialId, @orderCode, @note)`).run({
+    db.prepare(`INSERT OR REPLACE INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note) VALUES (@id, @receiptId, @materialId, @materialName, @type, @quantity, @date, @transactionTime, @user, @workshop, @targetWorkshop, @targetMaterialId, @orderCode, @note)`).run({
         targetWorkshop: null,
         targetMaterialId: null,
         orderCode: null,
@@ -555,7 +664,13 @@ app.post('/api/transactions/commit', (req, res) => {
                     id: generateMaterialIdForWorkshop(toWorkshop),
                     workshop: toWorkshop,
                     quantity: 0,
-                    lastUpdated: todayISO()
+                    lastUpdated: todayISO(),
+                    // Ensure all properties are explicitly preserved from source
+                    classification: sourceMat.classification,
+                    unit: sourceMat.unit,
+                    origin: sourceMat.origin,
+                    note: sourceMat.note,
+                    image: sourceMat.image
                 };
                 insertMaterial.run(destMat);
             }
@@ -622,7 +737,19 @@ app.post('/api/transactions/delete_with_revert', requirePermission('DELETE_TRANS
         if (tx.type === 'IN') {
             const mat = findById.get(tx.materialId);
             if (mat) {
-                updateMaterialQty.run(roundQty(Number(mat.quantity) - Number(tx.quantity)), todayISO(), mat.id);
+                const newQty = roundQty(Number(mat.quantity) - Number(tx.quantity));
+
+                // VALIDATION: Prevent negative stock
+                if (newQty < 0) {
+                    throw new Error(
+                        `Không thể xóa giao dịch nhập này vì sẽ làm tồn kho âm. ` +
+                        `Tồn hiện tại: ${roundQty(mat.quantity)} ${mat.unit}, ` +
+                        `giao dịch nhập: ${tx.quantity} ${mat.unit}. ` +
+                        `Cần có ít nhất ${roundQty(tx.quantity)} ${mat.unit} trong kho để xóa.`
+                    );
+                }
+
+                updateMaterialQty.run(newQty, todayISO(), mat.id);
             }
         } else if (tx.type === 'OUT') {
             const mat = findById.get(tx.materialId);
@@ -639,7 +766,18 @@ app.post('/api/transactions/delete_with_revert', requirePermission('DELETE_TRANS
                 ? findById.get(tx.targetMaterialId)
                 : findByNameWorkshop.get(tx.materialName, tx.targetWorkshop);
             if (destMat) {
-                updateMaterialQty.run(roundQty(Number(destMat.quantity) - Number(tx.quantity)), todayISO(), destMat.id);
+                const newQty = roundQty(Number(destMat.quantity) - Number(tx.quantity));
+
+                // VALIDATION: Prevent negative stock at destination
+                if (newQty < 0) {
+                    throw new Error(
+                        `Không thể xóa giao dịch điều chuyển này vì sẽ làm tồn kho âm tại xưởng đích. ` +
+                        `Tồn hiện tại: ${roundQty(destMat.quantity)} ${destMat.unit}, ` +
+                        `cần trừ: ${tx.quantity} ${destMat.unit}.`
+                    );
+                }
+
+                updateMaterialQty.run(newQty, todayISO(), destMat.id);
             }
         }
 
@@ -656,7 +794,86 @@ app.post('/api/transactions/delete_with_revert', requirePermission('DELETE_TRANS
     }
 });
 
-app.post('/api/budgets/save', (req, res) => {
+// Update transaction quantity
+app.post('/api/transactions/update', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+    const { id, quantity } = req.body;
+
+    if (!id || !quantity || quantity <= 0) {
+        return res.status(400).json({ success: false, error: 'Dữ liệu không hợp lệ.' });
+    }
+
+    const updateTransaction = db.transaction(() => {
+        // Get current transaction
+        const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(id);
+        if (!tx) throw new Error('Không tìm thấy giao dịch.');
+
+        const oldQuantity = Number(tx.quantity);
+        const newQuantity = Number(quantity);
+        const quantityDiff = newQuantity - oldQuantity;
+
+        if (quantityDiff === 0) {
+            return { success: true, message: 'Không có thay đổi.' };
+        }
+
+        // Helper functions
+        const updateMaterialQty = db.prepare("UPDATE materials SET quantity = ?, lastUpdated = ? WHERE id = ?");
+        const findById = db.prepare("SELECT * FROM materials WHERE id = ? LIMIT 1");
+        const findByNameWorkshop = db.prepare("SELECT * FROM materials WHERE name = ? AND workshop = ? LIMIT 1");
+
+        // Update material quantities based on transaction type
+        if (tx.type === 'IN') {
+            // For IN: increase material quantity by diff
+            const mat = findById.get(tx.materialId);
+            if (mat) {
+                const newQty = roundQty(Number(mat.quantity) + quantityDiff);
+                updateMaterialQty.run(newQty, todayISO(), mat.id);
+            }
+        } else if (tx.type === 'OUT') {
+            // For OUT: decrease material quantity by diff
+            const mat = findById.get(tx.materialId);
+            if (mat) {
+                const newQty = roundQty(Number(mat.quantity) - quantityDiff);
+                if (newQty < 0) {
+                    throw new Error('Số lượng tồn kho không đủ để thực hiện thay đổi này.');
+                }
+                updateMaterialQty.run(newQty, todayISO(), mat.id);
+            }
+        } else if (tx.type === 'TRANSFER') {
+            // For TRANSFER: adjust both source and destination
+            const sourceMat = findById.get(tx.materialId) || findByNameWorkshop.get(tx.materialName, tx.workshop);
+            if (sourceMat) {
+                const newQty = roundQty(Number(sourceMat.quantity) - quantityDiff);
+                if (newQty < 0) {
+                    throw new Error('Số lượng tồn kho nguồn không đủ để thực hiện thay đổi này.');
+                }
+                updateMaterialQty.run(newQty, todayISO(), sourceMat.id);
+            }
+
+            const destMat = tx.targetMaterialId
+                ? findById.get(tx.targetMaterialId)
+                : findByNameWorkshop.get(tx.materialName, tx.targetWorkshop);
+            if (destMat) {
+                const newQty = roundQty(Number(destMat.quantity) + quantityDiff);
+                updateMaterialQty.run(newQty, todayISO(), destMat.id);
+            }
+        }
+
+        // Update transaction quantity
+        db.prepare("UPDATE transactions SET quantity = ? WHERE id = ?").run(newQuantity, id);
+
+        return { success: true, message: 'Cập nhật thành công.' };
+    });
+
+    try {
+        const result = updateTransaction();
+        notifyUpdate();
+        res.json(result);
+    } catch (error) {
+        return res.status(400).json({ success: false, error: error.message || 'Cập nhật thất bại' });
+    }
+});
+
+app.post('/api/budgets/save', verifyToken, (req, res) => {
     const budget = req.body;
     db.prepare(`
         INSERT INTO budgets (id, orderCode, orderName, projectName, address, phone, description, status, workshop, items, createdAt, lastUpdated) 
@@ -686,10 +903,102 @@ app.post('/api/budgets/save', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/budgets/delete', (req, res) => {
+app.post('/api/budgets/delete', verifyToken, (req, res) => {
     db.prepare('DELETE FROM budgets WHERE id = ?').run(req.body.id);
     notifyUpdate();
     res.json({ success: true });
+});
+
+// Merge materials
+app.post('/api/materials/merge', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+    const { materialIds, mergedMaterial } = req.body;
+
+    if (!materialIds || !Array.isArray(materialIds) || materialIds.length < 2) {
+        return res.status(400).json({ success: false, error: 'Vui lòng chọn ít nhất 2 vật tư để hợp nhất.' });
+    }
+
+    if (!mergedMaterial || !mergedMaterial.name || !mergedMaterial.unit) {
+        return res.status(400).json({ success: false, error: 'Thông tin vật tư hợp nhất không hợp lệ.' });
+    }
+
+    const mergeMaterials = db.transaction(() => {
+        // Get all selected materials
+        const materials = materialIds.map(id => {
+            const mat = db.prepare("SELECT * FROM materials WHERE id = ?").get(id);
+            if (!mat) throw new Error(`Không tìm thấy vật tư với ID: ${id}`);
+            return mat;
+        });
+
+        // Validate: all materials must have same workshop
+        const workshops = [...new Set(materials.map(m => m.workshop))];
+        if (workshops.length > 1) {
+            throw new Error('Chỉ có thể hợp nhất vật tư cùng kho.');
+        }
+
+        // Validate: all materials must have same unit
+        const units = [...new Set(materials.map(m => m.unit))];
+        if (units.length > 1) {
+            throw new Error('Chỉ có thể hợp nhất vật tư cùng đơn vị.');
+        }
+
+        // Create new merged material
+        const newMaterialId = `MAT-${Date.now()}`;
+        const now = todayISO();
+
+        db.prepare(`
+            INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, workshop, origin, note, createdAt, lastUpdated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            newMaterialId,
+            mergedMaterial.name,
+            mergedMaterial.classification,
+            mergedMaterial.unit,
+            mergedMaterial.quantity,
+            materials[0].minThreshold || 10,
+            mergedMaterial.workshop,
+            mergedMaterial.origin || '',
+            mergedMaterial.note || '',
+            now,
+            now
+        );
+
+        // Update all transactions to point to new material
+        const updateTransactionStmt = db.prepare(`
+            UPDATE transactions 
+            SET materialId = ?, materialName = ? 
+            WHERE materialId = ?
+        `);
+
+        const updateTargetMaterialStmt = db.prepare(`
+            UPDATE transactions 
+            SET targetMaterialId = ? 
+            WHERE targetMaterialId = ?
+        `);
+
+        materialIds.forEach(oldId => {
+            updateTransactionStmt.run(newMaterialId, mergedMaterial.name, oldId);
+            updateTargetMaterialStmt.run(newMaterialId, oldId);
+        });
+
+        // Delete old materials
+        const deleteMaterialStmt = db.prepare('DELETE FROM materials WHERE id = ?');
+        materialIds.forEach(id => deleteMaterialStmt.run(id));
+
+        return {
+            success: true,
+            message: 'Hợp nhất vật tư thành công.',
+            newMaterialId,
+            mergedCount: materialIds.length
+        };
+    });
+
+    try {
+        const result = mergeMaterials();
+        notifyUpdate();
+        res.json(result);
+    } catch (error) {
+        return res.status(400).json({ success: false, error: error.message || 'Hợp nhất thất bại' });
+    }
 });
 
 app.post('/api/users/delete', requirePermission('MANAGE_USERS'), (req, res) => {
@@ -792,7 +1101,7 @@ app.post('/api/users/update_self', (req, res) => {
     return res.json({ success: true, user: sanitizeUser(updated) });
 });
 
-app.post('/api/activity_logs/save', (req, res) => {
+app.post('/api/activity_logs/save', verifyToken, (req, res) => {
     const log = req.body;
     db.prepare(`
         INSERT INTO activity_logs (id, userId, username, action, entityType, entityId, details, ipAddress, timestamp) 
@@ -817,7 +1126,7 @@ app.post('/api/activity_logs/clear', requirePermission('MANAGE_USERS'), (req, re
 });
 
 // Projects API
-app.post('/api/projects/save', (req, res) => {
+app.post('/api/projects/save', verifyToken, (req, res) => {
     const item = req.body;
     db.prepare(`INSERT INTO projects (id, name, address, phone, description, createdAt) 
     VALUES (@id, @name, @address, @phone, @description, @createdAt) 
@@ -826,28 +1135,13 @@ app.post('/api/projects/save', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/projects/delete', (req, res) => {
+app.post('/api/projects/delete', verifyToken, (req, res) => {
     db.prepare('DELETE FROM projects WHERE id = ?').run(req.body.id);
     notifyUpdate();
     res.json({ success: true });
 });
 
-// Suppliers API
-app.post('/api/suppliers/save', (req, res) => {
-    const item = req.body;
-    db.prepare(`INSERT INTO suppliers (id, code, name, contactPerson, phone, email, address, products, rating, createdAt) 
-    VALUES (@id, @code, @name, @contactPerson, @phone, @email, @address, @products, @rating, @createdAt) 
-    ON CONFLICT(id) DO UPDATE SET code=excluded.code, name=excluded.name, contactPerson=excluded.contactPerson, 
-    phone=excluded.phone, email=excluded.email, address=excluded.address, products=excluded.products, rating=excluded.rating`).run(item);
-    notifyUpdate();
-    res.json({ success: true });
-});
 
-app.post('/api/suppliers/delete', (req, res) => {
-    db.prepare('DELETE FROM suppliers WHERE id = ?').run(req.body.id);
-    notifyUpdate();
-    res.json({ success: true });
-});
 
 // ============================================
 // CUSTOMER CODES API
@@ -973,6 +1267,96 @@ app.post('/api/customer-codes/import', verifyToken, requirePermission('MANAGE_MA
             imported: result.imported,
             updated: result.updated,
             total: result.imported + result.updated
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Merge multiple customer codes into one
+app.post('/api/customer-codes/merge', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+    try {
+        const { supplierIds, primaryCode, primaryName, description } = req.body;
+
+        // Validate input
+        if (!Array.isArray(supplierIds) || supplierIds.length < 2) {
+            return res.status(400).json({
+                success: false,
+                error: 'Vui lòng chọn ít nhất 2 NCC để hợp nhất.'
+            });
+        }
+
+        if (!primaryCode || !primaryName) {
+            return res.status(400).json({
+                success: false,
+                error: 'Vui lòng chọn Mã NCC và Tên NCC chính.'
+            });
+        }
+
+        // Use transaction to ensure atomicity
+        const mergeTransaction = db.transaction(() => {
+            // Get all selected suppliers
+            const suppliers = db.prepare(
+                `SELECT * FROM customer_codes WHERE id IN (${supplierIds.map(() => '?').join(',')})`
+            ).all(...supplierIds);
+
+            if (suppliers.length !== supplierIds.length) {
+                throw new Error('Một số NCC không tồn tại.');
+            }
+
+            // Get all supplier codes to update transactions
+            const supplierCodes = suppliers.map(s => s.code);
+
+            // Find the primary supplier (the one we'll keep)
+            const primarySupplier = suppliers.find(s => s.code === primaryCode);
+            if (!primarySupplier) {
+                throw new Error('Mã NCC chính không hợp lệ.');
+            }
+
+            // Update the primary supplier with new info
+            const now = new Date().toISOString();
+            db.prepare(`
+                UPDATE customer_codes 
+                SET name = ?, description = ?, updatedAt = ?
+                WHERE id = ?
+            `).run(primaryName, description || null, now, primarySupplier.id);
+
+            // Update all transactions that reference the old supplier codes
+            // Change their orderCode to the primary code
+            const otherCodes = supplierCodes.filter(code => code !== primaryCode);
+            if (otherCodes.length > 0) {
+                const updateTxStmt = db.prepare(`
+                    UPDATE transactions 
+                    SET orderCode = ?
+                    WHERE orderCode IN (${otherCodes.map(() => '?').join(',')})
+                `);
+                updateTxStmt.run(primaryCode, ...otherCodes);
+            }
+
+            // Delete the other suppliers (keep only the primary one)
+            const otherIds = supplierIds.filter(id => id !== primarySupplier.id);
+            if (otherIds.length > 0) {
+                const deleteStmt = db.prepare(`
+                    DELETE FROM customer_codes 
+                    WHERE id IN (${otherIds.map(() => '?').join(',')})
+                `);
+                deleteStmt.run(...otherIds);
+            }
+
+            return {
+                mergedCount: otherIds.length,
+                primaryCode,
+                primaryName
+            };
+        });
+
+        const result = mergeTransaction();
+        notifyUpdate();
+
+        res.json({
+            success: true,
+            message: `Đã hợp nhất ${result.mergedCount} NCC vào ${result.primaryCode} - ${result.primaryName}`,
+            ...result
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

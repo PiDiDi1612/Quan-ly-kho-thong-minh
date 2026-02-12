@@ -45,6 +45,7 @@ import {
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
 import { INITIAL_MATERIALS, INITIAL_TRANSACTIONS, CLASSIFICATIONS, WORKSHOPS, INITIAL_USERS, PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
+import { inventoryService, transactionService, authService, userService, materialService, supplierService } from '@/domain';
 import * as XLSX from 'xlsx-js-style';
 
 import { io } from 'socket.io-client';
@@ -53,7 +54,9 @@ import { MaterialManagement } from './features/warehouse/MaterialManagement';
 import { WarehouseTransfer } from './features/warehouse/WarehouseTransfer';
 import { useWarehouseTransfer } from './features/warehouse/hooks/useWarehouseTransfer';
 import { WarehouseReceipt } from './features/warehouse/WarehouseReceipt';
-import { CustomerCodeManagement } from './features/warehouse/CustomerCodeManagement';
+import { SupplierManagement } from './features/warehouse/SupplierManagement';
+import { TransactionHistory } from './features/warehouse/TransactionHistory';
+import { MaterialMerge } from './features/warehouse/MaterialMerge';
 import { PlanningProjects } from './features/planning/PlanningProjects';
 import { PlanningEstimates } from './features/planning/PlanningEstimates';
 import { ReportViewer } from './features/reports/ReportViewer';
@@ -61,7 +64,6 @@ import { AuthScreen } from './features/auth/AuthScreen';
 import { AccountModal, type AccountForm } from './features/account/AccountModal';
 import { AppSidebar, type AppTab } from './features/layout/AppSidebar';
 import { apiService } from './services/api';
-import { authApi } from './services/authApi';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { useToast } from './hooks/useToast';
 import { jwtDecode } from 'jwt-decode';
@@ -79,6 +81,8 @@ import {
 // Socket instance (initialized dynamically)
 let socket: any;
 
+
+
 const App: React.FC = () => {
   const toast = useToast();
   // --- CONNECTION CONFIG ---
@@ -88,27 +92,7 @@ const App: React.FC = () => {
     return { mode: null, serverIp: '' };
   });
 
-  const [baseUrl, setBaseUrl] = useState(() => {
-    // 1. If running from file system (Production Electron), ALWAYS use localhost:3000
-    if (window.location.protocol === 'file:') {
-      return 'http://localhost:3000';
-    }
 
-    // 2. Load saved config
-    const saved = localStorage.getItem('connection_config');
-    if (saved) {
-      const config = JSON.parse(saved);
-      if (config.mode === 'SERVER') {
-        // FORCE localhost:3000 for Server Mode to avoid empty string errors
-        // This addresses issues where Electron might load via http://localhost fallback or other protocols
-        return 'http://localhost:3000';
-      }
-      return `http://${config.serverIp}:3000`;
-    }
-
-    // 3. Default fallback
-    return '';
-  });
 
   // --- AUTH STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -119,9 +103,18 @@ const App: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isConnectionSetupOpen, setIsConnectionSetupOpen] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  // Removed: rememberPassword feature for security
 
-  // --- DATA STATE ---
+  // Remember Me state
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Init rememberMe state based on stored username
+  useEffect(() => {
+    const storedUsername = getRememberedUsername();
+    if (storedUsername) {
+      setRememberMe(true);
+      setLoginForm(prev => ({ ...prev, username: storedUsername }));
+    }
+  }, []);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   // Budgets moved to OrderManagement
@@ -129,6 +122,7 @@ const App: React.FC = () => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [budgets, setBudgets] = useState<OrderBudget[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]); // Danh sách NCC
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Helper for date formatting dd/mm/yyyy
@@ -168,29 +162,40 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+
+
   useEffect(() => {
-    const parsed = getAuthUser();
-    if (authToken && parsed) {
-      setCurrentUser(parsed);
-      setUserRole(parsed.role);
+    const { user, token, isAuthenticated } = authService.initAuth();
+    if (isAuthenticated && user && token) {
+      setCurrentUser(user);
+      setUserRole(user.role);
       setIsAuthenticated(true);
-    } else if (!authToken) {
+      setAuthToken(token);
+    } else {
       setIsAuthenticated(false);
       setCurrentUser(null);
+      setAuthToken('');
     }
-  }, [authToken]);
+  }, []);
 
   // --- SYSTEM INFO ---
   const [serverIp, setServerIp] = useState<string>('');
 
   useEffect(() => {
-    if (connectionConfig.mode === 'SERVER' && baseUrl) {
-      apiCall('/api/system-info', 'GET')
-        .then(res => res.ok ? res.json() : Promise.reject())
-        .then(data => setServerIp(data.ip))
-        .catch(() => { });
-    }
-  }, [connectionConfig.mode, baseUrl]);
+    // Always try to fetch IP info (server or client connected)
+    const fetchIp = async () => {
+      try {
+        const data = await apiService.get<{ ip: string }>('/api/system-info');
+        if (data && data.ip) {
+          setServerIp(data.ip);
+        }
+      } catch (error) {
+        // Fallback or keep previous value
+      }
+    };
+
+    fetchIp();
+  }, [connectionConfig.mode, isAuthenticated]);
 
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
@@ -203,38 +208,54 @@ const App: React.FC = () => {
 
     const performLoad = async () => {
       try {
-        const [matRes, txRes] = await Promise.all([
-          apiCall('/api/materials', 'GET'),
-          apiCall('/api/transactions', 'GET')
+        const [matRes, transactionsData] = await Promise.all([
+          materialService.listMaterials({}),
+          transactionService.listTransactions({})
         ]);
 
-        if (matRes.ok) setMaterials(await matRes.json());
-        if (txRes.ok) setTransactions(await txRes.json());
+        setMaterials(matRes);
+        // transactionsData is already json array
+        setTransactions(transactionsData);
+
+        // Load transactions into InventoryService
+        // Use type assertion to access internal properties if needed, or better expose a method
+        (inventoryService as any).allTransactions = transactionsData;
+        (inventoryService as any).lastFetchTime = Date.now();
+        // Invalidate cache to force recalculation with new data
+        // FIXED: Do not use clearCache() as it wipes allTransactions causing 0 stock
+        (inventoryService as any).stockCache.clear();
         if (hasPermission('MANAGE_USERS')) {
-          const userRes = await apiCall('/api/users', 'GET');
-          if (userRes.ok) {
-            const data = await userRes.json();
+          try {
+            const data = await userService.listUsers();
             setUsers(data);
             if (currentUser) {
               const updatedSelf = data.find((u: User) => u.id === currentUser.id);
               if (updatedSelf) setCurrentUser(updatedSelf);
             }
+          } catch (e) {
+            console.error("Failed to load users", e);
           }
         }
         if (hasPermission('VIEW_ACTIVITY_LOG')) {
-          const logRes = await apiCall('/api/activity_logs', 'GET');
-          if (logRes.ok) setActivityLogs(await logRes.json());
+          try {
+            const logs = await apiService.get<ActivityLog[]>('/api/activity_logs');
+            setActivityLogs(logs);
+          } catch (e) {
+            setActivityLogs([]);
+          }
         } else {
           setActivityLogs([]);
         }
 
         // Load Projects & Budgets
-        const [projRes, budRes] = await Promise.all([
-          apiCall('/api/projects', 'GET'),
-          apiCall('/api/budgets', 'GET')
+        const [projectsData, budgetsData, suppliersData] = await Promise.all([
+          apiService.get<Project[]>('/api/projects').catch(() => []),
+          apiService.get<OrderBudget[]>('/api/budgets').catch(() => []),
+          supplierService.listSuppliers().catch(() => [])
         ]);
-        if (projRes.ok) setProjects(await projRes.json());
-        if (budRes.ok) setBudgets(await budRes.json());
+        setProjects(projectsData);
+        setBudgets(budgetsData);
+        setSuppliers(suppliersData);
         setLastSync(new Date());
         setIsFirstLoad(false);
         return true;
@@ -266,49 +287,13 @@ const App: React.FC = () => {
     return isNaN(floatVal) ? 0 : Math.round(floatVal * 100) / 100;
   };
 
-  // Helper for API calls
-  const apiCall = async (endpoint: string, method: string, body?: any) => {
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (authToken) headers.Authorization = `Bearer ${authToken}`;
-      const res = await fetch(`${baseUrl}${endpoint}`, {
-        method,
-        headers,
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        try {
-          const errorText = await res.clone().text();
-          console.error(`API Error ${baseUrl}${endpoint}: ${res.status}`, errorText);
-        } catch (e) {
-          console.error(`API Error ${baseUrl}${endpoint}: ${res.status} (body unreadable)`);
-        }
-      }
-      return res;
-    } catch (e) {
-      console.error(`API Network Error ${baseUrl}${endpoint}:`, e);
-      // Removed blocking alert to prevent UI hanging
-      throw e;
-    }
-  };
+
 
   const [tempIp, setTempIp] = useState('');
 
   const handleSaveConnection = (mode: 'SERVER' | 'CLIENT', ip?: string) => {
-    const config = { mode, serverIp: ip || '' };
-    localStorage.setItem('connection_config', JSON.stringify(config));
-
-    // Determine base URL based on environment and mode
-    let newUrl = '';
-    if (mode === 'SERVER') {
-      // FORCE localhost:3000 for Server Mode
-      newUrl = 'http://localhost:3000';
-    } else {
-      newUrl = `http://${ip}:3000`;
-    }
-
-    setConnectionConfig(config);
-    setBaseUrl(newUrl);
+    // Delegates to apiService
+    apiService.setConfig(mode, ip || '');
     window.location.reload();
   };
 
@@ -317,50 +302,39 @@ const App: React.FC = () => {
     const username = getRememberedUsername();
     if (username) {
       setLoginForm(prev => ({ ...prev, username }));
-      // Removed: setRememberPassword(true) - auto-login disabled
     }
-  }, [connectionConfig.mode, baseUrl]);
+  }, [connectionConfig.mode]);
 
   useEffect(() => {
-    if (!connectionConfig.mode || !isAuthenticated) return;
+    if (!isAuthenticated) return;
 
-    // Initialize socket with correct URL
-    if (socket) socket.disconnect();
-    socket = io(baseUrl || window.location.origin, {
-      auth: authToken ? { token: authToken } : undefined,
-      extraHeaders: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
-    });
+    // Initialize socket
+    // We pass loadData as callback, but need to be careful with stale closure if loadData uses stale scope.
+    // However, apiService handles data_updated event.
+    apiService.initSocket(() => loadData(true)); // isBackground=true
 
-    loadData();
     // Poll every 10 seconds to keep data synced
-    const interval = setInterval(loadData, 10000);
-
-    // Socket.io for Real-time sync
-    socket.on('data_updated', loadData);
+    const interval = setInterval(() => loadData(true), 10000);
 
     return () => {
       clearInterval(interval);
-      if (socket) socket.off('data_updated', loadData);
+      apiService.disconnectSocket();
     };
-  }, [connectionConfig.mode, baseUrl, isAuthenticated, authToken]);
+  }, [isAuthenticated, connectionConfig.mode]);
 
+  // Token expiry check - auto-logout when JWT expires
   // Token expiry check - auto-logout when JWT expires
   useEffect(() => {
     if (!isAuthenticated || !authToken) return;
 
     const checkTokenExpiry = () => {
-      try {
-        const decoded: any = jwtDecode(authToken);
-        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-          // Token expired
-          clearAuthSession();
-          setIsAuthenticated(false);
-          setAuthToken('');
-          setCurrentUser(null);
-          toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        }
-      } catch (err) {
-        console.error('Token decode error:', err);
+      if (authService.isTokenExpired(authToken)) {
+        // Token expired
+        authService.logout(); // Ensure storage is cleared
+        setIsAuthenticated(false);
+        setAuthToken('');
+        setCurrentUser(null);
+        toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       }
     };
 
@@ -420,7 +394,6 @@ const App: React.FC = () => {
   });
 
 
-
   // Tự động tạo mã phiếu khi chuyển tab hoặc khi receiptType/receiptWorkshop thay đổi
   useEffect(() => {
     if (activeTab === 'warehouse_receipt') {
@@ -470,26 +443,32 @@ const App: React.FC = () => {
     const p = loginForm.password.trim();
 
     try {
-      const res = await authApi.login(baseUrl, u, p);
-      const data = await authApi.parseLoginResponse(res);
-      if (!data.success) {
+      // Ensure authService has the correct URL before login
+      // authService now uses apiService which handles baseUrl automatically
+
+      const response = await authService.login(u, p, rememberMe);
+
+      if (!response.success) {
         setLoginError('Thông tin đăng nhập không chính xác hoặc tài khoản đã bị vô hiệu hóa');
         setTimeout(() => setLoginError(null), 3000);
         return;
       }
 
-      const user: User = data.user;
-      const token: string = data.token;
+      const { user, token } = response;
 
       setAuthToken(token);
-      setAuthSession(token, user);
+      // authService.login already saves session based on rememberMe flag
+
+      // Handle remember username explicitly
+      if (rememberMe) {
+        setRememberedUsername(u);
+      } else {
+        clearRememberedUsername();
+      }
 
       setCurrentUser(user);
       setUserRole(user.role);
       setIsAuthenticated(true);
-
-      // Removed: remember password feature for security
-      // Username is never auto-saved anymore
 
       setLoginError(null);
     } catch (error) {
@@ -499,9 +478,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    authApi.logout(baseUrl, authToken).catch(() => { });
-    clearAuthSession();
+  const handleLogout = async () => {
+    await authService.logout();
     setAuthToken('');
     setIsAuthenticated(false);
     setCurrentUser(null);
@@ -521,13 +499,15 @@ const App: React.FC = () => {
       timestamp: new Date().toISOString()
     };
     setActivityLogs(prev => [newLog, ...prev]);
-    apiCall('/api/activity_logs/save', 'POST', newLog);
+
+    // Use apiService directly
+    apiService.post('/api/activity_logs/save', newLog).catch(e => console.error("Log failed", e));
   };
 
   // Helper function to check permissions
+  // Helper function to check permissions
   const hasPermission = (permission: Permission): boolean => {
-    if (!currentUser) return false;
-    return currentUser.permissions.includes(permission) || currentUser.role === 'ADMIN';
+    return authService.hasPermission(currentUser, permission);
   };
 
   const canModify = hasPermission('MANAGE_MATERIALS');
@@ -607,32 +587,25 @@ const App: React.FC = () => {
   const handleCreateReceipt = () => {
     if (selectedItems.length === 0) return;
 
-    if (selectedItems.length === 0) return;
-
-    // Removed budget validation logic here as budgets are now managed in OrderManagement
-    // Future refactor should centralize "Create Receipt" to verify against OrderModule if needed.
-
     requestConfirm('Xác nhận lập phiếu', `Hệ thống sẽ ${receiptType === 'IN' ? 'Nhập' : 'Xuất'} hàng vào kho ${receiptWorkshop}.`, async () => {
       const finalReceiptId = receiptId.trim() || generateReceiptId(receiptType, receiptWorkshop);
       try {
-        const commitRes = await apiCall('/api/transactions/commit', 'POST', {
-          mode: 'RECEIPT',
-          payload: {
-            receiptType,
-            receiptWorkshop,
-            receiptId: finalReceiptId,
-            receiptTime: receiptTime || new Date().toISOString().split('T')[0],
-            transactionTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            receiptSupplier: receiptSupplier || undefined,
-            orderCode: orderCode || undefined,
-            user: currentUser?.fullName || userRole,
-            items: selectedItems
-          }
+        const result = await transactionService.createBatchReceipt({
+          receiptId: finalReceiptId,
+          receiptType: receiptType as TransactionType,
+          receiptWorkshop: receiptWorkshop as WorkshopCode,
+          receiptTime: receiptTime || new Date().toISOString().split('T')[0],
+          receiptSupplier: receiptSupplier || undefined,
+          orderCode: orderCode || undefined,
+          user: currentUser?.fullName || userRole,
+          items: selectedItems.map(item => ({
+            materialId: item.materialId,
+            quantity: parseNumber(item.quantity)
+          }))
         });
 
-        if (!commitRes.ok) {
-          const errBody = await commitRes.json().catch(() => ({ error: 'Lưu phiếu thất bại' }));
-          setModalError(errBody.error || 'Lưu phiếu thất bại');
+        if (!result.success) {
+          setModalError(result.error || 'Lưu phiếu thất bại');
           return;
         }
 
@@ -644,9 +617,10 @@ const App: React.FC = () => {
         setOrderCode('');
         setReceiptId('');
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-      } catch (err) {
+        toast.success(`Phiếu ${finalReceiptId} đã được tạo thành công!`);
+      } catch (err: any) {
         console.error("Lỗi đồng bộ backend:", err);
-        setModalError('Không thể lưu phiếu. Vui lòng thử lại.');
+        setModalError(err.message || 'Không thể lưu phiếu. Vui lòng thử lại.');
       }
     });
   };
@@ -665,7 +639,6 @@ const App: React.FC = () => {
     currentUser,
     userRole,
     activeTab,
-    apiCall,
     loadData,
     logActivity,
     setActiveTab,
@@ -680,17 +653,13 @@ const App: React.FC = () => {
       `Bạn có chắc chắn muốn xóa phiếu ${tx.receiptId}? Tồn kho sẽ được hoàn tác tự động.`,
       async () => {
         try {
-          const res = await apiCall('/api/transactions/delete_with_revert', 'POST', { id: tx.id });
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => ({ error: 'Xóa giao dịch thất bại' }));
-            setModalError(errBody.error || 'Xóa giao dịch thất bại');
-            return;
-          }
+          await transactionService.deleteTransaction(tx.id, currentUser?.id || 'SYSTEM');
           await loadData();
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-        } catch (e) {
+          toast.success(`Đã xóa phiếu ${tx.receiptId} và hoàn tác tồn kho.`);
+        } catch (e: any) {
           console.error(e);
-          toast.error('Xóa giao dịch thất bại');
+          toast.error(e.message || 'Xóa giao dịch thất bại');
         }
       },
       'danger'
@@ -716,20 +685,13 @@ const App: React.FC = () => {
       return;
     }
 
-    apiCall('/api/users/update_self', 'POST', {
+    userService.updateCurrentUser({
       fullName: accountForm.fullName || currentUser?.fullName || '',
       email: accountForm.email || currentUser?.email || '',
       currentPassword: accountForm.currentPassword,
       newPassword: accountForm.newPassword || undefined
     })
-      .then(async res => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ error: 'Cập nhật thất bại' }));
-          toast.error(body.error || 'Cập nhật thất bại');
-          return;
-        }
-        const body = await res.json();
-        const updated = body.user as User;
+      .then(updated => {
         setCurrentUser(updated);
         setAuthSession(authToken, updated);
         setUsers(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
@@ -740,21 +702,17 @@ const App: React.FC = () => {
       })
       .catch(err => {
         console.error(err);
-        toast.error('Không thể cập nhật tài khoản.');
+        toast.error(err.message || 'Không thể cập nhật tài khoản.');
       });
   };
 
   const handleBackup = async () => {
     try {
-      const res = await apiCall('/api/backup', 'POST');
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(`Đã sao lưu dữ liệu thành công ra Desktop!\nFile: ${data.path}`);
-      } else {
-        toast.error('Lỗi khi sao lưu dữ liệu.');
-      }
+      const data = await apiService.post<{ path: string }>('/api/backup', {});
+      toast.success(`Đã sao lưu dữ liệu thành công ra Desktop!\nFile: ${data.path}`);
     } catch (e) {
       console.error(e);
+      toast.error('Lỗi khi sao lưu dữ liệu.');
     }
   };
 
@@ -778,6 +736,8 @@ const App: React.FC = () => {
           showPassword={showPassword}
           setShowPassword={setShowPassword}
           loginError={loginError}
+          rememberMe={rememberMe}
+          setRememberMe={setRememberMe}
         />
       </>
     );
@@ -810,7 +770,7 @@ const App: React.FC = () => {
                   <>
                     <ChevronRight size={12} />
                     <span>
-                      {(activeTab === 'warehouse_inventory' || activeTab === 'warehouse_transfer' || activeTab === 'warehouse_receipt' || activeTab === 'warehouse_customers') ? 'Phòng kho' :
+                      {(activeTab === 'warehouse_inventory' || activeTab === 'warehouse_transfer' || activeTab === 'warehouse_receipt' || activeTab === 'warehouse_customers' || activeTab === 'warehouse_history' || activeTab === 'warehouse_merge') ? 'Phòng kho' :
                         (activeTab === 'reports_history' || activeTab === 'reports_activity') ? 'Báo cáo' :
                           (activeTab === 'planning_projects' || activeTab === 'planning_estimates') ? 'Phòng kế hoạch' :
                             activeTab === 'users' ? 'Người dùng' :
@@ -824,26 +784,20 @@ const App: React.FC = () => {
                   activeTab === 'warehouse_inventory' ? 'Danh sách vật tư' :
                     activeTab === 'warehouse_transfer' ? 'Điều chuyển vật tư' :
                       activeTab === 'warehouse_receipt' ? 'Lập phiếu kho' :
-                        activeTab === 'warehouse_customers' ? 'Cấu hình mã khách' :
-                          activeTab === 'planning_projects' ? 'Cấu hình dự án' :
-                            activeTab === 'planning_estimates' ? 'Lập dự toán' :
-                              activeTab === 'reports_history' ? 'Lịch sử nhập xuất' :
-                                activeTab === 'reports_activity' ? 'Nhật ký hoạt động' :
-                                  activeTab === 'users' ? 'Quản lý người dùng' :
-                                    'Tác giả'}
+                        activeTab === 'warehouse_customers' ? 'Quản lý NCC' :
+                          activeTab === 'warehouse_history' ? 'Lịch sử nhập xuất' :
+                            activeTab === 'warehouse_merge' ? 'Hợp nhất vật tư' :
+                              activeTab === 'planning_projects' ? 'Cấu hình dự án' :
+                                activeTab === 'planning_estimates' ? 'Lập dự toán' :
+                                  activeTab === 'reports_history' ? 'Lịch sử giao dịch' :
+                                    activeTab === 'reports_activity' ? 'Nhật ký hoạt động' :
+                                      activeTab === 'users' ? 'Quản lý người dùng' :
+                                        'Tác giả'}
               </h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {activeTab === 'dashboard' && (
-              <select
-                value={selectedWorkshop}
-                onChange={e => setSelectedWorkshop(e.target.value as WorkshopCode)}
-                className="px-4 py-2.5 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 shadow-sm transition-colors"
-              >
-                {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-              </select>
-            )}
+
 
             {!isStaff && (activeTab === 'warehouse_inventory') && (
               <div className="flex items-center gap-2">
@@ -861,10 +815,15 @@ const App: React.FC = () => {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl ml-group relative transition-colors">
-              <div className={`w-2 h-2 rounded-full ${lastSync ? 'bg-green-500' : 'bg-red-500'} ${isSyncing ? 'animate-pulse' : ''}`} />
-              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase">{isSyncing ? 'Đang đồng bộ...' : lastSync ? `Đồng bộ: ${lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Mất kết nối'}</span>
-              <button onClick={() => loadData()} className="p-1 text-slate-400 hover:text-blue-600 transition-all"><RefreshCcw size={12} className={isSyncing ? 'animate-spin' : ''} /></button>
+            <div className="flex items-center gap-4 px-4 py-2.5 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl ml-group relative transition-all border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <div className="flex flex-col items-end leading-tight">
+                <span className="text-[18px] font-black bg-gradient-to-r from-blue-700 to-indigo-600 dark:from-blue-400 dark:to-indigo-300 bg-clip-text text-transparent uppercase tracking-tighter">
+                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-0.5">
+                  IP: {serverIp || '...'}
+                </span>
+              </div>
             </div>
           </div>
         </header>
@@ -1033,7 +992,7 @@ const App: React.FC = () => {
               currentUser={currentUser}
               onUpdate={() => {
                 // Refresh users data
-                apiCall('/api/users', 'GET').then(data => {
+                userService.listUsers().then(data => {
                   if (Array.isArray(data)) setUsers(data);
                 });
               }}
@@ -1153,6 +1112,7 @@ const App: React.FC = () => {
               materialSearch={materialSearch}
               setMaterialSearch={setMaterialSearch}
               modalError={modalError}
+              suppliers={suppliers}
               handleCreateReceipt={handleCreateReceipt}
               requestConfirm={requestConfirm}
               formatNumber={formatNumber}
@@ -1161,7 +1121,23 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'warehouse_customers' && (
-            <CustomerCodeManagement
+            <SupplierManagement
+              onUpdate={loadData}
+            />
+          )}
+
+          {activeTab === 'warehouse_history' && (
+            <TransactionHistory
+              transactions={transactions}
+              materials={materials}
+              currentUser={currentUser}
+              onRefresh={loadData}
+            />
+          )}
+
+          {activeTab === 'warehouse_merge' && (
+            <MaterialMerge
+              materials={materials}
               onUpdate={loadData}
             />
           )}
@@ -1234,6 +1210,8 @@ const App: React.FC = () => {
         onUpdate={handleUpdateAccount}
       />
       {/* MODAL: EXCEL IMPORT */}
+
+      {/* Debug Panel - Feature Flags (Development Only) */}
 
     </div >
   );

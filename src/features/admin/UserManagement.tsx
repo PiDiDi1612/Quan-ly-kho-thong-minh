@@ -8,6 +8,9 @@ import { Input } from '../../components/ui/Input';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { apiService } from '../../services/api';
 
+import { userService } from '../../domain';
+import { useToast } from '../../hooks/useToast';
+
 interface UserManagementProps {
     users: User[];
     currentUser: User | null;
@@ -15,6 +18,7 @@ interface UserManagementProps {
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onUpdate }) => {
+    const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<Partial<User>>({
@@ -66,21 +70,33 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
 
     const handleSave = async () => {
         if (!formData.username || !formData.fullName || (!editingUser && !formData.password)) {
-            alert('Vui lòng điền đầy đủ thông tin bắt buộc.');
+            toast.warning('Vui lòng điền đầy đủ thông tin bắt buộc.');
             return;
         }
 
         try {
-            const userToSave = {
-                ...formData,
-                id: editingUser ? editingUser.id : `U${Date.now()}`,
-                // Force ADMIN to have all permissions on save
-                permissions: formData.role === 'ADMIN' ? Object.keys(PERMISSIONS) : (formData.permissions?.length ? formData.permissions : ROLE_PERMISSIONS[formData.role as UserRole]),
-                createdAt: editingUser ? editingUser.createdAt : new Date().toISOString().split('T')[0],
-                createdBy: editingUser ? editingUser.createdBy : currentUser?.id
-            };
-
-            await apiService.post('/api/users/save', userToSave);
+            if (editingUser) {
+                // Update existing user
+                await userService.updateUser(editingUser.id, {
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    role: formData.role,
+                    permissions: formData.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : formData.permissions,
+                    password: formData.password || undefined, // Only send if set
+                    isActive: formData.isActive
+                });
+            } else {
+                // Create new user
+                await userService.createUser({
+                    username: formData.username!,
+                    password: formData.password!,
+                    fullName: formData.fullName!,
+                    email: formData.email,
+                    role: formData.role || 'STAFF',
+                    permissions: formData.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : formData.permissions,
+                    createdBy: currentUser?.id
+                });
+            }
 
             // Log activity
             const action = editingUser ? `Cập nhật người dùng ${formData.username}` : `Tạo người dùng mới ${formData.username}`;
@@ -90,16 +106,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 username: currentUser?.username,
                 action: action,
                 entityType: 'USER',
-                entityId: userToSave.id,
+                entityId: editingUser ? editingUser.id : 'unknown', // ID is generated on server/service, we don't know it here easily without return
                 details: action,
                 timestamp: new Date().toISOString()
             });
 
             setIsModalOpen(false);
             onUpdate();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save user:', error);
-            alert('Lỗi khi lưu người dùng');
+            alert(error.message || 'Lỗi khi lưu người dùng');
         }
     };
 
@@ -111,7 +127,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
             type: 'danger',
             onConfirm: async () => {
                 try {
-                    await apiService.post('/api/users/delete', { id: userId });
+                    await userService.deleteUser(userId);
                     // Log activity
                     await apiService.post('/api/activity_logs/save', {
                         id: `log-${Date.now()}`,
@@ -124,9 +140,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                         timestamp: new Date().toISOString()
                     });
                     onUpdate();
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Failed to delete user:', error);
-                    alert('Lỗi khi xóa người dùng');
+                    alert(error.message || 'Lỗi khi xóa người dùng');
                 }
             }
         });
@@ -134,22 +150,22 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
 
     const handleToggleStatus = async (user: User) => {
         try {
-            const updatedUser = { ...user, isActive: !user.isActive };
-            await apiService.post('/api/users/save', updatedUser);
+            await userService.updateUser(user.id, { isActive: !user.isActive });
             // Log activity
             await apiService.post('/api/activity_logs/save', {
                 id: `log-${Date.now()}`,
                 userId: currentUser?.id,
                 username: currentUser?.username,
-                action: `${updatedUser.isActive ? 'Kích hoạt' : 'Vô hiệu hóa'} người dùng ${user.username}`,
+                action: `${!user.isActive ? 'Kích hoạt' : 'Vô hiệu hóa'} người dùng ${user.username}`,
                 entityType: 'USER',
                 entityId: user.id,
                 details: 'Thay đổi trạng thái',
                 timestamp: new Date().toISOString()
             });
             onUpdate();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to toggle status:', error);
+            alert(error.message || 'Lỗi khi thay đổi trạng thái');
         }
     };
 
@@ -320,10 +336,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     disabled={editingUser?.role === 'ADMIN'}
                                     onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
                                     className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all ${formData.role === r
-                                            ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                                            : editingUser?.role === 'ADMIN'
-                                                ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
-                                                : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-blue-200'
+                                        ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                        : editingUser?.role === 'ADMIN'
+                                            ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                            : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-blue-200'
                                         }`}
                                 >
                                     {r}

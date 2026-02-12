@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { OrderBudget, Material, Transaction, WorkshopCode, User, TransactionType, BudgetItem, Project } from '../../../types';
 import { apiService } from '../../../services/api';
+import { useToast } from '../../../hooks/useToast';
 
 interface UsePlanningEstimatesProps {
     budgets: OrderBudget[];
@@ -13,6 +14,7 @@ interface UsePlanningEstimatesProps {
 }
 
 export const usePlanningEstimates = ({ budgets, projects, materials, transactions, currentUser, onUpdate }: UsePlanningEstimatesProps) => {
+    const toast = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
     const [workshopFilter, setWorkshopFilter] = useState<WorkshopCode | 'ALL'>('ALL');
@@ -70,7 +72,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
 
     const handleSave = async () => {
         if (!formData.orderCode || !formData.items || formData.items.length === 0) {
-            alert('Vui lòng nhập mã đơn hàng và chọn ít nhất 1 vật tư');
+            toast.warning('Vui lòng nhập mã đơn hàng và chọn ít nhất 1 vật tư');
             return;
         }
 
@@ -87,7 +89,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
             onUpdate();
         } catch (error) {
             console.error('Failed to save budget:', error);
-            alert('Lỗi khi lưu dự toán');
+            toast.error('Lỗi khi lưu dự toán');
         }
     };
 
@@ -98,7 +100,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
             onUpdate();
         } catch (error) {
             console.error('Failed to delete budget:', error);
-            alert('Lỗi khi xóa dự toán');
+            toast.error('Lỗi khi xóa dự toán');
         }
     };
 
@@ -178,7 +180,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
                 setFormData(prev => ({ ...prev, items: newItems }));
             } catch (e) {
                 console.error(e);
-                alert('Lỗi khi nhập Excel dự toán');
+                toast.error('Lỗi khi nhập Excel dự toán');
             }
             if (e.target) e.target.value = '';
         };

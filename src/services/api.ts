@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { getAuthToken } from '../utils/authStorage';
 
 export interface ConnectionConfig {
     mode: 'SERVER' | 'CLIENT' | null;
@@ -43,8 +44,9 @@ class ApiService {
             return;
         }
 
-        // 3. Default fallback (empty or current origin if needed)
-        this.baseUrl = '';
+        // 3. Default fallback (Dev mode or First run)
+        // If we represent an Electron app, we likely want to hit the local server by default
+        this.baseUrl = 'http://localhost:3000';
     }
 
     public getBaseUrl() {
@@ -70,14 +72,21 @@ class ApiService {
         return this.request<T>(endpoint, 'POST', body);
     }
 
+    public async put<T>(endpoint: string, body?: any): Promise<T> {
+        return this.request<T>(endpoint, 'PUT', body);
+    }
+
+    public async delete<T>(endpoint: string): Promise<T> {
+        return this.request<T>(endpoint, 'DELETE');
+    }
+
     private async request<T>(endpoint: string, method: string, body?: any): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
         try {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (typeof localStorage !== 'undefined') {
-                const token = localStorage.getItem('auth_token');
-                if (token) headers.Authorization = `Bearer ${token}`;
-            }
+            const token = getAuthToken();
+            if (token) headers.Authorization = `Bearer ${token}`;
+
             const res = await fetch(url, {
                 method,
                 headers,
@@ -85,7 +94,17 @@ class ApiService {
             });
 
             if (!res.ok) {
-                throw new Error(`API Error ${res.status}: ${res.statusText}`);
+                // Try to extract error message from response body
+                let errorMessage = `API Error ${res.status}: ${res.statusText}`;
+                try {
+                    const errorBody = await res.json();
+                    if (errorBody.error) {
+                        errorMessage = errorBody.error;
+                    }
+                } catch {
+                    // If can't parse JSON, use default error message
+                }
+                throw new Error(errorMessage);
             }
 
             // Return void for empty responses if needed, or check content-type
@@ -104,7 +123,11 @@ class ApiService {
 
         if (!this.config.mode) return;
 
-        this.socket = io(this.baseUrl || window.location.origin);
+        const token = getAuthToken();
+        this.socket = io(this.baseUrl || window.location.origin, {
+            auth: token ? { token } : undefined,
+            extraHeaders: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
 
         if (onDataUpdated) {
             this.socket.on('data_updated', onDataUpdated);
