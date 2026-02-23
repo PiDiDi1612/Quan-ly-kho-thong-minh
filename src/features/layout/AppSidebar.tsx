@@ -32,6 +32,7 @@ interface SidebarItem {
   id: string;
   label: string;
   icon?: any;
+  group?: string;
   subItems?: { id: AppTab; label: string }[];
 }
 
@@ -63,11 +64,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   };
 
   const tabs: SidebarItem[] = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', group: 'CHÍNH' },
     {
       id: 'warehouse',
       icon: Package,
       label: 'Phòng kho',
+      group: 'QUẢN LÝ KHO',
       subItems: [
         { id: 'warehouse_inventory', label: 'Danh sách vật tư' },
         { id: 'warehouse_transfer', label: 'Điều chuyển' },
@@ -90,6 +92,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       id: 'reports',
       icon: FileText,
       label: 'Báo cáo',
+      group: 'HỆ THỐNG',
       subItems: [
         { id: 'reports_activity', label: 'Nhật ký hoạt động' }
       ]
@@ -99,109 +102,122 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   ];
 
   const roleName =
-    userRole === 'ADMIN' ? 'Quản trị viên' : userRole === 'MANAGER' ? 'Quản lý' : 'Nhân viên';
+    userRole === 'ADMIN' ? 'Quản trị viên' :
+      userRole === 'WAREHOUSE' ? 'Quản lý kho' :
+        userRole === 'PLANNING' ? 'Phòng kế hoạch' : 'Khách';
+
+  // Track which groups we've already rendered
+  let renderedGroups = new Set<string>();
 
   return (
-    <aside className="glass-panel glass-strong print:hidden fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-200/50 dark:border-slate-700/70 transition-all md:relative md:translate-x-0">
-      <div className="p-6 border-b border-slate-200/40 dark:border-slate-700/70">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 bg-brand-gradient rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
+    <aside className="sidebar-neo print:hidden fixed inset-y-0 left-0 z-50 w-[272px] flex flex-col transition-all md:relative md:translate-x-0">
+      {/* Logo */}
+      <div className="px-6 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-sky-500/20 border border-sky-500/30">
             <Warehouse size={22} />
           </div>
           <div>
-            <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-none block">
-              Smart<span className="text-blue-600 dark:text-blue-400">Stock</span>
+            <span className="text-lg font-bold tracking-tight leading-none block text-white">
+              SmartStock
             </span>
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Quản lý kho</p>
+            <p className="text-[10px] font-semibold text-sky-400/80 uppercase tracking-wider mt-1">WMS Platform</p>
           </div>
         </div>
       </div>
 
-      <nav className="p-4 space-y-1 flex-1 overflow-y-auto no-scrollbar">
-        {tabs.map(tab => {
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {tabs.map((tab, idx) => {
           const isExpanded = expandedItems.includes(tab.id);
           const hasSubItems = tab.subItems && tab.subItems.length > 0;
           const isActive = activeTab === tab.id || (tab.subItems?.some(s => s.id === activeTab));
 
-          return (
-            <div key={tab.id} className="space-y-1">
-              <button
-                onClick={() => {
-                  if (hasSubItems) {
-                    if (!isExpanded) {
-                      setActiveTab(tab.subItems![0].id);
-                    }
-                    toggleExpand(tab.id);
-                  } else {
-                    setActiveTab(tab.id as AppTab);
-                  }
-                }}
-                className={`group flex items-center w-full gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative ${isActive && !hasSubItems
-                  ? 'sidebar-active text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-              >
-                <div className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
-                  {tab.icon && <tab.icon size={19} strokeWidth={isActive ? 2.4 : 2} />}
-                </div>
-                <span className={`text-sm tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
-                  {tab.label}
-                </span>
-                {hasSubItems && (
-                  <ChevronRight
-                    size={16}
-                    className={`ml-auto transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                  />
-                )}
-                {isActive && !hasSubItems && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-300" />}
-              </button>
+          // Group separator
+          let groupLabel = null;
+          if (tab.group && !renderedGroups.has(tab.group)) {
+            renderedGroups.add(tab.group);
+            groupLabel = (
+              <div className="sidebar-separator" key={`group-${tab.group}`}>
+                {tab.group}
+              </div>
+            );
+          }
 
-              {hasSubItems && isExpanded && (
-                <div className="ml-9 space-y-1 mt-1 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
-                  {tab.subItems?.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setActiveTab(sub.id)}
-                      className={`flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-xs font-bold uppercase tracking-wider ${activeTab === sub.id
-                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
-                    >
-                      {sub.label}
-                      {activeTab === sub.id && <div className="ml-auto w-1 h-1 rounded-full bg-blue-500" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          return (
+            <React.Fragment key={tab.id}>
+              {groupLabel}
+              <div className="space-y-0.5">
+                <button
+                  onClick={() => {
+                    if (hasSubItems) {
+                      if (!isExpanded) {
+                        setActiveTab(tab.subItems![0].id);
+                      }
+                      toggleExpand(tab.id);
+                    } else {
+                      setActiveTab(tab.id as AppTab);
+                    }
+                  }}
+                  className={`group flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 relative ${isActive && !hasSubItems
+                    ? 'sidebar-active text-white font-semibold'
+                    : 'sidebar-item-hover'
+                    }`}
+                >
+                  <div className={`transition-transform duration-200 ${isActive ? 'scale-110 text-sky-400' : 'text-white/60 group-hover:text-white/90'}`}>
+                    {tab.icon && <tab.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />}
+                  </div>
+                  <span className={`text-sm tracking-wide ${isActive ? 'font-semibold text-white' : 'font-medium text-white/70 group-hover:text-white/90'}`}>
+                    {tab.label}
+                  </span>
+                  {hasSubItems && (
+                    <ChevronRight
+                      size={14}
+                      className={`ml-auto transition-transform duration-200 text-white/30 ${isExpanded ? 'rotate-90' : ''}`}
+                    />
+                  )}
+                </button>
+
+                {hasSubItems && isExpanded && (
+                  <div className="ml-8 space-y-0.5 mt-0.5 border-l border-white/10 pl-3">
+                    {tab.subItems?.map(sub => (
+                      <button
+                        key={sub.id}
+                        onClick={() => setActiveTab(sub.id)}
+                        className={`flex items-center w-full gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium tracking-wide ${activeTab === sub.id
+                          ? 'text-sky-400 bg-sky-500/10'
+                          : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                          }`}
+                      >
+                        {sub.label}
+                        {activeTab === sub.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </React.Fragment>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-200/40 dark:border-slate-700/70">
-        <div className="p-2 space-y-2">
-          <div className="flex items-center gap-3 p-3 rounded-xl app-surface">
-            <div className="w-9 h-9 bg-white/80 dark:bg-slate-900/60 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center font-bold text-sm border border-slate-200/70 dark:border-slate-700">
+      {/* User Card */}
+      <div className="p-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+            <div className="w-9 h-9 bg-sky-500/20 text-sky-400 rounded-lg flex items-center justify-center font-bold text-sm border border-sky-500/20">
               {currentUser?.fullName?.[0] || userRole[0]}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+              <p className="text-sm font-semibold text-white truncate leading-tight">
                 {currentUser?.fullName || roleName}
               </p>
-              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase mt-0.5">{userRole}</p>
+              <p className="text-[10px] font-medium text-white/40 uppercase mt-0.5">{userRole}</p>
             </div>
-            <button onClick={onLogout} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
-              <LogOut size={18} />
+            <button onClick={onLogout} className="p-1.5 text-white/30 hover:text-red-400 transition-colors" title="Đăng xuất">
+              <LogOut size={16} />
             </button>
           </div>
-
-          <button
-            onClick={onOpenAccount}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 app-surface hover:border-blue-400/60 dark:hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wide"
-          >
-            <UserIcon size={16} />
-            Tài khoản
-          </button>
         </div>
       </div>
     </aside>

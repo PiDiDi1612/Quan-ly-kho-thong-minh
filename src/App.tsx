@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
-import { INITIAL_MATERIALS, INITIAL_TRANSACTIONS, CLASSIFICATIONS, WORKSHOPS, INITIAL_USERS, PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
+import { CLASSIFICATIONS, WORKSHOPS, PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
 import { inventoryService, transactionService, authService, userService, materialService, supplierService } from '@/domain';
 import * as XLSX from 'xlsx-js-style';
 
@@ -96,7 +96,7 @@ const App: React.FC = () => {
 
   // --- AUTH STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('STAFF');
+  const [userRole, setUserRole] = useState<UserRole>('GUEST');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authToken, setAuthToken] = useState<string>(''); // Start with empty token - no auto-login
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -138,6 +138,7 @@ const App: React.FC = () => {
   };
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [serverSummary, setServerSummary] = useState<any>(null);
 
   // --- UI STATE ---
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -208,54 +209,48 @@ const App: React.FC = () => {
 
     const performLoad = async () => {
       try {
-        const [matRes, transactionsData] = await Promise.all([
+        // Parallel load all essential data
+        const [
+          matRes,
+          transactionsData,
+          projectsData,
+          budgetsData,
+          suppliersData,
+          usersData,
+          logsData,
+          summaryData
+        ] = await Promise.all([
           materialService.listMaterials({}),
-          transactionService.listTransactions({})
+          transactionService.listTransactions({}),
+          apiService.get<Project[]>('/api/projects').catch(() => []),
+          apiService.get<OrderBudget[]>('/api/budgets').catch(() => []),
+          supplierService.listSuppliers().catch(() => []),
+          currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
+          currentUser?.role === 'ADMIN' ? apiService.get<ActivityLog[]>('/api/activity_logs').catch(() => []) : Promise.resolve([]),
+          apiService.get<any>('/api/dashboard/summary').catch(() => null)
         ]);
 
         setMaterials(matRes);
-        // transactionsData is already json array
         setTransactions(transactionsData);
-
-        // Load transactions into InventoryService
-        // Use type assertion to access internal properties if needed, or better expose a method
-        (inventoryService as any).allTransactions = transactionsData;
-        (inventoryService as any).lastFetchTime = Date.now();
-        // Invalidate cache to force recalculation with new data
-        // FIXED: Do not use clearCache() as it wipes allTransactions causing 0 stock
-        (inventoryService as any).stockCache.clear();
-        if (hasPermission('MANAGE_USERS')) {
-          try {
-            const data = await userService.listUsers();
-            setUsers(data);
-            if (currentUser) {
-              const updatedSelf = data.find((u: User) => u.id === currentUser.id);
-              if (updatedSelf) setCurrentUser(updatedSelf);
-            }
-          } catch (e) {
-            console.error("Failed to load users", e);
-          }
-        }
-        if (hasPermission('VIEW_ACTIVITY_LOG')) {
-          try {
-            const logs = await apiService.get<ActivityLog[]>('/api/activity_logs');
-            setActivityLogs(logs);
-          } catch (e) {
-            setActivityLogs([]);
-          }
-        } else {
-          setActivityLogs([]);
-        }
-
-        // Load Projects & Budgets
-        const [projectsData, budgetsData, suppliersData] = await Promise.all([
-          apiService.get<Project[]>('/api/projects').catch(() => []),
-          apiService.get<OrderBudget[]>('/api/budgets').catch(() => []),
-          supplierService.listSuppliers().catch(() => [])
-        ]);
         setProjects(projectsData);
         setBudgets(budgetsData);
         setSuppliers(suppliersData);
+        setServerSummary(summaryData);
+
+        // Load transactions into InventoryService
+        (inventoryService as any).allTransactions = transactionsData;
+        (inventoryService as any).lastFetchTime = Date.now();
+        (inventoryService as any).stockCache.clear();
+
+        if (currentUser?.role === 'ADMIN') {
+          setUsers(usersData);
+          setActivityLogs(logsData);
+          if (currentUser) {
+            const updatedSelf = usersData.find((u: User) => u.id === currentUser.id);
+            if (updatedSelf) setCurrentUser(updatedSelf);
+          }
+        }
+
         setLastSync(new Date());
         setIsFirstLoad(false);
         return true;
@@ -510,10 +505,18 @@ const App: React.FC = () => {
     return authService.hasPermission(currentUser, permission);
   };
 
-  const canModify = hasPermission('MANAGE_MATERIALS');
-  const isStaff = userRole === 'STAFF';
+  const canModify = hasPermission('MANAGE_WAREHOUSE');
 
   const summary = useMemo(() => {
+    // If server has already calculated summary, use it for speed
+    if (serverSummary) {
+      return {
+        ...serverSummary,
+        txCount: transactions.length, // local count based on limit
+        mainItems: materials.filter(m => m.classification === 'Vật tư chính').length
+      };
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const todayTransactions = transactions.filter(t => t.date === today);
     const todayIn = todayTransactions.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + t.quantity, 0);
@@ -550,7 +553,7 @@ const App: React.FC = () => {
       workshopData,
       activityData
     };
-  }, [materials, transactions]);
+  }, [materials, transactions, serverSummary]);
 
 
 
@@ -665,15 +668,6 @@ const App: React.FC = () => {
       'danger'
     );
   };
-
-
-
-
-
-
-
-
-
   const handleUpdateAccount = () => {
     if (!accountForm.currentPassword) {
       toast.warning('Vui lòng nhập mật khẩu hiện tại.');
@@ -715,10 +709,6 @@ const App: React.FC = () => {
       toast.error('Lỗi khi sao lưu dữ liệu.');
     }
   };
-
-
-
-
   // --- RENDER LOGIN ---
   if (!isAuthenticated) {
     return (
@@ -744,7 +734,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="app-bg-gradient app-readable flex h-screen font-inter text-slate-600 selection:bg-blue-100 selection:text-blue-700">
+    <div className="app-bg-gradient app-readable flex h-screen font-inter text-slate-600 selection:bg-emerald-100 selection:text-emerald-700">
       <ToastContainer />
       {/* SIDEBAR */}
       <AppSidebar
@@ -760,15 +750,14 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
 
 
-        <header className="glass-panel print:hidden flex items-center justify-between px-8 py-6 border-b border-slate-200/60 dark:border-slate-800/70 sticky top-0 z-40 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center gap-4">
-            <div className="w-1.5 h-8 bg-blue-600 rounded-full shadow-[0_0_12px_rgba(59,130,246,0.4)]"></div>
+        <header className="print:hidden flex items-center justify-between px-8 h-16 bg-white/80 dark:bg-[#1E293B]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
             <div>
               {activeTab !== 'dashboard' && (
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">
-                  <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => setActiveTab('dashboard')}>SmartStock</span>
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-0.5">
+                  <span className="cursor-pointer hover:text-sky-500 transition-colors" onClick={() => setActiveTab('dashboard')}>SmartStock</span>
                   <>
-                    <ChevronRight size={12} />
+                    <ChevronRight size={10} />
                     <span>
                       {(activeTab === 'warehouse_inventory' || activeTab === 'warehouse_transfer' || activeTab === 'warehouse_receipt' || activeTab === 'warehouse_customers' || activeTab === 'warehouse_history' || activeTab === 'warehouse_merge') ? 'Phòng kho' :
                         (activeTab === 'reports_history' || activeTab === 'reports_activity') ? 'Báo cáo' :
@@ -779,65 +768,92 @@ const App: React.FC = () => {
                   </>
                 </div>
               )}
-              <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight capitalize">
+              <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
                 {activeTab === 'dashboard' ? 'Tổng quan' :
-                  activeTab === 'warehouse_inventory' ? 'Danh sách vật tư' :
-                    activeTab === 'warehouse_transfer' ? 'Điều chuyển vật tư' :
-                      activeTab === 'warehouse_receipt' ? 'Lập phiếu kho' :
-                        activeTab === 'warehouse_customers' ? 'Quản lý NCC' :
-                          activeTab === 'warehouse_history' ? 'Lịch sử nhập xuất' :
-                            activeTab === 'warehouse_merge' ? 'Hợp nhất vật tư' :
-                              activeTab === 'planning_projects' ? 'Cấu hình dự án' :
-                                activeTab === 'planning_estimates' ? 'Lập dự toán' :
-                                  activeTab === 'reports_history' ? 'Lịch sử giao dịch' :
-                                    activeTab === 'reports_activity' ? 'Nhật ký hoạt động' :
-                                      activeTab === 'users' ? 'Quản lý người dùng' :
-                                        'Tác giả'}
+                  activeTab === 'warehouse_inventory' ? 'Danh Sách Vật Tư' :
+                    activeTab === 'warehouse_transfer' ? 'Điều Chuyển Vật Tư' :
+                      activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
+                        activeTab === 'warehouse_customers' ? 'Quản Lý NCC' :
+                          activeTab === 'warehouse_history' ? 'Lịch Sử Nhập Xuất' :
+                            activeTab === 'warehouse_merge' ? 'Hợp Nhất Vật Tư' :
+                              activeTab === 'planning_projects' ? 'Cấu Hình Dự Án' :
+                                activeTab === 'planning_estimates' ? 'Lập Dự Toán' :
+                                  activeTab === 'reports_history' ? 'Lịch Sử Giao Dịch' :
+                                    activeTab === 'reports_activity' ? 'Nhật Ký Hoạt Động' :
+                                      activeTab === 'users' ? 'Quản Lý Người Dùng' :
+                                        'Tác Giả'}
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
 
+            {canModify && (activeTab === 'warehouse_inventory') && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={() => window.dispatchEvent(new CustomEvent('open-material-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm mới</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('import-material-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('print-material'))} className="btn-gradient-success px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Printer size={16} /> In Danh Sách</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('export-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
+              </div>
+            )}
 
-            {!isStaff && (activeTab === 'warehouse_inventory') && (
-              <div className="flex items-center gap-2">
+            {canModify && (activeTab === 'warehouse_history') && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={() => window.dispatchEvent(new CustomEvent('print-transactions'))} className="btn-gradient-success px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Printer size={16} /> In Lịch Sử</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('export-transactions-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
+              </div>
+            )}
+
+            {canModify && (activeTab === 'planning_projects') && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={() => window.dispatchEvent(new CustomEvent('open-project-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm Dự Án</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('import-project-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
+              </div>
+            )}
+
+            {canModify && (activeTab === 'planning_estimates') && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={() => window.dispatchEvent(new CustomEvent('open-budget-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Lập Dự Toán</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('import-budget-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
+              </div>
+            )}
+
+            {canModify && (activeTab === 'warehouse_suppliers') && (
+              <div className="flex items-center gap-2 mr-2">
                 <button onClick={() => {
-                  window.dispatchEvent(new CustomEvent('open-material-modal'));
-                }} className="px-5 py-3 text-[11px] font-extrabold text-white bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 rounded-xl hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 uppercase tracking-widest"><Plus size={16} /> Thêm mới</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('import-excel'))} className="px-4 py-3 text-[11px] font-bold text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-all flex items-center gap-2 uppercase tracking-widest border border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"><FileSpreadsheet size={16} /> Nhập Excel</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('export-excel'))} className="px-4 py-3 text-[11px] font-bold text-amber-600 bg-amber-50 rounded-xl hover:bg-amber-100 transition-all flex items-center gap-2 uppercase tracking-widest border border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"><Download size={16} /> Xuất Excel</button>
+                  window.dispatchEvent(new CustomEvent('open-supplier-modal'));
+                }} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm mới</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('import-supplier-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
+                <button onClick={() => window.dispatchEvent(new CustomEvent('export-supplier-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
               </div>
             )}
 
             <button
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
+              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all"
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <div className="flex items-center gap-4 px-4 py-2.5 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl ml-group relative transition-all border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-              <div className="flex flex-col items-end leading-tight">
-                <span className="text-[18px] font-black bg-gradient-to-r from-blue-700 to-indigo-600 dark:from-blue-400 dark:to-indigo-300 bg-clip-text text-transparent uppercase tracking-tighter">
-                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mt-0.5">
-                  IP: {serverIp || '...'}
-                </span>
-              </div>
+            <div className="flex items-center gap-3 px-4 py-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-lg text-sm font-bold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <span className="text-blue-700 dark:text-blue-400 tabular-nums text-base">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="text-slate-600 dark:text-slate-400">{serverIp || '...'}</span>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 p-8 px-6 py-8 xl:px-12 overflow-y-auto no-scrollbar print:hidden">
+        <div className="flex-1 p-8 overflow-y-auto">
           {activeTab === 'dashboard' && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-6 animate-fade-up">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   {
                     label: 'TỔNG VẬT TƯ',
                     value: summary.totalItems,
-                    color: 'text-blue-600 dark:text-blue-400',
-                    bg: 'bg-blue-50 dark:bg-blue-900/20',
+                    color: 'text-sky-600 dark:text-sky-400',
+                    bg: 'bg-sky-50 dark:bg-sky-500/10',
+                    borderClass: 'kpi-border-primary',
                     icon: Package,
                     description: 'Loại vật tư đang quản lý'
                   },
@@ -845,7 +861,8 @@ const App: React.FC = () => {
                     label: 'NHẬP HÔM NAY',
                     value: summary.todayIn,
                     color: 'text-green-600 dark:text-green-400',
-                    bg: 'bg-green-50 dark:bg-green-900/20',
+                    bg: 'bg-green-50 dark:bg-green-500/10',
+                    borderClass: 'kpi-border-green',
                     icon: ArrowDownLeft,
                     description: 'Tổng số lượng nhập'
                   },
@@ -853,7 +870,8 @@ const App: React.FC = () => {
                     label: 'XUẤT HÔM NAY',
                     value: summary.todayOut,
                     color: 'text-orange-600 dark:text-orange-400',
-                    bg: 'bg-orange-50 dark:bg-orange-900/20',
+                    bg: 'bg-orange-50 dark:bg-orange-500/10',
+                    borderClass: 'kpi-border-orange',
                     icon: ArrowUpRight,
                     description: 'Tổng số lượng xuất'
                   },
@@ -861,89 +879,83 @@ const App: React.FC = () => {
                     label: 'CẢNH BÁO TỒN',
                     value: summary.lowStockCount,
                     color: 'text-red-600 dark:text-red-400',
-                    bg: 'bg-red-50 dark:bg-red-900/20',
+                    bg: 'bg-red-50 dark:bg-red-500/10',
+                    borderClass: 'kpi-border-red',
                     icon: AlertTriangle,
                     description: 'Cần bổ sung ngay'
                   },
                 ].map((stat, i) => (
                   <div
                     key={i}
-                    className={`bg-white dark:bg-[#1e293b] p-6 rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden border-t-4 ${i === 0 ? 'border-t-blue-500' :
-                      i === 1 ? 'border-t-green-500' :
-                        i === 2 ? 'border-t-orange-500' :
-                          'border-t-red-500'
-                      }`}
+                    className={`neo-card p-6 group relative overflow-hidden ${stat.borderClass}`}
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                        <stat.icon size={24} />
+                      <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
+                        <stat.icon size={22} />
                       </div>
                     </div>
-                    <p className="text-4xl font-extrabold text-slate-800 dark:text-white mb-1 tracking-tight">{stat.value}</p>
-                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 group-hover:text-slate-500 transition-colors">{stat.label}</p>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{stat.description}</p>
+                    <p className="text-3xl font-extrabold text-slate-800 dark:text-white mb-1 tracking-tight tabular-nums">{stat.value}</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
+                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{stat.description}</p>
                   </div>
                 ))}
               </div>
-
-
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Cảnh báo tồn kho thấp */}
-                <div className="bg-white dark:bg-[#1e293b] rounded-[20px] border border-slate-100 dark:border-slate-700 p-8 flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">Cảnh báo tồn kho thấp</h3>
-                    <span className="text-sm font-bold text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-3 py-1 rounded-full">{summary.lowStockCount} mục</span>
+                <div className="neo-card-static p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-tight">Cảnh báo tồn kho thấp</h3>
+                    <span className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 px-3 py-1 rounded-full">{summary.lowStockCount} mục</span>
                   </div>
-                  <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="flex-1 flex flex-col items-center justify-center min-h-[280px]">
                     {summary.lowStockItems.length > 0 ? (
-                      <div className="w-full space-y-3">
+                      <div className="w-full space-y-2">
                         {summary.lowStockItems.map(m => (
-                          <div key={m.id} className="p-4 bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-100 dark:border-slate-700 group transition-all hover:border-blue-200 dark:hover:border-blue-500/30 hover:shadow-sm flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
-                              <AlertTriangle size={20} />
+                          <div key={m.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 group transition-all hover:border-emerald-200 dark:hover:border-emerald-500/20 flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 flex items-center justify-center shrink-0">
+                              <AlertTriangle size={18} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate uppercase">{m.name}</p>
-                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 uppercase">{m.workshop} - Tồn: <span className="text-red-600 dark:text-red-400 font-bold">{formatNumber(m.quantity)} {m.unit}</span></p>
+                              <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm truncate">{m.name}</p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{m.workshop} · Tồn: <span className="text-red-500 dark:text-red-400 font-bold">{formatNumber(m.quantity)} {m.unit}</span></p>
                             </div>
-                            {!isStaff && (
-                              <button onClick={() => quickRestock(m)} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"><ShoppingCart size={16} /></button>
+                            {canModify && (
+                              <button onClick={() => quickRestock(m)} className="p-2 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-colors"><ShoppingCart size={14} /></button>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-4">
-                        <AlertTriangle size={64} className="text-slate-200 dark:text-slate-700" />
-                        <p className="text-base font-bold text-slate-400 dark:text-slate-500">Không có cảnh báo</p>
+                      <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-3">
+                        <AlertTriangle size={48} className="text-slate-200 dark:text-slate-700" />
+                        <p className="text-sm font-medium text-slate-400 dark:text-slate-500">Không có cảnh báo</p>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Giao dịch gần đây */}
-                <div className="bg-white dark:bg-[#1e293b] rounded-3xl border border-slate-100 dark:border-slate-700 p-8 flex flex-col shadow-sm card-elevated">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tight">Giao dịch gần đây</h3>
-                    <span className="text-base font-extrabold text-blue-600 dark:text-blue-400">{transactions.slice(0, 5).length} giao dịch</span>
+                <div className="neo-card-static p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-tight">Giao dịch gần đây</h3>
+                    <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 px-3 py-1 rounded-full">{transactions.slice(0, 5).length} giao dịch</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+                  <div className="flex-1 overflow-y-auto space-y-2">
                     {transactions.slice(0, 5).map(t => (
-                      <div key={t.id} className="p-5 bg-slate-50 dark:bg-[#0f172a] rounded-2xl border border-slate-100 dark:border-slate-700 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all">
-                        <div className="flex items-start gap-4">
-                          <div className={`p-3 rounded-xl ${t.type === TransactionType.IN ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                            {t.type === TransactionType.IN ? <ArrowDownLeft size={22} /> : t.type === TransactionType.OUT ? <ArrowUpRight size={22} /> : <ArrowRightLeft size={22} />}
+                      <div key={t.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50 hover:bg-sky-50/30 dark:hover:bg-sky-500/5 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2.5 rounded-lg ${t.type === TransactionType.IN ? 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400'}`}>
+                            {t.type === TransactionType.IN ? <ArrowDownLeft size={18} /> : t.type === TransactionType.OUT ? <ArrowUpRight size={18} /> : <ArrowRightLeft size={18} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base uppercase truncate">{t.materialName}</p>
-                            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">{t.date}  {t.receiptId}</p>
+                            <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm truncate">{t.materialName}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t.date} · {t.receiptId}</p>
                           </div>
                           <div className="text-right">
-                            <p className={`text-lg font-extrabold ${t.type === TransactionType.IN ? 'text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            <p className={`text-base font-bold tabular-nums ${t.type === TransactionType.IN ? 'text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'text-red-600 dark:text-red-400' : 'text-sky-600 dark:text-sky-400'}`}>
                               {t.type === TransactionType.IN ? '+' : '-'}{formatNumber(t.quantity)}
                             </p>
-                            <p className={`text-[10px] font-extrabold uppercase ${t.type === TransactionType.IN ? 'text-green-600 dark:text-green-400' : t.type === TransactionType.OUT ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            <p className={`text-[10px] font-bold uppercase ${t.type === TransactionType.IN ? 'text-green-500' : t.type === TransactionType.OUT ? 'text-red-500' : 'text-sky-500'}`}>
                               {t.type === TransactionType.IN ? 'NHẬP' : t.type === TransactionType.OUT ? 'XUẤT' : 'CHUYỂN'}
                             </p>
                           </div>
@@ -953,7 +965,7 @@ const App: React.FC = () => {
                     {transactions.length === 0 && (
                       <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-3 py-12">
                         <History size={48} />
-                        <p className="text-sm font-bold text-slate-400 dark:text-slate-500">Chưa có giao dịch</p>
+                        <p className="text-sm font-medium text-slate-400 dark:text-slate-500">Chưa có giao dịch</p>
                       </div>
                     )}
                   </div>
@@ -971,7 +983,7 @@ const App: React.FC = () => {
                 // Refresh data logic
                 loadData();
               }}
-              canManage={hasPermission('MANAGE_MATERIALS')}
+              canManage={hasPermission('MANAGE_WAREHOUSE')}
             />
           )}
 
@@ -1001,7 +1013,7 @@ const App: React.FC = () => {
 
           {activeTab === 'credits' && (
             <div className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-[#1e293b] rounded-[32px] border border-slate-100 dark:border-slate-700 shadow-sm min-h-[600px] relative overflow-hidden text-center">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700"></div>
               <div className="max-w-4xl w-full text-center space-y-12 relative z-10 text-center">
                 <div className="space-y-4">
                   <div className="inline-flex items-center justify-center p-6 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-500 rounded-2xl shadow-sm mb-2 animate-bounce">
@@ -1020,12 +1032,12 @@ const App: React.FC = () => {
                   {/* Card 1: Info */}
                   <div className="bg-slate-50 dark:bg-[#0f172a] p-8 rounded-[24px] border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all group duration-300">
                     <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                      <div className="w-1 h-5 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+                      <div className="w-1 h-5 bg-emerald-600 dark:bg-emerald-500 rounded-full"></div>
                       Thông tin phát triển
                     </h3>
                     <div className="space-y-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white dark:bg-[#1e293b] rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">
+                        <div className="w-12 h-12 bg-white dark:bg-[#1e293b] rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm border border-slate-100 dark:border-slate-700">
                           <Users size={24} />
                         </div>
                         <div>
@@ -1039,7 +1051,7 @@ const App: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Phiên bản hiện tại</p>
-                          <p className="text-lg font-extrabold text-slate-800 dark:text-white">v3.7.0 <span className="text-blue-600 dark:text-blue-400 text-sm">PRO PREMIUM</span></p>
+                          <p className="text-lg font-extrabold text-slate-800 dark:text-white">v3.7.0 <span className="text-emerald-600 dark:text-emerald-400 text-sm">PRO PREMIUM</span></p>
                         </div>
                       </div>
                     </div>
@@ -1052,7 +1064,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="relative z-10">
                       <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                        <div className="w-1 h-5 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+                        <div className="w-1 h-5 bg-emerald-600 dark:bg-emerald-500 rounded-full"></div>
                         Lời tri ân
                       </h3>
                       <p className="text-base font-medium leading-relaxed text-slate-600 dark:text-slate-300">
@@ -1168,7 +1180,7 @@ const App: React.FC = () => {
         confirmDialog.isOpen && (
           <div className="print:hidden fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6 modal-backdrop transition-all duration-200">
             <div className="w-full max-w-sm bg-white dark:bg-[#1e293b] rounded-2xl p-6 shadow-xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200 border border-slate-100 dark:border-slate-700">
-              <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-2xl ${confirmDialog.type === 'danger' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+              <div className={`mx-auto w-16 h-16 flex items-center justify-center rounded-2xl ${confirmDialog.type === 'danger' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
                 {confirmDialog.type === 'danger' ? <AlertTriangle size={32} /> : <HelpCircle size={32} />}
               </div>
               <div>
@@ -1177,7 +1189,7 @@ const App: React.FC = () => {
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">Hủy</button>
-                <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 text-white font-bold rounded-xl text-sm shadow-md transition-all ${confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>Xác nhận</button>
+                <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 text-white font-bold rounded-xl text-sm shadow-md transition-all ${confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}>Xác nhận</button>
               </div>
             </div>
           </div>

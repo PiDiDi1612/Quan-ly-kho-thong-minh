@@ -38,8 +38,10 @@ if (!fs.existsSync(dataDir)) {
 const db = new Database(path.join(dataDir, 'data.db'));
 
 // Enable WAL (Write-Ahead Logging) mode for better concurrent access
-// WAL allows readers and writers to work simultaneously without blocking
 db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');  // Faster writes, safe with WAL
+db.pragma('cache_size = -8000');    // 8MB page cache
+db.pragma('temp_store = MEMORY');   // Temp tables in RAM
 
 // Removed: SESSION_TTL_MS and sessions Map - JWT is stateless
 const HASH_PREFIX = 'pbkdf2$';
@@ -119,6 +121,21 @@ const verifyToken = (req, res, next) => {
 };
 
 
+// Short-lived in-memory user cache to avoid DB hit on every API request
+const userCache = new Map(); // userId -> { user, expiresAt }
+const USER_CACHE_TTL = 30_000; // 30 seconds
+
+const getCachedUser = (userId) => {
+    const entry = userCache.get(userId);
+    if (entry && entry.expiresAt > Date.now()) return entry.user;
+    userCache.delete(userId);
+    return null;
+};
+const invalidateUserCache = (userId) => {
+    if (userId) userCache.delete(userId);
+    else userCache.clear();
+};
+
 const authMiddleware = (req, res, next) => {
     // Skip auth for login/logout endpoints
     if (req.path === '/auth/login' || req.path === '/auth/logout' || req.path === '/system-info') {
@@ -134,18 +151,22 @@ const authMiddleware = (req, res, next) => {
         // Verify JWT token
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Get user from database
-        const authUser = db.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").get(decoded.userId);
-
-        if (!authUser || !authUser.isActive) {
-            return res.status(401).json({ success: false, error: 'Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.' });
+        // Check in-memory cache first to avoid DB hit on every request
+        let authUserSanitized = getCachedUser(decoded.userId);
+        if (!authUserSanitized) {
+            const authUser = db.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").get(decoded.userId);
+            if (!authUser || !authUser.isActive) {
+                return res.status(401).json({ success: false, error: 'Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.' });
+            }
+            authUserSanitized = sanitizeUser(authUser);
+            userCache.set(decoded.userId, { user: authUserSanitized, expiresAt: Date.now() + USER_CACHE_TTL });
         }
 
         // Attach user info to request
         req.auth = {
             token,
             userId: decoded.userId,
-            user: sanitizeUser(authUser)
+            user: authUserSanitized
         };
         req.user = decoded; // For permission checks
 
@@ -211,6 +232,17 @@ db.exec(`
     createdBy TEXT,
     updatedAt TEXT
   );
+`);
+
+// Performance indexes — created only if they don't already exist
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_tx_materialId        ON transactions(materialId);
+  CREATE INDEX IF NOT EXISTS idx_tx_targetMaterialId  ON transactions(targetMaterialId);
+  CREATE INDEX IF NOT EXISTS idx_tx_date              ON transactions(date);
+  CREATE INDEX IF NOT EXISTS idx_tx_receiptId         ON transactions(receiptId);
+  CREATE INDEX IF NOT EXISTS idx_tx_workshop          ON transactions(workshop);
+  CREATE INDEX IF NOT EXISTS idx_mat_workshop         ON materials(workshop);
+  CREATE INDEX IF NOT EXISTS idx_log_timestamp        ON activity_logs(timestamp DESC);
 `);
 
 // Migration: Ensure 'image' column exists in 'materials'
@@ -349,6 +381,7 @@ app.post('/api/auth/login', (req, res) => {
 
     const now = new Date().toISOString();
     db.prepare("UPDATE users SET lastLogin = ? WHERE id = ?").run(now, user.id);
+    invalidateUserCache(user.id);
 
     // Generate JWT token with 4-hour expiry
     const token = jwt.sign(
@@ -381,71 +414,35 @@ app.get('/api/materials', (req, res) => {
         return res.json(db.prepare('SELECT * FROM materials').all());
     }
 
-    // Logic: Calculate Opening and Closing stock relative to Current Stock
-    // Closing (at endDate) = Current - (Net Change after endDate)
-    // Opening (at startDate) = Current - (Net Change >= startDate)
-
-    // Net Change = (In + TransferIn) - (Out + TransferOut)
-
     const sql = `
-        SELECT 
-            m.*,
-            (m.quantity - COALESCE((
-                SELECT SUM(
-                    CASE 
-                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
-                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
-                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN -t.quantity
-                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN -t.quantity
-                        ELSE 0 
-                    END
-                )
-                FROM transactions t
-                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
-                  AND t.date > @endDate
-            ), 0)) as closingStock,
-            
-            (m.quantity - COALESCE((
-                SELECT SUM(
-                    CASE 
-                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
-                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
-                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN -t.quantity
-                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN -t.quantity
-                        ELSE 0 
-                    END
-                )
-                FROM transactions t
-                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
-                  AND t.date >= @startDate
-            ), 0)) as openingStock,
-            
-            COALESCE((
-                SELECT SUM(
-                    CASE 
-                        WHEN t.materialId = m.id AND t.type = 'IN' THEN t.quantity
-                        WHEN t.targetMaterialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
-                        ELSE 0 
-                    END
-                )
-                FROM transactions t
-                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
-                  AND t.date >= @startDate AND t.date <= @endDate
-            ), 0) as periodIn,
-            
-            COALESCE((
-                SELECT SUM(
-                    CASE 
-                        WHEN t.materialId = m.id AND t.type = 'OUT' THEN t.quantity
-                        WHEN t.materialId = m.id AND t.type = 'TRANSFER' THEN t.quantity
-                        ELSE 0 
-                    END
-                )
-                FROM transactions t
-                WHERE (t.materialId = m.id OR t.targetMaterialId = m.id)
-                  AND t.date >= @startDate AND t.date <= @endDate
-            ), 0) as periodOut
+        WITH 
+          ts AS (
+            SELECT 
+              m_id,
+              SUM(CASE WHEN date > @endDate THEN qty ELSE 0 END) as net_after,
+              SUM(CASE WHEN date >= @startDate THEN qty ELSE 0 END) as net_from_start,
+              SUM(CASE WHEN date BETWEEN @startDate AND @endDate AND is_in = 1 THEN quantity ELSE 0 END) as p_in,
+              SUM(CASE WHEN date BETWEEN @startDate AND @endDate AND is_in = 0 THEN quantity ELSE 0 END) as p_out
+            FROM (
+              -- Outgoing/Normal In
+              SELECT materialId as m_id, date, quantity, 
+                     CASE WHEN type='IN' THEN quantity WHEN type='OUT' THEN -quantity WHEN type='TRANSFER' THEN -quantity ELSE 0 END as qty,
+                     (CASE WHEN type='IN' THEN 1 ELSE 0 END) as is_in
+              FROM transactions
+              UNION ALL
+              -- Incoming transfers (targetMaterialId)
+              SELECT targetMaterialId as m_id, date, quantity, quantity as qty, 1 as is_in
+              FROM transactions WHERE type='TRANSFER' AND targetMaterialId IS NOT NULL
+            )
+            GROUP BY m_id
+          )
+        SELECT m.*, 
+               (m.quantity - COALESCE(ts.net_after, 0)) as closingStock,
+               (m.quantity - COALESCE(ts.net_from_start, 0)) as openingStock,
+               COALESCE(ts.p_in, 0) as periodIn,
+               COALESCE(ts.p_out, 0) as periodOut
         FROM materials m
+        LEFT JOIN ts ON m.id = ts.m_id;
     `;
 
     try {
@@ -456,10 +453,47 @@ app.get('/api/materials', (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.get('/api/transactions', (req, res) => res.json(db.prepare('SELECT * FROM transactions ORDER BY date DESC').all()));
+
+app.get('/api/dashboard/summary', (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        const summary = {
+            totalItems: db.prepare('SELECT COUNT(*) as c FROM materials').get().c,
+            lowStockCount: db.prepare('SELECT COUNT(*) as c FROM materials WHERE quantity <= minThreshold').get().c,
+            lowStockItems: db.prepare('SELECT * FROM materials WHERE quantity <= minThreshold ORDER BY quantity ASC LIMIT 10').all(),
+            todayIn: db.prepare("SELECT SUM(quantity) as s FROM transactions WHERE date = ? AND (type = 'IN' OR (type = 'TRANSFER' AND targetMaterialId IS NOT NULL))").get(today)?.s || 0,
+            todayOut: db.prepare("SELECT SUM(quantity) as s FROM transactions WHERE date = ? AND (type = 'OUT' OR type = 'TRANSFER')").get(today)?.s || 0,
+            workshopData: db.prepare(`
+                SELECT workshop as name, COUNT(*) as total, SUM(quantity) as quantity 
+                FROM materials GROUP BY workshop
+            `).all(),
+            activityData: []
+        };
+
+        // Activity for 7 days
+        for (let i = 0; i < 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const txs = db.prepare("SELECT type, SUM(quantity) as qty FROM transactions WHERE date = ? GROUP BY type").all(dateStr);
+            summary.activityData.push({
+                name: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+                inCount: txs.filter(t => t.type === 'IN').reduce((acc, t) => acc + t.qty, 0),
+                outCount: txs.filter(t => t.type === 'OUT' || t.type === 'TRANSFER').reduce((acc, t) => acc + t.qty, 0)
+            });
+        }
+
+        res.json(summary);
+    } catch (error) {
+        console.error("Dashboard error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+app.get('/api/transactions', (req, res) => res.json(db.prepare('SELECT * FROM transactions ORDER BY date DESC, transactionTime DESC LIMIT 1000').all()));
 app.get('/api/users', requirePermission('MANAGE_USERS'), (req, res) => res.json(db.prepare('SELECT * FROM users').all().map(sanitizeUser)));
 app.get('/api/budgets', (req, res) => res.json(db.prepare('SELECT * FROM budgets').all().map(b => ({ ...b, items: parseJsonSafe(b.items, []) }))));
-app.get('/api/activity_logs', requirePermission('VIEW_ACTIVITY_LOG'), (req, res) => res.json(db.prepare('SELECT * FROM activity_logs ORDER BY timestamp DESC').all()));
+app.get('/api/activity_logs', requirePermission('VIEW_ACTIVITY_LOG'), (req, res) => res.json(db.prepare('SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT 500').all()));
 app.get('/api/projects', (req, res) => res.json(db.prepare('SELECT * FROM projects ORDER BY createdAt DESC').all()));
 app.get('/api/suppliers', (req, res) => res.json(db.prepare('SELECT * FROM suppliers ORDER BY createdAt DESC').all()));
 
@@ -1070,6 +1104,7 @@ app.post('/api/users/save', requirePermission('MANAGE_USERS'), (req, res) => {
         permissions: JSON.stringify(user.permissions || []),
         isActive: user.isActive ? 1 : 0
     });
+    invalidateUserCache(user.id);
     notifyUpdate();
     res.json({ success: true });
 });
@@ -1096,6 +1131,7 @@ app.post('/api/users/update_self', (req, res) => {
         WHERE id = ?
     `).run(fullName || user.fullName, email ?? user.email, nextPassword, userId);
 
+    invalidateUserCache(userId);
     const updated = db.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").get(userId);
     notifyUpdate();
     return res.json({ success: true, user: sanitizeUser(updated) });

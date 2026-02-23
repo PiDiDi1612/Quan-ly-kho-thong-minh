@@ -28,16 +28,16 @@ class ApiService {
     private determineBaseUrl() {
         if (typeof window === 'undefined') return;
 
-        // 1. If running from file system (Production Electron), ALWAYS use localhost:3000
+        // 1. If running from file system (Production Electron), ALWAYS use 127.0.0.1:3000
         if (window.location.protocol === 'file:') {
-            this.baseUrl = 'http://localhost:3000';
+            this.baseUrl = 'http://127.0.0.1:3000';
             return;
         }
 
         // 2. Load saved config
         if (this.config.mode) {
             if (this.config.mode === 'SERVER') {
-                this.baseUrl = 'http://localhost:3000';
+                this.baseUrl = 'http://127.0.0.1:3000';
             } else {
                 this.baseUrl = `http://${this.config.serverIp}:3000`;
             }
@@ -46,7 +46,7 @@ class ApiService {
 
         // 3. Default fallback (Dev mode or First run)
         // If we represent an Electron app, we likely want to hit the local server by default
-        this.baseUrl = 'http://localhost:3000';
+        this.baseUrl = 'http://127.0.0.1:3000';
     }
 
     public getBaseUrl() {

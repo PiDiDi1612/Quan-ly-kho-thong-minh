@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileSpreadsheet, Download, Upload, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileSpreadsheet, Download, Upload, X, Hash, Building2, FileText, Calendar, Settings, Search } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -59,8 +59,23 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
         description: ''
     });
 
+    const [searchTerm, setSearchTerm] = useState('');
     useEffect(() => {
         fetchSuppliers();
+
+        const handleAdd = () => handleOpenModal();
+        const handleImport = () => handleImportExcel();
+        const handleExport = () => handleExportExcel();
+
+        window.addEventListener('open-supplier-modal', handleAdd);
+        window.addEventListener('import-supplier-excel', handleImport);
+        window.addEventListener('export-supplier-excel', handleExport);
+
+        return () => {
+            window.removeEventListener('open-supplier-modal', handleAdd);
+            window.removeEventListener('import-supplier-excel', handleImport);
+            window.removeEventListener('export-supplier-excel', handleExport);
+        };
     }, []);
 
     const fetchSuppliers = async () => {
@@ -234,51 +249,33 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
         }
     };
 
+    const filteredSuppliers = suppliers.filter(s =>
+        s.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Quản lý NCC</h2>
-                    <p className="text-sm text-slate-500 font-medium mt-1">
-                        Tổng số NCC: <span className="text-blue-600 font-bold">{suppliers.length}</span>
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="secondary"
-                        leftIcon={<Download size={16} />}
-                        onClick={handleExportExcel}
-                        className="bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+            {/* Search Bar */}
+            <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Tìm kiếm theo mã, tên NCC, mô tả..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 dark:focus:border-sky-500 transition-all placeholder:text-slate-400 shadow-sm"
+                />
+                {searchTerm && (
+                    <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded"
                     >
-                        Xuất Excel
-                    </Button>
-                    <Button
-                        variant="secondary"
-                        leftIcon={<Upload size={16} />}
-                        onClick={handleImportExcel}
-                        className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-                    >
-                        Nhập Excel
-                    </Button>
-                    {selectedSuppliers.length >= 2 && (
-                        <Button
-                            variant="secondary"
-                            onClick={handleOpenMergeModal}
-                            className="bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
-                        >
-                            Hợp nhất NCC ({selectedSuppliers.length})
-                        </Button>
-                    )}
-                    <Button
-                        onClick={() => handleOpenModal()}
-                        leftIcon={<Plus size={16} />}
-                        className="shadow-lg shadow-blue-500/20"
-                    >
-                        Thêm NCC
-                    </Button>
-                </div>
+                        <X size={14} />
+                    </button>
+                )}
             </div>
-
             <div className="bg-transparent">
                 <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
                     <thead>
@@ -287,7 +284,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                                 <input
                                     type="checkbox"
                                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
-                                    checked={selectedSuppliers.length === suppliers.length && suppliers.length > 0}
+                                    checked={selectedSuppliers.length === filteredSuppliers.length && filteredSuppliers.length > 0}
                                     onChange={(e) => {
                                         if (e.target.checked) {
                                             setSelectedSuppliers(suppliers.map(s => s.id));
@@ -297,54 +294,54 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                                     }}
                                 />
                             </th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Mã NCC</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Tên NCC</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Mô tả</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Ngày tạo</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right">Thao tác</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Mã NCC</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Building2 size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Tên NCC</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><FileText size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Mô tả</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Ngày tạo</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {suppliers.map(c => (
+                        {filteredSuppliers.map((supplier) => (
                             <tr
-                                key={c.id}
-                                onClick={() => toggleSelectSupplier(c.id)}
-                                className={`bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group cursor-pointer ${selectedSuppliers.includes(c.id) ? 'bg-blue-50/80 dark:bg-blue-900/30 ring-1 ring-blue-200 dark:ring-blue-800' : ''}`}
+                                key={supplier.id}
+                                onClick={() => toggleSelectSupplier(supplier.id)}
+                                className={`bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group cursor-pointer ${selectedSuppliers.includes(supplier.id) ? 'bg-sky-50/80 dark:bg-sky-900/30 ring-1 ring-sky-200 dark:ring-sky-800' : ''}`}
                             >
-                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
                                     <input
                                         type="checkbox"
-                                        className="w-5 h-5 rounded-md border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer pointer-events-none"
-                                        checked={selectedSuppliers.includes(c.id)}
+                                        className="w-5 h-5 rounded-md border-slate-300 dark:border-slate-600 text-sky-600 focus:ring-sky-500 transition-all cursor-pointer pointer-events-none"
+                                        checked={selectedSuppliers.includes(supplier.id)}
                                         readOnly
                                     />
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <span className="font-bold text-blue-600 dark:text-blue-400">{c.code}</span>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
+                                    <span className="font-bold text-sky-600 dark:text-sky-400">{supplier.code}</span>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <span className="font-medium text-slate-800 dark:text-slate-200">{c.name}</span>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
+                                    <span className="font-medium text-slate-800 dark:text-slate-200">{supplier.name}</span>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <span className="text-slate-600 dark:text-slate-400 text-xs">{c.description || '-'}</span>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
+                                    <span className="text-slate-600 dark:text-slate-400 text-xs">{supplier.description || '-'}</span>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <span className="text-slate-500 text-xs">{new Date(c.createdAt).toLocaleDateString('vi-VN')}</span>
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
+                                    <span className="text-slate-500 text-xs">{new Date(supplier.createdAt).toLocaleDateString('vi-VN')}</span>
                                 </td>
-                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50 text-right">
+                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50 text-right">
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleOpenModal(c)}
-                                            className="!p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600"
+                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(supplier); }}
+                                            className="!p-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 text-slate-400 hover:text-sky-600"
                                         >
                                             <Edit2 size={18} />
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleDelete(c.id)}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(supplier.id); }}
                                             className="!p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500"
                                         >
                                             <Trash2 size={18} />
@@ -392,7 +389,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                             value={formData.description || ''}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                             placeholder="Ghi chú về khách hàng..."
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
                             rows={3}
                         />
                     </div>
@@ -412,11 +409,11 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                 maxWidth="max-w-2xl"
             >
                 <div className="space-y-4">
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    <div className="p-4 bg-sky-50 dark:bg-sky-900/20 rounded-lg border border-sky-100 dark:border-sky-800">
+                        <p className="text-sm font-medium text-sky-800 dark:text-sky-300">
                             Bạn đang hợp nhất <span className="font-bold">{selectedSuppliers.length} NCC</span> thành 1 NCC duy nhất.
                         </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">
                             Tất cả phiếu nhập cũ sẽ được cập nhật sang NCC mới.
                         </p>
                     </div>
@@ -426,7 +423,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                         <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                             {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
                                 <div key={s.id} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600">
-                                    <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">{s.code}</span>
+                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-sm">{s.code}</span>
                                     <span className="text-slate-600 dark:text-slate-300 text-sm">-</span>
                                     <span className="text-slate-800 dark:text-slate-200 text-sm">{s.name}</span>
                                 </div>
@@ -442,7 +439,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                             <select
                                 value={mergeFormData.primaryCode}
                                 onChange={e => setMergeFormData({ ...mergeFormData, primaryCode: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                             >
                                 {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
                                     <option key={s.id} value={s.code}>{s.code}</option>
@@ -455,7 +452,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                             <select
                                 value={mergeFormData.primaryName}
                                 onChange={e => setMergeFormData({ ...mergeFormData, primaryName: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                             >
                                 {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
                                     <option key={s.id} value={s.name}>{s.name}</option>
@@ -469,7 +466,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                                 value={mergeFormData.description}
                                 onChange={e => setMergeFormData({ ...mergeFormData, description: e.target.value })}
                                 placeholder="Nhập mô tả mới hoặc để trống..."
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                                 rows={3}
                             />
                         </div>
@@ -493,3 +490,4 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
         </div>
     );
 };
+

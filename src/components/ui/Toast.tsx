@@ -17,14 +17,14 @@ const colors = {
     success: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200',
     error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
     warning: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200',
-    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+    info: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200',
 };
 
 const iconColors = {
     success: 'text-emerald-600 dark:text-emerald-400',
     error: 'text-red-600 dark:text-red-400',
     warning: 'text-amber-600 dark:text-amber-400',
-    info: 'text-blue-600 dark:text-blue-400',
+    info: 'text-emerald-600 dark:text-emerald-400',
 };
 
 export const Toast: React.FC<ToastProps> = ({ toast }) => {
@@ -53,3 +53,4 @@ export const Toast: React.FC<ToastProps> = ({ toast }) => {
         </div>
     );
 };
+

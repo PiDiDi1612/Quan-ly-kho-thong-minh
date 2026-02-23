@@ -25,8 +25,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Hủy'
 }) => {
   const Icon = type === 'danger' ? AlertCircle : type === 'warning' ? AlertTriangle : Info;
-  const iconColor = type === 'danger' ? 'text-red-500 dark:text-red-300' : type === 'warning' ? 'text-amber-500 dark:text-amber-300' : 'text-blue-500 dark:text-blue-300';
-  const bgColor = type === 'danger' ? 'bg-red-50/90 dark:bg-red-900/25' : type === 'warning' ? 'bg-amber-50/90 dark:bg-amber-900/25' : 'bg-blue-50/90 dark:bg-blue-900/25';
+  const iconColor = type === 'danger' ? 'text-red-500 dark:text-red-300' : type === 'warning' ? 'text-amber-500 dark:text-amber-300' : 'text-emerald-500 dark:text-emerald-300';
+  const bgColor = type === 'danger' ? 'bg-red-50/90 dark:bg-red-900/25' : type === 'warning' ? 'bg-amber-50/90 dark:bg-amber-900/25' : 'bg-emerald-50/90 dark:bg-emerald-900/25';
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   return (
@@ -74,3 +74,4 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </Modal>
   );
 };
+

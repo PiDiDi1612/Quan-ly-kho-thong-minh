@@ -121,7 +121,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            toast.error("Lỗi khi in hàng loạt");
+            toast.error("L?i khi in hàng lo?t");
         }
     };
 
@@ -148,7 +148,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            toast.error("Lỗi khi in phiếu");
+            toast.error("L?i khi in phi?u");
         }
     };
 
@@ -160,7 +160,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         endDate: ''
     });
 
-    const canManage = currentUser?.permissions.includes('MANAGE_MATERIALS') || currentUser?.role === 'ADMIN';
+    const canManage = currentUser?.permissions.includes('MANAGE_WAREHOUSE') || currentUser?.role === 'ADMIN';
     const isAdmin = currentUser?.role === 'ADMIN';
 
     // --- HISTORY LOGIC ---
@@ -245,7 +245,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 3 } });
         ws['!cols'] = [{ wch: 20 }, { wch: 45 }, { wch: 15 }, { wch: 25 }];
 
-        XLSX.utils.book_append_sheet(wb, ws, "Lịch sử GD");
+        XLSX.utils.book_append_sheet(wb, ws, "Lịch sử giao dịch");
         XLSX.writeFile(wb, `LichSu_GD_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
@@ -253,7 +253,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         setConfirmState({
             isOpen: true,
             title: 'Xóa giao dịch',
-            message: `Bạn có chắc chắn muốn xóa phiếu ${tx.receiptId}? Tồn kho sẽ được hoàn tác tự động. Thao tác này không thể hoàn tác.`,
+            message: `Bạn có chắc chắn muốn xóa phiếu ${tx.receiptId}? Tồn kho sẽ được hoàn tác. Thao tác này không thể hoàn tác.`,
             type: 'danger',
             onConfirm: async () => {
                 try {
@@ -303,7 +303,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         setConfirmState({
             isOpen: true,
             title: 'Xóa tất cả nhật ký',
-            message: 'Xóa TẤT CẢ nhật ký? Hành động này không thể hoàn tác.',
+            message: 'Xóa tất cả nhật ký? Hành động này không thể hoàn tác.',
             type: 'danger',
             onConfirm: async () => {
                 try {
@@ -326,10 +326,10 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                     <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="relative col-span-1 md:col-span-2">
                             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <Input placeholder="Tìm kiếm phiếu, vật tư, đơn hàng..." className="pl-10" value={historySearchTerm} onChange={e => setHistorySearchTerm(e.target.value)} />
+                            <Input placeholder="Tìm ki?m phi?u, v?t tu, don hàng..." className="pl-10" value={historySearchTerm} onChange={e => setHistorySearchTerm(e.target.value)} />
                         </div>
                         <select
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm"
                             value={historyFilter.type}
                             onChange={e => setHistoryFilter({ ...historyFilter, type: e.target.value })}
                         >
@@ -339,7 +339,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                             <option value="TRANSFER">Điều chuyển</option>
                         </select>
                         <select
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold text-sm"
+                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm"
                             value={historyFilter.workshop}
                             onChange={e => setHistoryFilter({ ...historyFilter, workshop: e.target.value })}
                         >
@@ -358,7 +358,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                             <div className="ml-auto flex gap-3">
                                 {selectedReceipts.size > 0 && (
                                     <Button
-                                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                                         leftIcon={<Printer size={16} />}
                                         onClick={handleBulkPrint}
                                     >
@@ -379,7 +379,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                         <th className="px-6 py-4 w-10">
                                             <input
                                                 type="checkbox"
-                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                                 checked={selectedReceipts.size > 0 && selectedReceipts.size === new Set(filteredTransactions.map(t => t.receiptId)).size}
                                                 onChange={toggleAllSelection}
                                             />
@@ -387,7 +387,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                         <th className="px-6 py-4 font-extrabold">Mã phiếu</th>
                                         <th className="px-6 py-4 font-extrabold">Ngày</th>
                                         <th className="px-6 py-4 font-extrabold">Loại</th>
-                                        <th className="px-6 py-4 font-extrabold">Vật tư</th>
+                                        <th className="px-6 py-4 font-extrabold">Vị trí</th>
                                         <th className="px-6 py-4 font-extrabold text-center">Số lượng</th>
                                         <th className="px-6 py-4 font-extrabold">Xưởng</th>
                                         <th className="px-6 py-4 font-extrabold">Người thực hiện</th>
@@ -400,7 +400,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                             <td className="px-6 py-4">
                                                 <input
                                                     type="checkbox"
-                                                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                                     checked={selectedReceipts.has(tx.receiptId)}
                                                     onChange={() => toggleReceiptSelection(tx.receiptId)}
                                                 />
@@ -409,14 +409,14 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                             <td className="px-6 py-4 font-medium text-slate-500">{new Date(tx.date).toLocaleDateString('en-GB')}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${tx.type === 'IN' ? 'bg-green-100 text-green-700' :
-                                                    tx.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                                    tx.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                                                     }`}>
-                                                    {tx.type === 'IN' ? 'Nhập' : tx.type === 'OUT' ? 'Xuất' : 'Điều chuyển'}
+                                                    {tx.type === 'IN' ? 'Nh?p' : tx.type === 'OUT' ? 'Xu?t' : 'Ði?u chuy?n'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <p className="font-bold text-slate-700 dark:text-slate-200">{tx.materialName}</p>
-                                                {tx.orderCode && <span className="text-[10px] font-bold text-blue-500 uppercase">{tx.orderCode}</span>}
+                                                {tx.orderCode && <span className="text-[10px] font-bold text-emerald-500 uppercase">{tx.orderCode}</span>}
                                             </td>
                                             <td className="px-6 py-4 text-center font-bold text-lg text-slate-700 dark:text-slate-200">{tx.quantity}</td>
                                             <td className="px-6 py-4 font-medium">{tx.workshop} {tx.targetWorkshop && <span className="text-slate-400"> {tx.targetWorkshop}</span>}</td>
@@ -425,7 +425,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => handlePrintSingle(tx.receiptId)}
-                                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                                                        className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
                                                         title="In phiếu"
                                                     >
                                                         <Printer size={16} />
@@ -472,14 +472,14 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                             </select>
                         </div>
                         {isAdmin && filteredActivityLogs.length > 0 && (
-                            <Button onClick={handleClearLogs} className="ml-auto bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200" leftIcon={<Trash2 size={16} />}>Xóa tất cả</Button>
+                            <Button onClick={handleClearLogs} variant="danger" className="ml-auto" leftIcon={<Trash2 size={16} />}>Xóa tất cả</Button>
                         )}
                     </div>
 
                     <div className="space-y-4">
                         {filteredActivityLogs.map(log => (
                             <div key={log.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-                                <div className={`p-3 rounded-xl ${log.entityType === 'TRANSACTION' ? 'bg-blue-50 text-blue-600' :
+                                <div className={`p-3 rounded-xl ${log.entityType === 'TRANSACTION' ? 'bg-emerald-50 text-emerald-600' :
                                     log.entityType === 'SYSTEM' ? 'bg-slate-100 text-slate-600' :
                                         log.entityType === 'USER' ? 'bg-purple-50 text-purple-600' :
                                             log.entityType === 'BUDGET' ? 'bg-orange-50 text-orange-600' :
@@ -495,7 +495,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(log.timestamp).toLocaleString('en-GB')}</span>
                                     </div>
                                     <p className="text-xs text-slate-500 mt-1">{log.details}</p>
-                                    <p className="text-[10px] font-bold text-blue-500 mt-2 uppercase">{log.username}</p>
+                                    <p className="text-[10px] font-bold text-emerald-500 mt-2 uppercase">{log.username}</p>
                                 </div>
                                 {isAdmin && (
                                     <button onClick={() => handleDeleteLog(log.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
@@ -517,3 +517,5 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         </div>
     );
 };
+
+

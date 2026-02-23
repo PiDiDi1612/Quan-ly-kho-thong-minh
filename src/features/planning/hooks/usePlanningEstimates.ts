@@ -42,7 +42,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const [selectedMaterialClass, setSelectedMaterialClass] = useState<'ALL' | 'Vật tư chính' | 'Vật tư phụ'>('ALL');
 
     const budgetFileInputRef = useRef<HTMLInputElement>(null);
-    const canModify = currentUser?.role !== 'STAFF';
+    const canModify = currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false;
 
     const formatNumber = (num: number | string | undefined): string => {
         const val = typeof num === 'number' ? num : parseFloat(num?.toString() || '0');
@@ -69,6 +69,19 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
         }
         setIsModalOpen(true);
     };
+
+    React.useEffect(() => {
+        const handleOpen = () => handleOpenModal();
+        const handleImport = () => budgetFileInputRef.current?.click();
+
+        window.addEventListener('open-budget-modal', handleOpen);
+        window.addEventListener('import-budget-excel', handleImport);
+
+        return () => {
+            window.removeEventListener('open-budget-modal', handleOpen);
+            window.removeEventListener('import-budget-excel', handleImport);
+        };
+    }, [handleOpenModal]); // Dependent on handleOpenModal to ensure it uses the latest version
 
     const handleSave = async () => {
         if (!formData.orderCode || !formData.items || formData.items.length === 0) {

@@ -89,7 +89,7 @@ export class AuthService implements IAuthService {
     }
 
     getUserRole(user: User | null): UserRole {
-        return user?.role || 'STAFF'; // Default to lowest role if null
+        return user?.role || 'GUEST'; // Default to lowest role if null
     }
 
     isTokenExpired(token: string): boolean {

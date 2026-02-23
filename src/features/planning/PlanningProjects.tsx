@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import {
-    Search, Plus, Edit2, Trash2, Save, X, Settings, Package, Download, Database
+    Search, Plus, Edit2, Trash2, Save, X, Settings, Package, Download, Database, MapPin, Phone, StickyNote
 } from 'lucide-react';
 import { Project, User } from '../../types';
 import { Button } from '../../components/ui/Button';
@@ -28,7 +28,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const canModify = currentUser?.role !== 'STAFF';
+    const canModify = currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false;
 
     const handleOpenModal = (pj?: Project) => {
         if (pj) {
@@ -40,6 +40,19 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
         }
         setIsModalOpen(true);
     };
+
+    React.useEffect(() => {
+        const handleOpen = () => handleOpenModal();
+        const handleImport = () => fileInputRef.current?.click();
+
+        window.addEventListener('open-project-modal', handleOpen);
+        window.addEventListener('import-project-excel', handleImport);
+
+        return () => {
+            window.removeEventListener('open-project-modal', handleOpen);
+            window.removeEventListener('import-project-excel', handleImport);
+        };
+    }, []);
 
     const handleSave = async () => {
         if (!formData.name) {
@@ -142,11 +155,11 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                 variant="secondary"
                                 onClick={() => fileInputRef.current?.click()}
                                 leftIcon={<Download size={16} />}
-                                className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                                className="bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800"
                             >
                                 Nhập Excel
                             </Button>
-                            <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={16} />} className="shadow-lg shadow-blue-500/20">Thêm Dự Án</Button>
+                            <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={16} />} className="shadow-lg shadow-sky-500/20">Thêm Dự Án</Button>
                         </>
                     )}
                 </div>
@@ -157,11 +170,11 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Tên dự án</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Địa chỉ</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Số điện thoại</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Ghi chú</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><Database size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Tên dự án</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><MapPin size={12} className="inline mr-1 text-red-400 -mt-0.5" />Địa chỉ</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><Phone size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Số điện thoại</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><StickyNote size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Ghi chú</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -169,7 +182,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                             <tr key={pj.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                                        <div className="w-10 h-10 bg-sky-50 dark:bg-sky-900/20 text-sky-600 rounded-xl flex items-center justify-center shrink-0">
                                             <Database size={18} />
                                         </div>
                                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{pj.name}</span>
@@ -212,7 +225,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                     <div className="w-full max-w-md bg-white dark:bg-[#1e293b] rounded-3xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl">
+                                <div className="p-2 bg-sky-100 dark:bg-sky-900/30 text-sky-600 rounded-xl">
                                     <Settings size={20} />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">
@@ -253,7 +266,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mô tả / Ghi chú</label>
                                 <textarea
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:border-blue-500 text-xs transition-all"
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:border-sky-500 text-xs transition-all"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     placeholder="Thông tin thêm về dự án..."
@@ -264,7 +277,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
 
                         <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex gap-3">
                             <Button variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 font-bold uppercase tracking-wide">Hủy</Button>
-                            <Button onClick={handleSave} className="flex-1 h-12 font-bold uppercase tracking-wide shadow-lg shadow-blue-500/20" leftIcon={<Save size={18} />}>Lưu dự án</Button>
+                            <Button onClick={handleSave} className="flex-1 h-12 font-bold uppercase tracking-wide shadow-lg shadow-sky-500/20" leftIcon={<Save size={18} />}>Lưu dự án</Button>
                         </div>
                     </div>
                 </div>
@@ -272,3 +285,4 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
         </div>
     );
 };
+

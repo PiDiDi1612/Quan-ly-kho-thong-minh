@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield, Key, ToggleLeft, Settings } from 'lucide-react';
 import { User, UserRole, Permission } from '../../types';
-import { ROLE_PERMISSIONS, PERMISSIONS } from '../../constants';
+import { ROLE_PERMISSIONS, PERMISSIONS, VISIBLE_PERMISSIONS } from '../../constants';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -26,7 +26,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
         password: '',
         fullName: '',
         email: '',
-        role: 'STAFF',
+        role: 'GUEST',
         permissions: [],
         isActive: true
     });
@@ -51,7 +51,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 ...user,
                 password: '',
                 // Ensure ADMIN always shows all permissions even if DB had less (for consistency)
-                permissions: user.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : user.permissions
+                permissions: user.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : user.permissions,
             });
         } else {
             setEditingUser(null);
@@ -60,8 +60,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 password: '',
                 fullName: '',
                 email: '',
-                role: 'STAFF',
-                permissions: ROLE_PERMISSIONS.STAFF,
+                role: 'GUEST',
+                permissions: ROLE_PERMISSIONS.GUEST,
                 isActive: true
             });
         }
@@ -92,7 +92,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                     password: formData.password!,
                     fullName: formData.fullName!,
                     email: formData.email,
-                    role: formData.role || 'STAFF',
+                    role: formData.role || 'GUEST',
                     permissions: formData.role === 'ADMIN' ? Object.keys(PERMISSIONS) as Permission[] : formData.permissions,
                     createdBy: currentUser?.id
                 });
@@ -185,12 +185,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
         <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex justify-between items-center">
                 <p className="text-sm text-slate-500 font-medium">
-                    Tổng số người dùng: <span className="text-blue-600 font-bold">{users.length}</span>
+                    Tổng số người dùng: <span className="text-sky-600 font-bold">{users.length}</span>
                 </p>
                 <Button
                     onClick={() => handleOpenModal()}
                     leftIcon={<Plus size={16} />}
-                    className="shadow-lg shadow-blue-500/20"
+                    className="shadow-lg shadow-sky-500/20"
                 >
                     Thêm người dùng
                 </Button>
@@ -200,19 +200,19 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
                     <thead>
                         <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Người dùng</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Vai trò</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Quyền hạn</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Trạng thái</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right">Thao tác</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><UserIcon size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Người dùng</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Shield size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Vai trò</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Key size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Quyền hạn</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><ToggleLeft size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Trạng thái</th>
+                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         {users.map(u => (
                             <tr key={u.id} className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group">
-                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-bold text-sm">
+                                        <div className="w-10 h-10 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-xl flex items-center justify-center font-bold text-sm">
                                             {(u.fullName || u.username || '?')[0].toUpperCase()}
                                         </div>
                                         <div>
@@ -221,33 +221,34 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
                                     <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.role === 'ADMIN' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
-                                        u.role === 'MANAGER' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
-                                            'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                        u.role === 'WAREHOUSE' ? 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' :
+                                            u.role === 'PLANNING' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                                                'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                         }`}>
-                                        {u.role}
+                                        {u.role === 'ADMIN' ? 'Quản trị viên' : u.role === 'WAREHOUSE' ? 'Quản lý kho' : u.role === 'PLANNING' ? 'Phòng kế hoạch' : 'Khách'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
                                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{u.permissions.length} quyền</p>
                                     <p className="text-[10px] text-slate-400 dark:text-slate-600 font-medium">
                                         {u.lastLogin ? `Đăng nhập: ${new Date(u.lastLogin).toLocaleDateString('en-GB')}` : 'Chưa đăng nhập'}
                                     </p>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
+                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
                                     <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.isActive ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                         }`}>
                                         {u.isActive ? 'Hoạt động' : 'Vô hiệu'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50 text-right">
+                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50 text-right">
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleOpenModal(u)}
-                                            className="!p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600"
+                                            className="!p-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 text-slate-400 hover:text-sky-600"
                                         >
                                             <Edit2 size={18} />
                                         </Button>
@@ -330,21 +331,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                             </p>
                         )}
                         <div className="flex gap-4">
-                            {(['ADMIN', 'MANAGER', 'STAFF'] as UserRole[]).map(r => (
-                                <button
-                                    key={r}
-                                    disabled={editingUser?.role === 'ADMIN'}
-                                    onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
-                                    className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all ${formData.role === r
-                                        ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                                        : editingUser?.role === 'ADMIN'
-                                            ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
-                                            : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-blue-200'
-                                        }`}
-                                >
-                                    {r}
-                                </button>
-                            ))}
+                            {(['ADMIN', 'WAREHOUSE', 'PLANNING', 'GUEST'] as UserRole[]).map(r => {
+                                const roleLabel = r === 'ADMIN' ? 'Quản trị viên' : r === 'WAREHOUSE' ? 'Quản lý kho' : r === 'PLANNING' ? 'Kế hoạch' : 'Khách';
+                                return (
+                                    <button
+                                        key={r}
+                                        disabled={editingUser?.role === 'ADMIN'}
+                                        onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
+                                        className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all ${formData.role === r
+                                            ? 'border-sky-600 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400'
+                                            : editingUser?.role === 'ADMIN'
+                                                ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                                : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-sky-200'
+                                            }`}
+                                    >
+                                        {roleLabel}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -357,13 +361,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                         </div>
 
                         {formData.role === 'ADMIN' && (
-                            <p className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 flex items-center gap-2">
+                            <p className="text-xs text-sky-600 bg-sky-50 dark:bg-sky-900/20 p-2 rounded-lg border border-sky-100 flex items-center gap-2">
                                 <Lock size={14} /> Vai trò Quản trị viên luôn được cấp toàn quyền.
                             </p>
                         )}
 
                         <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {(Object.keys(PERMISSIONS) as Permission[]).map(perm => {
+                            {VISIBLE_PERMISSIONS.map(perm => {
                                 const isChecked = formData.role === 'ADMIN' || formData.permissions?.includes(perm);
                                 const isDisabled = formData.role === 'ADMIN';
 
@@ -371,9 +375,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     <label
                                         key={perm}
                                         className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${isDisabled ? 'opacity-70 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800'
-                                            } ${isChecked ? 'border-blue-200 bg-blue-50/50' : 'border-slate-100 dark:border-slate-700'}`}
+                                            } ${isChecked ? 'border-sky-200 bg-sky-50/50' : 'border-slate-100 dark:border-slate-700'}`}
                                     >
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-blue-600 border-blue-600' : 'border-slate-300'
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-sky-600 border-sky-600' : 'border-slate-300'
                                             }`}>
                                             {isChecked && <CheckCircle2 size={12} className="text-white" />}
                                         </div>
@@ -411,3 +415,4 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
         </div>
     );
 };
+

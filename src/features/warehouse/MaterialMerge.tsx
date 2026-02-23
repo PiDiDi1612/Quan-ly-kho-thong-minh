@@ -174,7 +174,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <input
                                 type="text"
                                 placeholder="Tìm kiếm vật tư..."
-                                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
@@ -183,7 +183,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <select
                                 value={classificationFilter}
                                 onChange={e => setClassificationFilter(e.target.value as any)}
-                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             >
                                 <option value="ALL">Tất cả Loại</option>
                                 {CLASSIFICATIONS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -191,7 +191,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <select
                                 value={workshopFilter}
                                 onChange={e => setWorkshopFilter(e.target.value as any)}
-                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             >
                                 <option value="ALL">Tất cả Xưởng</option>
                                 {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.code} - {w.name}</option>)}
@@ -200,7 +200,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
 
                         {selectedIds.length >= 2 && (
                             <div className="pl-2 border-l border-slate-200 dark:border-slate-700">
-                                <Button onClick={handleProceedToMerge} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none whitespace-nowrap">
+                                <Button onClick={handleProceedToMerge} className="btn-gradient-primary text-white shadow-lg whitespace-nowrap">
                                     Tiếp tục ({selectedIds.length}) <ArrowRight size={16} className="ml-2" />
                                 </Button>
                             </div>
@@ -230,20 +230,20 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                                     filteredMaterials.map(m => (
                                         <tr
                                             key={m.id}
-                                            className={`hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 cursor-pointer transition-colors ${selectedIds.includes(m.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
+                                            className={`hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 cursor-pointer transition-colors ${selectedIds.includes(m.id) ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
                                             onClick={() => toggleSelection(m.id)}
                                         >
                                             <td className="px-6 py-4 text-center">
-                                                <div className={`w-5 h-5 rounded border mx-auto flex items-center justify-center transition-all ${selectedIds.includes(m.id) ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                <div className={`w-5 h-5 rounded border mx-auto flex items-center justify-center transition-all ${selectedIds.includes(m.id) ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
                                                     {selectedIds.includes(m.id) && <Check size={14} />}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="font-bold text-slate-800 dark:text-slate-200">{m.name}</div>
-                                                <div className="text-xs text-indigo-500 font-mono mt-0.5">{m.id}</div>
+                                                <div className="text-xs text-emerald-500 font-mono mt-0.5">{m.id}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold ${m.classification === 'Vật tư chính' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${m.classification === 'Vật tư chính' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
                                                     {m.classification}
                                                 </span>
                                             </td>
@@ -286,7 +286,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             </div>
                             <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                                 <span className="font-bold text-slate-800 dark:text-white uppercase text-sm">Tổng tồn kho sau gộp</span>
-                                <span className="font-mono font-extrabold text-indigo-600 dark:text-indigo-400 text-lg">
+                                <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-lg">
                                     {materials.filter(m => selectedIds.includes(m.id)).reduce((sum, m) => sum + m.quantity, 0).toLocaleString()} {targetMaterial.unit}
                                 </span>
                             </div>
@@ -354,7 +354,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <Button variant="secondary" onClick={() => setMergeStep(1)} className="flex-1">
                                 Quay lại
                             </Button>
-                            <Button onClick={handleConfirmMerge} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <Button onClick={handleConfirmMerge} className="flex-1 btn-gradient-primary text-white">
                                 <Check size={18} className="mr-2" /> Xác nhận Hợp nhất
                             </Button>
                         </div>

@@ -46,21 +46,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       <div className="glass-panel glass-strong w-full max-w-md rounded-[2.5rem] p-8 xl:p-12 border border-white/40 dark:border-slate-700/70 relative overflow-hidden">
         <button
           onClick={() => setIsConnectionSetupOpen(!isConnectionSetupOpen)}
-          className="absolute top-6 right-6 p-3 app-surface text-slate-500 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-2xl z-10"
+          className="absolute top-6 right-6 p-3 app-surface text-slate-500 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 rounded-2xl z-10"
           title="Thiết lập kết nối"
         >
           <Settings size={20} />
         </button>
 
         <div className="text-center mb-10">
-          <div className="inline-flex p-5 text-white bg-brand-gradient rounded-[2rem] shadow-xl shadow-blue-500/30 mb-6">
+          <div className="inline-flex p-5 text-white bg-brand-gradient rounded-[2rem] shadow-xl shadow-sky-500/30 mb-6">
             <Warehouse size={40} />
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tighter italic uppercase">
-            SMART<span className="text-blue-600 dark:text-blue-400">STOCK</span>
+            SMART<span className="text-sky-600 dark:text-sky-400">STOCK</span>
           </h2>
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.3em] mt-3">
-            {isConnectionSetupOpen ? 'Thiết lập kết nối ban đầu' : 'Hệ thống quản lý kho v3.7'}
+            {isConnectionSetupOpen ? 'Thiết lập kết nối ban đầu' : 'Hệ thống quản lý kho v6.8'}
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors z-10 p-1"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors z-10 p-1"
                   title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -109,7 +109,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <input
                   type="checkbox"
                   id="remember-me"
-                  className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 transition-all checked:border-blue-600 checked:bg-blue-600 dark:border-slate-600 dark:checked:border-blue-500 dark:checked:bg-blue-500"
+                  className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 transition-all checked:border-sky-600 checked:bg-sky-600 dark:border-slate-600 dark:checked:border-sky-500 dark:checked:bg-sky-500"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
@@ -133,7 +133,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <button
               type="submit"
               disabled={!loginForm.username || !loginForm.password}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+              className="btn-gradient-primary w-full py-4 text-white font-extrabold rounded-2xl hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
             >
               Đăng nhập
             </button>
@@ -143,9 +143,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => handleSaveConnection('SERVER')}
-                className="p-6 border border-slate-200/80 dark:border-slate-700 rounded-3xl app-surface hover:border-blue-500/70 dark:hover:border-blue-500/60 transition-all group flex items-center gap-4"
+                className="p-6 border border-slate-200/80 dark:border-slate-700 rounded-3xl app-surface hover:border-emerald-500/70 dark:hover:border-emerald-500/60 transition-all group flex items-center gap-4"
               >
-                <div className="p-3 bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/35 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 rounded-2xl transition-colors">
+                <div className="p-3 bg-slate-100 dark:bg-slate-800 group-hover:bg-sky-100 dark:group-hover:bg-sky-900/35 text-slate-500 group-hover:text-sky-600 dark:group-hover:text-sky-400 rounded-2xl transition-colors">
                   <LayoutDashboard size={24} />
                 </div>
                 <div className="text-left">
@@ -176,7 +176,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   <button
                     onClick={() => tempIp && handleSaveConnection('CLIENT', tempIp)}
                     disabled={!tempIp}
-                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-extrabold uppercase text-[10px] tracking-widest hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 transition-all shadow-lg shadow-blue-500/20"
+                    className="w-full py-3 bg-sky-600 text-white rounded-xl font-extrabold uppercase text-[10px] tracking-widest hover:bg-sky-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 transition-all shadow-lg shadow-sky-500/20"
                   >
                     Kết nối ngay
                   </button>
@@ -196,3 +196,4 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     </div>
   );
 };
+

@@ -1,6 +1,42 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-    Package, Search, Download, FileSpreadsheet, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, ArrowDownLeft, ArrowUpRight, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users
+    Package,
+    Search,
+    Download,
+    Plus,
+    Moon,
+    Sun,
+    RefreshCcw,
+    LayoutDashboard,
+    AlertTriangle,
+    ShoppingCart,
+    Edit2,
+    Trash2,
+    Eye,
+    X,
+    Filter,
+    History,
+    BarChart2,
+    Check,
+    Settings,
+    Info,
+    Calendar,
+    Users,
+    RotateCcw,
+    Clock,
+    Tag,
+    Hash,
+    ArrowDownLeft,
+    ArrowUpRight,
+    Layers,
+    Archive,
+    Ruler,
+    FileSpreadsheet,
+    Printer,
+    Camera,
+    Warehouse,
+    PlusCircle,
+    ClipboardList
 } from 'lucide-react';
 import { Material, WorkshopCode, MaterialClassification, Transaction, TransactionType, User } from '../../types';
 import { WORKSHOPS, CLASSIFICATIONS } from '../../constants';
@@ -35,13 +71,17 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [workshopFilter, setWorkshopFilter] = useState<WorkshopCode | 'ALL'>('ALL');
     const [classFilter, setClassFilter] = useState<MaterialClassification | 'ALL'>('ALL');
-    // Default to current month
+    // Default to current month (Local Time)
     const [startDate, setStartDate] = useState(() => {
         const date = new Date();
-        return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const offset = firstDay.getTimezoneOffset() * 60000;
+        return new Date(firstDay.getTime() - offset).toISOString().split('T')[0];
     });
     const [endDate, setEndDate] = useState(() => {
-        return new Date().toISOString().split('T')[0];
+        const date = new Date();
+        const offset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offset).toISOString().split('T')[0];
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +101,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
 
     // Customer Codes
     const [customerCodes, setCustomerCodes] = useState<any[]>([]);
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadCustomerCodes();
@@ -420,23 +461,26 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
         const handleOpen = () => handleOpenModal();
         const handleImport = () => handleImportClick();
         const handleExport = () => handleExportExcel();
+        const handlePrint = () => window.print();
 
         window.addEventListener('open-material-modal', handleOpen);
-        window.addEventListener('import-excel', handleImport);
+        window.addEventListener('import-material-excel', handleImport);
         window.addEventListener('export-excel', handleExport);
+        window.addEventListener('print-material', handlePrint);
 
         return () => {
             window.removeEventListener('open-material-modal', handleOpen);
-            window.removeEventListener('import-excel', handleImport);
+            window.removeEventListener('import-material-excel', handleImport);
             window.removeEventListener('export-excel', handleExport);
+            window.removeEventListener('print-material', handlePrint);
         };
     }, [handleOpenModal, handleImportClick, handleExportExcel]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-5 animate-fade-up">
             <div className="flex flex-col xl:flex-row gap-4">
                 <div className="relative group flex-1">
-                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
                     <Input
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
@@ -446,21 +490,21 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 </div>
                 <div className="flex flex-wrap gap-4">
                     {/* Filters */}
-                    <div className="flex p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả Xưởng</button>
+                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
+                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả Xưởng</button>
                         {WORKSHOPS.map(w => (
-                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{w.code}</button>
+                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{w.code}</button>
                         ))}
                     </div>
 
-                    <div className="flex p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
                         <button onClick={() => setClassFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${classFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả Loại</button>
                         {CLASSIFICATIONS.map(c => (
-                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${classFilter === c ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
+                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${classFilter === c ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                    <div className="flex items-center gap-2 p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
                         <div className="flex items-center gap-2 px-2 border-r border-slate-200 dark:border-slate-700">
                             <span className="text-[10px] font-bold text-slate-400 uppercase">Từ</span>
                             <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-36" placeholder="dd/mm/yyyy" />
@@ -479,54 +523,63 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
             </div>
 
             {/* Removed internal action bar - buttons moved to App.tsx Header */}
-            <div className="bg-transparent overflow-x-auto">
-                <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
+            <div className="print:block hidden print-header">
+                <h1 className="text-2xl font-bold uppercase tracking-widest">DANH SÁCH VẬT TƯ TRONG KHO</h1>
+                <p className="text-sm mt-1">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
+                <div className="flex gap-10 mt-2 text-xs font-bold uppercase">
+                    <span>Xưởng: {workshopFilter === 'ALL' ? 'Tất cả' : workshopFilter}</span>
+                    <span>Phân loại: {classFilter === 'ALL' ? 'Tất cả' : classFilter}</span>
+                </div>
+            </div>
+
+            <div className="neo-card-static overflow-hidden">
+                <table className="w-full text-left text-sm">
                     <thead>
-                        <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center">Ảnh</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Vật tư & Mã</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center">Xưởng</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center">Tồn đầu</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center text-green-600 dark:text-green-400">Nhập</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center text-red-600 dark:text-red-400">Xuất</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-center">Tồn cuối</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Đơn vị</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">Loại</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right">Thao tác</th>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200/60 dark:border-white/5">
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider text-center">Ảnh</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider"><Package size={13} className="inline mr-1 text-sky-500 -mt-0.5" />Vật tư & Mã</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider text-center"><Warehouse size={13} className="inline mr-1 text-amber-500 -mt-0.5" />Xưởng</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider text-center"><Archive size={13} className="inline mr-1 text-slate-400 -mt-0.5" />Tồn đầu</th>
+                            <th className="px-4 py-3 font-semibold text-green-600 dark:text-green-400 text-[10px] uppercase tracking-wider text-center"><ArrowDownLeft size={13} className="inline mr-1 -mt-0.5" />Nhập</th>
+                            <th className="px-4 py-3 font-semibold text-red-600 dark:text-red-400 text-[10px] uppercase tracking-wider text-center"><ArrowUpRight size={13} className="inline mr-1 -mt-0.5" />Xuất</th>
+                            <th className="px-4 py-3 font-semibold text-sky-600 dark:text-sky-400 text-[10px] uppercase tracking-wider text-center"><BarChart2 size={13} className="inline mr-1 -mt-0.5" />Tồn cuối</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider"><Ruler size={13} className="inline mr-1 -mt-0.5" />Đơn vị</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider"><Tag size={13} className="inline mr-1 -mt-0.5" />Loại</th>
+                            <th className="px-4 py-3 font-semibold text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wider text-right"><Settings size={13} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {materialInventory.map(m => (
-                            <tr key={m.id} className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group">
-                                <td className="px-2 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 text-center">
-                                    <div className="w-12 h-12 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 overflow-hidden mx-auto flex items-center justify-center">
-                                        {m.image ? <img src={m.image} alt={m.name} className="w-full h-full object-cover" /> : <Package size={20} className="text-slate-300 dark:text-slate-600" />}
+                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                        {materialInventory.map((m, idx) => (
+                            <tr key={m.id} className={`table-row-hover transition-colors group ${idx % 2 === 1 ? 'bg-slate-50/50 dark:bg-slate-800/20' : ''}`}>
+                                <td className="px-3 py-3 text-center">
+                                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 overflow-hidden mx-auto flex items-center justify-center">
+                                        {m.image ? <img src={m.image} alt={m.name} className="w-full h-full object-cover" /> : <Package size={18} className="text-slate-300 dark:text-slate-600" />}
                                     </div>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <p className="font-bold text-slate-800 dark:text-slate-200 text-sm uppercase leading-tight">{m.name}</p>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-1">#{m.id} • {m.origin}</p>
+                                <td className="px-4 py-3">
+                                    <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm leading-tight">{m.name}</p>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">#{m.id} · {m.origin}</p>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50 font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest text-xs text-center">{m.workshop}</td>
-                                <td className="px-4 py-5 border-y border-slate-100 dark:border-slate-700 text-center font-bold text-slate-600 dark:text-slate-300">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '-'}</td>
-                                <td className="px-4 py-5 border-y border-slate-100 dark:border-slate-700 text-center font-bold text-green-600 dark:text-green-400">{m.periodIn !== undefined ? formatNumber(m.periodIn) : '-'}</td>
-                                <td className="px-4 py-5 border-y border-slate-100 dark:border-slate-700 text-center font-bold text-red-600 dark:text-red-400">{m.periodOut !== undefined ? formatNumber(m.periodOut) : '-'}</td>
-                                <td className="px-4 py-5 border-y border-slate-100 dark:border-slate-700 text-center font-bold text-blue-600 dark:text-blue-400 underline decoration-blue-200 underline-offset-4">{formatNumber(m.closingStock ?? m.quantity)}</td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700">
-                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{m.unit}</span>
+                                <td className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center">{m.workshop}</td>
+                                <td className="px-4 py-3 text-center font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '-'}</td>
+                                <td className="px-4 py-3 text-center font-semibold text-green-600 dark:text-green-400 tabular-nums">{m.periodIn !== undefined ? formatNumber(m.periodIn) : '-'}</td>
+                                <td className="px-4 py-3 text-center font-semibold text-red-600 dark:text-red-400 tabular-nums">{m.periodOut !== undefined ? formatNumber(m.periodOut) : '-'}</td>
+                                <td className="px-4 py-3 text-center font-bold text-sky-600 dark:text-sky-400 tabular-nums">{formatNumber(m.closingStock ?? m.quantity)}</td>
+                                <td className="px-4 py-3">
+                                    <span className="text-xs text-slate-400 dark:text-slate-500">{m.unit}</span>
                                 </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50">
-                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${m.classification === 'Vật tư chính' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'}`}>
-                                        {m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}
+                                <td className="px-4 py-3">
+                                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-semibold ${m.classification === 'Vật tư chính' ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
+                                        {m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-blue-100 dark:group-hover:border-blue-900/50 text-right">
-                                    <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setViewingMaterial(m); setDashboardTab('INFO'); setIsDetailModalOpen(true); }} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Eye size={18} /></button>
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setViewingMaterial(m); setDashboardTab('INFO'); setIsDetailModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded-lg transition-all"><Eye size={16} /></button>
                                         {canManage && (
                                             <>
-                                                <button onClick={() => handleOpenModal(m)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={18} /></button>
-                                                <button onClick={() => handleDelete(m.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18} /></button>
+                                                <button onClick={() => handleOpenModal(m)} className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded-lg transition-all"><Edit2 size={16} /></button>
+                                                <button onClick={() => handleDelete(m.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"><Trash2 size={16} /></button>
                                             </>
                                         )}
                                     </div>
@@ -546,7 +599,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                     setEditingMaterial(null);
                     setViewingMaterial(null);
                 }}
-                title={isDetailModalOpen ? "Chi tiết vật tư" : ((editingMaterial ? `Chỉnh sửa: ${editingMaterial.name}` : "Thêm vật tư mới"))}
+                title={isDetailModalOpen ? "Chi tiết vật tư" : (editingMaterial ? `Chỉnh sửa: ${editingMaterial.name}` : "Thêm vật tư mới")}
                 maxWidth={isDetailModalOpen ? "max-w-3xl" : "max-w-3xl"}
                 contentClassName="p-0"
             >
@@ -555,13 +608,37 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                         <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             {/* HEADER PROFILE MINI */}
                             <div className="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-[24px] border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 overflow-hidden border border-slate-100 dark:border-slate-700 shrink-0">
-                                    {(editingMaterial || viewingMaterial)?.image ? <img src={(editingMaterial || viewingMaterial)?.image} className="w-full h-full object-cover" /> : <Package size={24} />}
+                                <div
+                                    className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-700 shrink-0 cursor-pointer hover:border-emerald-400 transition-all group/img relative"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    title="Nhấn để thêm/thay ảnh"
+                                >
+                                    {formData.image
+                                        ? <img src={formData.image} className="w-full h-full object-cover" alt="preview" />
+                                        : <Camera size={22} className="text-slate-300 group-hover/img:text-emerald-400 transition-colors" />}
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                        <Camera size={16} className="text-white" />
+                                    </div>
+                                    <input
+                                        ref={imageInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setFormData(prev => ({ ...prev, image: reader.result as string }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }}
+                                    />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase leading-tight italic">{(editingMaterial || viewingMaterial)?.name || "Đang tạo vật tư mới"}</h2>
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-2">
-                                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">#{(editingMaterial || viewingMaterial)?.id || "NEW-ITEM"}</span>
+                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-2">
+                                        <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-full">#{(editingMaterial || viewingMaterial)?.id || "NEW-ITEM"}</span>
                                         <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full uppercase">{(editingMaterial || viewingMaterial)?.workshop || "OG"}</span>
                                     </p>
                                 </div>
@@ -572,26 +649,26 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                 {/* Group 1: Basic Information */}
                                 <section className="space-y-3">
                                     <div className="flex items-center gap-3 ml-2">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400"><Info size={18} /></div>
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400"><Info size={18} /></div>
                                         <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Thông tin cơ bản</h3>
                                     </div>
                                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[20px] overflow-hidden shadow-sm">
                                         <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
                                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Tên vật tư (*)</p>
-                                            <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Nhập tên..." />
+                                            <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Nhập tên..." />
                                         </div>
                                         <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
                                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Mã vật tư (Tùy chỉnh)</p>
-                                            <input type="text" disabled={!!editingMaterial} className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-blue-600 dark:text-blue-400 outline-none focus:border-blue-500 transition-all uppercase ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''}`} value={formData.id || ''} onChange={e => setFormData({ ...formData, id: e.target.value })} placeholder="Hệ thống tự tạo..." />
+                                            <input type="text" disabled={!!editingMaterial} className={`w - full px - 4 py - 2.5 bg - slate - 50 dark: bg - slate - 900 / 50 border border - slate - 200 dark: border - slate - 700 rounded - xl font - bold text - xs text - emerald - 600 dark: text - emerald - 400 outline - none focus: border - emerald - 500 transition - all uppercase ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''} `} value={formData.id || ''} onChange={e => setFormData({ ...formData, id: e.target.value })} placeholder="Hệ thống tự tạo..." />
                                         </div>
                                         <div className="p-4 flex gap-4">
                                             <div className="flex-1">
                                                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Đơn vị (*)</p>
-                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} placeholder="VD: cái" />
+                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} placeholder="VD: cái" />
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Xuất xứ</p>
-                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all" value={formData.origin} onChange={e => setFormData({ ...formData, origin: e.target.value })} placeholder="VD: Việt Nam" />
+                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.origin} onChange={e => setFormData({ ...formData, origin: e.target.value })} placeholder="VD: Việt Nam" />
                                             </div>
                                         </div>
 
@@ -626,7 +703,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                                     <button
                                                         key={c}
                                                         onClick={() => setFormData({ ...formData, classification: c as MaterialClassification })}
-                                                        className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase transition-all border ${formData.classification === c ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'}`}
+                                                        className={`flex - 1 py - 2 rounded - xl text - [9px] font - black uppercase transition - all border ${formData.classification === c ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'} `}
                                                     >
                                                         {c}
                                                     </button>
@@ -635,26 +712,11 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                         </div>
                                         <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
                                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Xưởng quản lý</p>
-                                            <select disabled={!!editingMaterial} className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-blue-500 transition-all accent-blue-600 ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''}`} value={formData.workshop} onChange={e => setFormData({ ...formData, workshop: e.target.value as WorkshopCode })}>
+                                            <select disabled={!!editingMaterial} className={`w - full px - 4 py - 2.5 bg - slate - 50 dark: bg - slate - 900 / 50 border border - slate - 200 dark: border - slate - 700 rounded - xl font - bold text - xs text - slate - 800 dark: text - white outline - none focus: border - emerald - 500 transition - all accent - emerald - 600 ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''} `} value={formData.workshop} onChange={e => setFormData({ ...formData, workshop: e.target.value as WorkshopCode })}>
                                                 {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                                             </select>
                                         </div>
-                                        <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Số lượng tồn kho hiện tại</p>
-                                            <input
-                                                type="text"
-                                                className="w-full px-4 py-2.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl font-black text-xs text-blue-600 outline-none focus:border-blue-500 transition-all font-mono"
-                                                value={formData.quantity}
-                                                onChange={e => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, '');
-                                                    const parts = val.split(/[.,]/);
-                                                    if (parts.length <= 2) {
-                                                        setFormData({ ...formData, quantity: val as any });
-                                                    }
-                                                }}
-                                                disabled={true}
-                                            />
-                                        </div>
+
                                         <div className="p-4">
                                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Định mức an toàn (Cảnh báo tồn kho thấp)</p>
                                             <input
@@ -688,7 +750,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                 </Button>
                                 <Button
                                     onClick={handleSave}
-                                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-blue-500/30 font-bold uppercase text-[11px]"
+                                    className="flex-1 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-emerald-500/30 font-bold uppercase text-[11px]"
                                 >
                                     {editingMaterial ? 'Lưu thay đổi' : 'Tạo vật tư mới'}
                                 </Button>
@@ -712,19 +774,19 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
 
                                 <button
                                     onClick={() => setDashboardTab('INFO')}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase transition-all ${dashboardTab === 'INFO' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'INFO' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
                                 >
                                     <Info size={16} /> Thông tin chung
                                 </button>
                                 <button
                                     onClick={() => setDashboardTab('HISTORY')}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase transition-all ${dashboardTab === 'HISTORY' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'HISTORY' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
                                 >
                                     <History size={16} /> Lịch sử giao dịch
                                 </button>
                                 <button
                                     onClick={() => setDashboardTab('ANALYSIS')}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold uppercase transition-all ${dashboardTab === 'ANALYSIS' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'ANALYSIS' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
                                 >
                                     <BarChart2 size={16} /> Biểu đồ biến động
                                 </button>
@@ -799,9 +861,9 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                                                 <tr key={t.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                                                                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{new Date(t.date).toLocaleDateString('en-GB')}</td>
                                                                     <td className="px-4 py-3">
-                                                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${t.type === 'IN' ? 'bg-green-100 text-green-700' :
-                                                                            t.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                                                                            }`}>
+                                                                        <span className={`px - 2 py - 1 rounded text - [10px] font - bold uppercase ${t.type === 'IN' ? 'bg-green-100 text-green-700' :
+                                                                            t.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                                                                            } `}>
                                                                             {t.type === 'IN' ? 'Nhập' : t.type === 'OUT' ? 'Xuất' : 'Điều chuyển'}
                                                                         </span>
                                                                     </td>
@@ -824,7 +886,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                 {/* Analysis tab placeholder */}
                                 {dashboardTab === 'ANALYSIS' && (
                                     <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <BarChart2 size={48} className="mb-4 opacity-50 text-blue-300" />
+                                        <BarChart2 size={48} className="mb-4 opacity-50 text-emerald-300" />
                                         <p className="text-sm font-bold uppercase">Tính năng đang phát triển</p>
                                         <p className="text-xs mt-1">Biểu đồ biến động tồn kho sẽ sớm ra mắt.</p>
                                     </div>
@@ -861,7 +923,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
                         <Button variant="secondary" onClick={() => setIsImportModalOpen(false)}>Hủy</Button>
-                        <Button onClick={handleProcessImport} className="bg-blue-600 text-white">Tiến hành Nhập ({importExcelData.length} dòng)</Button>
+                        <Button onClick={handleProcessImport} className="bg-emerald-600 text-white">Tiến hành Nhập ({importExcelData.length} dòng)</Button>
                     </div>
                 </div>
             </Modal>
@@ -873,7 +935,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 maxWidth="max-w-2xl"
             >
                 <div className="space-y-4 p-4">
-                    <div className="bg-blue-50 p-4 rounded-lg flex gap-3 text-blue-700 text-sm">
+                    <div className="bg-emerald-50 p-4 rounded-lg flex gap-3 text-emerald-700 text-sm">
                         <AlertTriangle size={20} className="shrink-0" />
                         <div>
                             <p className="font-bold">Hành động này sẽ gộp {selectedMaterials.length} vật tư đã chọn thành một.</p>
@@ -917,7 +979,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                         <button
                                             key={c}
                                             onClick={() => setMergeFormData({ ...mergeFormData, classification: c as MaterialClassification })}
-                                            className={`flex-1 py-1.5 rounded text-xs font-bold border ${mergeFormData.classification === c ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300'}`}
+                                            className={`flex - 1 py - 1.5 rounded text - xs font - bold border ${mergeFormData.classification === c ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300'} `}
                                         >
                                             {c}
                                         </button>
@@ -939,7 +1001,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
 
                     <div className="flex justify-end gap-3 mt-6">
                         <Button variant="secondary" onClick={() => setIsMergeModalOpen(false)}>Hủy</Button>
-                        <Button className="bg-blue-600 text-white" onClick={handleMergeMaterials}>Xác nhận Hợp nhất</Button>
+                        <Button className="bg-emerald-600 text-white" onClick={handleMergeMaterials}>Xác nhận Hợp nhất</Button>
                     </div>
                 </div>
             </Modal>
@@ -955,3 +1017,4 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
         </div>
     );
 };
+

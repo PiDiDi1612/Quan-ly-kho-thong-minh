@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Search, Download, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw } from 'lucide-react';
+import { Package, Search, Download, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw, Clock, Tag, Hash, ArrowDownLeft, ArrowUpRight, Layers, User as UserIcon, Ruler, Printer } from 'lucide-react';
 import { Transaction, TransactionType, User } from '../../types';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
@@ -22,8 +22,14 @@ const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num)
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions, materials, currentUser, onRefresh }) => {
     const toast = useToast();
 
-    // Derive canManage from user role - ONLY Admin can edit/delete
-    const canManage = currentUser?.role === 'ADMIN';
+    React.useEffect(() => {
+        const handlePrint = () => window.print();
+        window.addEventListener('print-transactions', handlePrint);
+        return () => window.removeEventListener('print-transactions', handlePrint);
+    }, []);
+
+    // Derive canManage from permissions - ADMIN always has full access, others need MANAGE_WAREHOUSE
+    const canManage = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_WAREHOUSE') ?? false);
 
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -220,13 +226,13 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase tracking-widest font-bold text-[11px]">
                         <tr>
-                            <th className="px-6 py-4">Thời gian</th>
-                            <th className="px-6 py-4">Loại</th>
-                            <th className="px-6 py-4">Mã phiếu</th>
-                            <th className="px-6 py-4 text-right">Số mặt hàng</th>
-                            <th className="px-6 py-4 text-right">Tổng số lượng</th>
-                            <th className="px-6 py-4">Người thực hiện</th>
-                            <th className="px-6 py-4 text-right">Thao tác</th>
+                            <th className="px-6 py-4"><Clock size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Thời gian</th>
+                            <th className="px-6 py-4"><Tag size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Loại</th>
+                            <th className="px-6 py-4"><Hash size={12} className="inline mr-1 text-slate-400 -mt-0.5" />Mã phiếu</th>
+                            <th className="px-6 py-4 text-right"><Layers size={12} className="inline mr-1 -mt-0.5" />Số mặt hàng</th>
+                            <th className="px-6 py-4 text-right"><BarChart2 size={12} className="inline mr-1 -mt-0.5" />Tổng số lượng</th>
+                            <th className="px-6 py-4"><UserIcon size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Người thực hiện</th>
+                            <th className="px-6 py-4 text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -240,12 +246,12 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${receipt.type === 'IN' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                        receipt.type === 'OUT' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700'
+                                        receipt.type === 'OUT' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-sky-100 text-sky-700'
                                         }`}>
                                         {receipt.type === 'IN' ? 'Nhập' : receipt.type === 'OUT' ? 'Xuất' : 'Điều chuyển'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 font-mono text-sm text-blue-600 dark:text-blue-400 font-bold">{receipt.receiptId || 'N/A'}</td>
+                                <td className="px-6 py-4 font-mono text-sm text-sky-600 dark:text-sky-400 font-bold">{receipt.receiptId || 'N/A'}</td>
                                 <td className="px-6 py-4 text-right">
                                     <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-bold">{receipt.itemCount} mặt hàng</span>
                                 </td>
@@ -315,7 +321,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Hủy</Button>
-                        <Button onClick={handleSaveEdit} className="bg-blue-600 text-white">Lưu thay đổi</Button>
+                        <Button onClick={handleSaveEdit} className="bg-sky-600 text-white">Lưu thay đổi</Button>
                     </div>
                 </div>
             </Modal>
@@ -328,7 +334,16 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                 maxWidth="max-w-4xl"
             >
                 {viewingReceipt ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 printable-content">
+                        {/* Header phiếu in */}
+                        <div className="hidden print:block text-center border-b-2 border-slate-800 pb-4 mb-6">
+                            <h1 className="text-2xl font-bold uppercase tracking-widest">
+                                PHIẾU {viewingReceipt.type === 'IN' ? 'NHẬP KHO' : 'XUẤT KHO'}
+                            </h1>
+                            <p className="text-sm mt-1">Mã phiếu: <span className="font-mono font-bold">{viewingReceipt.receiptId}</span></p>
+                            <p className="text-xs mt-1 italic">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
+                        </div>
+
                         <div className="grid grid-cols-3 gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase">Loại phiếu</label>
@@ -365,11 +380,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                 <thead className="bg-slate-50 dark:bg-slate-800">
                                     <tr>
                                         <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">STT</th>
-                                        <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Mã vật tư</th>
-                                        <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase">Tên vật tư</th>
-                                        <th className="px-4 py-2 text-center text-xs font-bold text-slate-500 uppercase">Đơn vị</th>
-                                        <th className="px-4 py-2 text-right text-xs font-bold text-slate-500 uppercase">Số lượng</th>
-                                        {canManage && <th className="px-4 py-2 text-right text-xs font-bold text-slate-500 uppercase">Thao tác</th>}
+                                        <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase"><Hash size={11} className="inline mr-1 -mt-0.5" />Mã vật tư</th>
+                                        <th className="px-4 py-2 text-left text-xs font-bold text-slate-500 uppercase"><Package size={11} className="inline mr-1 text-sky-500 -mt-0.5" />Tên vật tư</th>
+                                        <th className="px-4 py-2 text-center text-xs font-bold text-slate-500 uppercase"><Ruler size={11} className="inline mr-1 -mt-0.5" />Đơn vị</th>
+                                        <th className="px-4 py-2 text-right text-xs font-bold text-slate-500 uppercase"><BarChart2 size={11} className="inline mr-1 -mt-0.5" />Số lượng</th>
+                                        {canManage && <th className="px-4 py-2 text-right text-xs font-bold text-slate-500 uppercase"><Settings size={11} className="inline mr-1 -mt-0.5" />Thao tác</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -389,7 +404,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                                                 type="number"
                                                                 value={editingQuantity}
                                                                 onChange={(e) => setEditingQuantity(Number(e.target.value))}
-                                                                className="w-24 px-2 py-1 border border-blue-300 rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                className="w-24 px-2 py-1 border border-sky-300 rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-sky-500"
                                                                 autoFocus
                                                             />
                                                             <button
@@ -436,7 +451,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                                                         setEditingRowId(t.id);
                                                                         setEditingQuantity(t.quantity);
                                                                     }}
-                                                                    className="p-1.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-blue-50 rounded transition-all"
+                                                                    className="p-1.5 text-slate-400 hover:text-sky-600 bg-slate-50 hover:bg-sky-50 rounded transition-all"
                                                                     title="Sửa số lượng"
                                                                 >
                                                                     <Edit2 size={14} />
@@ -470,7 +485,10 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                             </table>
                         </div>
 
-                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 print:hidden">
+                            <Button variant="success" onClick={() => window.print()} className="flex items-center gap-2">
+                                <Printer size={16} /> In phiếu
+                            </Button>
                             <Button variant="secondary" onClick={() => { setIsViewModalOpen(false); setViewingReceipt(null); }}>Đóng</Button>
                         </div>
                     </div>
@@ -488,3 +506,4 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
         </div>
     );
 };
+
