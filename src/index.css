@@ -578,6 +578,11 @@ a {
     justify-content: space-between;
     margin-top: 40px;
   }
+
+  .page-break-after-always {
+    page-break-after: always !important;
+    break-after: always !important;
+  }
 }
 
 .print-header,

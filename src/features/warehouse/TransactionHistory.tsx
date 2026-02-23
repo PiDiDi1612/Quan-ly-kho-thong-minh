@@ -60,6 +60,20 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
     const [viewingReceipt, setViewingReceipt] = useState<{ receiptId: string, transactions: Transaction[], type: string, date: string, user: string } | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+    // Batch Selection State
+    const [selectedReceiptIds, setSelectedReceiptIds] = useState<string[]>([]);
+
+    const toggleSelectReceipt = (receiptId: string) => {
+        setSelectedReceiptIds(prev =>
+            prev.includes(receiptId) ? prev.filter(id => id !== receiptId) : [...prev, receiptId]
+        );
+    };
+
+    const handleBatchPrint = () => {
+        if (selectedReceiptIds.length === 0) return;
+        window.print();
+    };
+
     // Inline editing state
     const [editingRowId, setEditingRowId] = useState<string | null>(null);
     const [editingQuantity, setEditingQuantity] = useState<number>(0);
@@ -197,7 +211,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center relative">
                 <div className="flex gap-4 items-center w-full md:w-auto">
                     <div className="relative group flex-1 md:w-80">
                         <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -219,25 +233,64 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
                     <Button variant="secondary" onClick={handleExportHistory} className="px-4"><Download size={18} /></Button>
                 </div>
+
+                {/* Batch Action Bar */}
+                {selectedReceiptIds.length > 0 && (
+                    <div className="absolute inset-0 bg-sky-600 rounded-2xl flex items-center justify-between px-6 animate-in slide-in-from-top-4 duration-300 z-10 shadow-lg shadow-sky-500/20">
+                        <div className="flex items-center gap-4 text-white">
+                            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-bold">{selectedReceiptIds.length}</div>
+                            <span className="text-sm font-bold uppercase tracking-widest">Phiếu đã chọn</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setSelectedReceiptIds([])} className="px-4 py-2 text-xs font-bold text-white/80 hover:text-white uppercase tracking-widest transition-colors">Hủy chọn</button>
+                            <Button onClick={handleBatchPrint} className="bg-white text-sky-600 hover:bg-sky-50 px-6 h-10 font-black uppercase text-[11px] tracking-widest flex items-center gap-2">
+                                <Printer size={16} /> In {selectedReceiptIds.length} phiếu
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
 
             <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase tracking-widest font-bold text-[11px]">
+                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase tracking-widest font-bold text-[10px]">
                         <tr>
+                            <th className="px-4 py-4 w-10 text-center">
+                                <div className="flex justify-center">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                                        checked={selectedReceiptIds.length === receiptSummaries.length && receiptSummaries.length > 0}
+                                        onChange={(e) => {
+                                            if (e.target.checked) setSelectedReceiptIds(receiptSummaries.map(r => r.receiptId));
+                                            else setSelectedReceiptIds([]);
+                                        }}
+                                    />
+                                </div>
+                            </th>
                             <th className="px-6 py-4"><Clock size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Thời gian</th>
                             <th className="px-6 py-4"><Tag size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Loại</th>
                             <th className="px-6 py-4"><Hash size={12} className="inline mr-1 text-slate-400 -mt-0.5" />Mã phiếu</th>
-                            <th className="px-6 py-4 text-right"><Layers size={12} className="inline mr-1 -mt-0.5" />Số mặt hàng</th>
-                            <th className="px-6 py-4 text-right"><BarChart2 size={12} className="inline mr-1 -mt-0.5" />Tổng số lượng</th>
+                            <th className="px-4 py-4 text-right"><Layers size={12} className="inline mr-1 -mt-0.5" />Số mặt hàng</th>
+                            <th className="px-4 py-4 text-right"><BarChart2 size={12} className="inline mr-1 -mt-0.5" />Tổng số lượng</th>
                             <th className="px-6 py-4"><UserIcon size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Người thực hiện</th>
                             <th className="px-6 py-4 text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                         {receiptSummaries.map((receipt) => (
-                            <tr key={receipt.receiptId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                            <tr key={receipt.receiptId} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer ${selectedReceiptIds.includes(receipt.receiptId) ? 'bg-sky-50/50 dark:bg-sky-900/20' : ''}`} onClick={() => toggleSelectReceipt(receipt.receiptId)}>
+                                <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-center">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                                            checked={selectedReceiptIds.includes(receipt.receiptId)}
+                                            onChange={() => toggleSelectReceipt(receipt.receiptId)}
+                                        />
+                                    </div>
+                                </td>
                                 <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300">
                                     <div className="flex flex-col">
                                         <span className="font-bold">{new Date(receipt.date).toLocaleDateString('vi-VN')}</span>
@@ -252,14 +305,14 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 font-mono text-sm text-sky-600 dark:text-sky-400 font-bold">{receipt.receiptId || 'N/A'}</td>
-                                <td className="px-6 py-4 text-right">
-                                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-bold">{receipt.itemCount} mặt hàng</span>
+                                <td className="px-4 py-4 text-right">
+                                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-[10px] font-bold whitespace-nowrap">{receipt.itemCount} mặt hàng</span>
                                 </td>
-                                <td className={`px-6 py-4 text-right font-bold ${receipt.type === 'IN' ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`px-4 py-4 text-right font-bold ${receipt.type === 'IN' ? 'text-green-600' : 'text-red-600'}`}>
                                     {receipt.type === 'IN' ? '+' : '-'}{formatNumber(receipt.totalQuantity)}
                                 </td>
                                 <td className="px-6 py-4 text-slate-500 text-xs uppercase font-bold">{receipt.user}</td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => {
@@ -273,7 +326,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                                 });
                                                 setIsViewModalOpen(true);
                                             }}
-                                            className="p-2 text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 rounded-lg transition-all"
+                                            className="p-2 text-slate-400 hover:text-green-600 bg-slate-50 dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-all"
                                             title="Xem chi tiết"
                                         >
                                             <Eye size={16} />
@@ -286,7 +339,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                                     } else {
                                                         handleDeleteTransaction(receipt.transactions[0]);
                                                     }
-                                                }} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-all" title="Xóa"><Trash2 size={16} /></button>
+                                                }} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all" title="Xóa"><Trash2 size={16} /></button>
                                             </>
                                         )}
                                     </div>
@@ -494,6 +547,81 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                     </div>
                 ) : null}
             </Modal>
+
+            {/* Hidden Printable Area for Batch Print */}
+            <div className="hidden print:block space-y-20 p-4">
+                {receiptSummaries.filter(r => selectedReceiptIds.includes(r.receiptId)).map((r, pIdx) => (
+                    <div key={r.receiptId} className="page-break-after-always">
+                        <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
+                            <h1 className="text-2xl font-bold uppercase tracking-widest">
+                                PHIẾU {r.type === 'IN' ? 'NHẬP KHO' : 'XUẤT KHO'}
+                            </h1>
+                            <p className="text-sm mt-1">Mã phiếu: <span className="font-mono font-bold">{r.receiptId}</span></p>
+                            <p className="text-xs mt-1 italic">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-10 pb-4 border-b border-slate-200">
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Loại phiếu</label>
+                                <p className="text-sm font-bold uppercase">{r.type === 'IN' ? 'Nhập kho' : 'Xuất kho'}</p>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Thời gian</label>
+                                <p className="text-sm font-bold">
+                                    {new Date(r.date).toLocaleDateString('vi-VN')} {r.transactions[0].transactionTime || new Date(r.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label>
+                                <p className="text-sm font-bold uppercase">{r.user}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                            <table className="w-full border-collapse border border-slate-800">
+                                <thead>
+                                    <tr className="bg-slate-50">
+                                        <th className="border border-slate-800 px-4 py-2 text-xs font-bold uppercase">STT</th>
+                                        <th className="border border-slate-800 px-4 py-2 text-xs font-bold uppercase">Mã VT</th>
+                                        <th className="border border-slate-800 px-4 py-2 text-xs font-bold uppercase">Tên vật tư</th>
+                                        <th className="border border-slate-800 px-4 py-2 text-xs font-bold uppercase">ĐVT</th>
+                                        <th className="border border-slate-800 px-4 py-2 text-right text-xs font-bold uppercase">Số lượng</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {r.transactions.map((t, idx) => {
+                                        const mat = getMaterialInfo(t.materialId);
+                                        return (
+                                            <tr key={t.id}>
+                                                <td className="border border-slate-800 px-4 py-2 text-center text-xs">{idx + 1}</td>
+                                                <td className="border border-slate-800 px-4 py-2 text-center font-mono text-xs font-bold">{t.materialId}</td>
+                                                <td className="border border-slate-800 px-4 py-2 text-xs">{mat.name}</td>
+                                                <td className="border border-slate-800 px-4 py-2 text-center text-xs">{mat.unit}</td>
+                                                <td className="border border-slate-800 px-4 py-2 text-right font-bold text-xs">{formatNumber(t.quantity)}</td>
+                                            </tr>
+                                        )
+                                    })}
+                                    <tr className="bg-slate-50 font-bold">
+                                        <td colSpan={4} className="border border-slate-800 px-4 py-2 text-right text-xs">TỔNG CỘNG:</td>
+                                        <td className="border border-slate-800 px-4 py-2 text-right text-xs">{formatNumber(r.totalQuantity)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="mt-12 grid grid-cols-2 text-center">
+                            <div>
+                                <p className="font-bold text-xs uppercase">Người lập phiếu</p>
+                                <p className="text-[10px] italic mt-1">(Ký, họ tên)</p>
+                            </div>
+                            <div>
+                                <p className="font-bold text-xs uppercase">Người nhận/giao hàng</p>
+                                <p className="text-[10px] italic mt-1">(Ký, họ tên)</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             <ConfirmModal
                 isOpen={confirmState.isOpen}

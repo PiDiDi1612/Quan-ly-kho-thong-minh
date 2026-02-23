@@ -28,7 +28,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const canModify = currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false;
+    const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
 
     const handleOpenModal = (pj?: Project) => {
         if (pj) {

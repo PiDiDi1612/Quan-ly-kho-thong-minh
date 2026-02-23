@@ -42,7 +42,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const [selectedMaterialClass, setSelectedMaterialClass] = useState<'ALL' | 'Vật tư chính' | 'Vật tư phụ'>('ALL');
 
     const budgetFileInputRef = useRef<HTMLInputElement>(null);
-    const canModify = currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false;
+    const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
 
     const formatNumber = (num: number | string | undefined): string => {
         const val = typeof num === 'number' ? num : parseFloat(num?.toString() || '0');
