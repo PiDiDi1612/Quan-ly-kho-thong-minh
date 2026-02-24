@@ -205,7 +205,7 @@ db.exec(`
     quantity REAL, date TEXT, transactionTime TEXT, user TEXT, workshop TEXT, targetWorkshop TEXT, targetMaterialId TEXT, orderCode TEXT, note TEXT
   );
   CREATE TABLE IF NOT EXISTS budgets (
-    id TEXT PRIMARY KEY, orderCode TEXT, orderName TEXT, projectName TEXT, address TEXT, 
+    id TEXT PRIMARY KEY, orderCode TEXT, orderName TEXT, projectCode TEXT, projectName TEXT, address TEXT, 
     phone TEXT, description TEXT, status TEXT, workshop TEXT, items TEXT, createdAt TEXT, lastUpdated TEXT
   );
   CREATE TABLE IF NOT EXISTS users (
@@ -217,7 +217,7 @@ db.exec(`
     details TEXT, ipAddress TEXT, timestamp TEXT
   );
   CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY, name TEXT UNIQUE, address TEXT, phone TEXT, description TEXT, createdAt TEXT
+    id TEXT PRIMARY KEY, code TEXT UNIQUE, name TEXT UNIQUE, address TEXT, phone TEXT, description TEXT, createdAt TEXT
   );
   CREATE TABLE IF NOT EXISTS suppliers (
     id TEXT PRIMARY KEY, code TEXT UNIQUE, name TEXT, contactPerson TEXT, 
@@ -257,21 +257,28 @@ try {
 
 // Migration: Update 'budgets' table with new project fields
 const budgetColumns = db.prepare("PRAGMA table_info(budgets)").all().map(c => c.name);
-const requiredBudgetCols = ['orderName', 'projectName', 'address', 'phone', 'description', 'status'];
+const requiredBudgetCols = ['orderName', 'projectCode', 'projectName', 'address', 'phone', 'description', 'status'];
 requiredBudgetCols.forEach(col => {
     if (!budgetColumns.includes(col)) {
         console.log(`[SmartStock] Migrating database: Adding '${col}' column to 'budgets' table...`);
         db.exec(`ALTER TABLE budgets ADD COLUMN ${col} TEXT`);
+        if (col === 'projectCode') {
+            db.exec(`UPDATE budgets SET projectCode = projectName WHERE projectCode IS NULL`);
+        }
     }
 });
 
 // Migration: Update 'projects' table
 const projectColumns = db.prepare("PRAGMA table_info(projects)").all().map(c => c.name);
-const requiredProjectCols = ['address', 'phone'];
+const requiredProjectCols = ['code', 'address', 'phone'];
 requiredProjectCols.forEach(col => {
     if (!projectColumns.includes(col)) {
         console.log(`[SmartStock] Migrating database: Adding '${col}' column to 'projects' table...`);
         db.exec(`ALTER TABLE projects ADD COLUMN ${col} TEXT`);
+        if (col === 'code') {
+            // Initialize code with name for existing projects
+            db.exec(`UPDATE projects SET code = name WHERE code IS NULL`);
+        }
     }
 });
 
@@ -910,11 +917,12 @@ app.post('/api/transactions/update', verifyToken, requirePermission('MANAGE_MATE
 app.post('/api/budgets/save', verifyToken, (req, res) => {
     const budget = req.body;
     db.prepare(`
-        INSERT INTO budgets (id, orderCode, orderName, projectName, address, phone, description, status, workshop, items, createdAt, lastUpdated) 
-        VALUES (@id, @orderCode, @orderName, @projectName, @address, @phone, @description, @status, @workshop, @items, @createdAt, @lastUpdated) 
+        INSERT INTO budgets (id, orderCode, orderName, projectCode, projectName, address, phone, description, status, workshop, items, createdAt, lastUpdated) 
+        VALUES (@id, @orderCode, @orderName, @projectCode, @projectName, @address, @phone, @description, @status, @workshop, @items, @createdAt, @lastUpdated) 
         ON CONFLICT(id) DO UPDATE SET 
             orderCode=excluded.orderCode, 
             orderName=excluded.orderName, 
+            projectCode=excluded.projectCode,
             projectName=excluded.projectName, 
             address=excluded.address, 
             phone=excluded.phone, 
@@ -926,6 +934,7 @@ app.post('/api/budgets/save', verifyToken, (req, res) => {
     `).run({
         ...budget,
         orderName: budget.orderName || '',
+        projectCode: budget.projectCode || '',
         projectName: budget.projectName || '',
         address: budget.address || '',
         phone: budget.phone || '',
@@ -1164,9 +1173,9 @@ app.post('/api/activity_logs/clear', requirePermission('MANAGE_USERS'), (req, re
 // Projects API
 app.post('/api/projects/save', verifyToken, (req, res) => {
     const item = req.body;
-    db.prepare(`INSERT INTO projects (id, name, address, phone, description, createdAt) 
-    VALUES (@id, @name, @address, @phone, @description, @createdAt) 
-    ON CONFLICT(id) DO UPDATE SET name=excluded.name, address=excluded.address, phone=excluded.phone, description=excluded.description`).run(item);
+    db.prepare(`INSERT INTO projects (id, code, name, address, phone, description, createdAt) 
+    VALUES (@id, @code, @name, @address, @phone, @description, @createdAt) 
+    ON CONFLICT(id) DO UPDATE SET code=excluded.code, name=excluded.name, address=excluded.address, phone=excluded.phone, description=excluded.description`).run(item);
     notifyUpdate();
     res.json({ success: true });
 });

@@ -12,7 +12,7 @@ import {
     Printer,
     Package
 } from 'lucide-react';
-import { Material, TransactionType } from '@/types';
+import { Material, TransactionType, OrderBudget } from '@/types';
 import { WORKSHOPS } from '@/constants';
 
 interface WarehouseReceiptProps {
@@ -33,6 +33,7 @@ interface WarehouseReceiptProps {
     selectedItems: any[];
     setSelectedItems: (items: any[]) => void;
     materials: Material[];
+    budgets: OrderBudget[];
     receiptSearchWorkshop: string;
     setReceiptSearchWorkshop: (w: string) => void;
     receiptSearchClass: string;
@@ -73,11 +74,17 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
     setMaterialSearch,
     modalError,
     suppliers,
+    budgets,
     handleCreateReceipt,
     requestConfirm,
     formatNumber,
     parseNumber
 }) => {
+    // Lọc danh sách đơn hàng đang thực hiện cho xưởng đang chọn
+    const activeOrders = budgets.filter(b =>
+        b.status === 'Đang thực hiện' &&
+        (b.workshop === receiptWorkshop)
+    );
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1e293b] rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-700 animate-in fade-in duration-300">
             <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
@@ -209,8 +216,28 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                 )}
                                 {receiptType === TransactionType.OUT && (
                                     <div className="space-y-1.5 col-span-2">
-                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã đơn hàng</label>
-                                        <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm" placeholder="DH..." value={orderCode} onChange={e => setOrderCode(e.target.value.toUpperCase())} />
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Tên đơn hàng</label>
+                                        <input
+                                            type="text"
+                                            list="active-order-codes"
+                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm transition-all"
+                                            placeholder="Chọn đơn hàng..."
+                                            value={budgets.find(b => b.orderCode === orderCode)?.orderName || orderCode}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                const matched = activeOrders.find(b => b.orderName === val);
+                                                if (matched) {
+                                                    setOrderCode(matched.orderCode);
+                                                } else {
+                                                    setOrderCode(val);
+                                                }
+                                            }}
+                                        />
+                                        <datalist id="active-order-codes">
+                                            {activeOrders.map(b => (
+                                                <option key={b.id} value={b.orderName}>{b.orderCode} ({b.projectName})</option>
+                                            ))}
+                                        </datalist>
                                     </div>
                                 )}
                             </div>

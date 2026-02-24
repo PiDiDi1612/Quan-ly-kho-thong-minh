@@ -231,20 +231,27 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                         <button onClick={() => setTypeFilter('OUT')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${typeFilter === 'OUT' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Xuất kho</button>
                     </div>
 
-                    <Button variant="secondary" onClick={handleExportHistory} className="px-4"><Download size={18} /></Button>
                 </div>
 
                 {/* Batch Action Bar */}
                 {selectedReceiptIds.length > 0 && (
-                    <div className="absolute inset-0 bg-sky-600 rounded-2xl flex items-center justify-between px-6 animate-in slide-in-from-top-4 duration-300 z-10 shadow-lg shadow-sky-500/20">
-                        <div className="flex items-center gap-4 text-white">
-                            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-bold">{selectedReceiptIds.length}</div>
-                            <span className="text-sm font-bold uppercase tracking-widest">Phiếu đã chọn</span>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-white dark:bg-sky-600 rounded-xl flex items-center gap-6 px-5 py-2 animate-in zoom-in-95 duration-300 z-10 shadow-xl border border-slate-200 dark:border-sky-500">
+                        <div className="flex items-center gap-3 text-slate-800 dark:text-white border-r border-slate-200 dark:border-white/20 pr-5">
+                            <div className="w-7 h-7 bg-sky-100 dark:bg-white/20 text-sky-600 dark:text-white rounded-lg flex items-center justify-center font-black text-xs">{selectedReceiptIds.length}</div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Đã chọn</span>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setSelectedReceiptIds([])} className="px-4 py-2 text-xs font-bold text-white/80 hover:text-white uppercase tracking-widest transition-colors">Hủy chọn</button>
-                            <Button onClick={handleBatchPrint} className="bg-white text-sky-600 hover:bg-sky-50 px-6 h-10 font-black uppercase text-[11px] tracking-widest flex items-center gap-2">
-                                <Printer size={16} /> In {selectedReceiptIds.length} phiếu
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setSelectedReceiptIds([])}
+                                className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest transition-colors"
+                            >
+                                Hủy chọn
+                            </button>
+                            <Button
+                                onClick={handleBatchPrint}
+                                className="bg-sky-600 dark:bg-white text-white dark:text-sky-600 hover:bg-sky-700 dark:hover:bg-sky-50 px-4 h-8 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 rounded-lg shadow-sm"
+                            >
+                                <Printer size={14} /> In {selectedReceiptIds.length} phiếu
                             </Button>
                         </div>
                     </div>

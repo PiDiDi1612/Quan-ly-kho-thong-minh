@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    ClipboardList, Search, Plus, Edit2, Trash2, Save, X, ShoppingCart, Check, Download, ExternalLink, Warehouse, Package, Settings, Layers
+    ClipboardList, Search, Plus, Edit2, Trash2, Save, X, ShoppingCart, Check, Download, ExternalLink, Warehouse, Package, Settings, Layers, Calendar, Users
 } from 'lucide-react';
 import { OrderBudget, Material, Transaction, Project, User, WorkshopCode } from '../../types';
 import { WORKSHOPS } from '../../constants';
@@ -8,6 +8,8 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DateInput } from '../../components/ui/DateInput';
+import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { usePlanningEstimates } from './hooks/usePlanningEstimates';
 
 interface PlanningEstimatesProps {
@@ -42,41 +44,92 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
         updateItemQty,
         removeBudgetItem,
         handleProjectSelect,
+        handleWorkshopChange,
         handleImportBudgetExcel,
+        importData, setImportData,
+        isImportModalOpen, setIsImportModalOpen,
+        handleProcessImport,
         getIssuedQuantity,
         filteredBudgets,
         formatNumber
     } = usePlanningEstimates(props);
 
+    const [confirmState, setConfirmState] = React.useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        type: 'info'
+    });
+
+    const requestDelete = (id: string) => {
+        setConfirmState({
+            isOpen: true,
+            title: 'Xóa dự toán',
+            message: 'Bạn có chắc chắn muốn xóa dự toán này? Hành động này không thể hoàn tác.',
+            onConfirm: () => {
+                handleDelete(id);
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+            },
+            type: 'danger'
+        });
+    };
+
+    const ESTIMATE_FIELDS: ExcelField[] = [
+        { key: 'materialName', label: 'Tên vật tư (*)', required: true, autoMatchPatterns: ['tên vt', 'vật tư', 'material name'] },
+        { key: 'estimatedQty', label: 'Số lượng (*)', required: true, autoMatchPatterns: ['số lượng', 'sl', 'qty', 'dự toán'] }
+    ];
+
     const { projects, materials } = props;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header Controls */}
-            <div className="flex flex-col xl:flex-row gap-4">
-                <div className="relative group flex-1">
-                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Mã/Tên đơn hàng..." className="pl-12" />
-                </div>
-                <div className="relative group flex-1">
-                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input value={projectSearch} onChange={e => setProjectSearch(e.target.value)} placeholder="Tên dự án..." className="pl-12" />
-                </div>
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-2 p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        <DateInput value={startDate} onChange={val => setStartDate(val)} placeholder="Từ ngày" className="w-32" />
-                        <DateInput value={endDate} onChange={val => setEndDate(val)} placeholder="Đến ngày" className="w-32" />
+            {/* Header Controls - Compact Design */}
+            <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex flex-1 min-w-[300px] gap-2">
+                    <div className="relative group flex-1">
+                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                        <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Mã/Tên đơn hàng..." className="pl-10 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/20 transition-all font-bold" />
                     </div>
-                    <div className="flex p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-sky-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>Tất cả</button>
-                        {WORKSHOPS.map(w => (
-                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-sky-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{w.code}</button>
-                        ))}
+                    <div className="relative group flex-1">
+                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                        <Input value={projectSearch} onChange={e => setProjectSearch(e.target.value)} placeholder="Tên dự án..." className="pl-10 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 transition-all font-bold" />
                     </div>
-                    {canModify && (
-                        <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={16} />} className="shadow-lg shadow-sky-500/20">Lập Dự Toán</Button>
+                </div>
+
+                <div className="flex items-center gap-4 px-4 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl h-10">
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Từ</span>
+                        <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" />
+                    </div>
+                    <div className="w-px h-5 bg-slate-200 dark:bg-slate-700"></div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đến</span>
+                        <DateInput value={endDate} onChange={val => setEndDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" />
+                    </div>
+                    {(startDate || endDate) && (
+                        <button onClick={() => { setStartDate(''); setEndDate(''); }} className="p-1 text-rose-400 hover:text-rose-600 rounded-lg transition-colors ml-1"><X size={14} /></button>
                     )}
                 </div>
+
+                <div className="flex p-0.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl h-10">
+                    <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tất cả</button>
+                    {WORKSHOPS.map(w => (
+                        <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === w.code ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{w.code}</button>
+                    ))}
+                </div>
+
+                {canModify && (
+                    <div className="flex gap-2 ml-auto">
+                        <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={14} />} className="shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 h-10 px-5 font-black uppercase text-[10px] tracking-widest rounded-xl">Lập Dự Toán</Button>
+                    </div>
+                )}
             </div>
 
             {/* Table View */}
@@ -85,8 +138,10 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><ClipboardList size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Dự án / Đơn hàng</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Ngày tạo</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Warehouse size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Xưởng</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Layers size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Vật tư</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Users size={12} className="inline mr-1 text-slate-400 -mt-0.5" />Người lập</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
                     </thead>
@@ -98,22 +153,29 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                         <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{b.projectName || 'KHÔNG CÓ DỰ ÁN'}</span>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{b.orderCode}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{new Date(b.createdAt).toLocaleDateString('en-GB')}</span>
                                         </div>
                                         <span className="text-[11px] text-slate-400 italic line-clamp-1">{b.orderName}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
+                                    <span className="text-xs font-bold text-slate-500">{new Date(b.createdAt).toLocaleDateString('vi-VN')}</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
                                     <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-400">{b.workshop}</span>
                                 </td>
-                                <td className="px-6 py-4 text-center text-xs font-bold text-slate-500">{b.items.length} hạng mục</td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className="text-xs font-bold text-sky-500 bg-sky-50 dark:bg-sky-900/20 px-2 py-1 rounded-lg">{b.items.length} hạng mục</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{b.createdByName || 'Admin'}</span>
+                                </td>
                                 <td className="px-6 py-4">
                                     <div className="flex justify-end gap-2">
                                         <button onClick={() => setViewingBudget(b)} className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-all"><ExternalLink size={16} /></button>
                                         {canModify && (
                                             <>
                                                 <button onClick={() => handleOpenModal(b)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(b.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
+                                                <button onClick={() => requestDelete(b.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
                                             </>
                                         )}
                                     </div>
@@ -125,36 +187,73 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
             </div>
 
             {/* Estimation Modal (Full-page type) */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingBudget ? "Sửa dự toán" : "Lập dự toán mới"} maxWidth="max-w-[95vw]" contentClassName="overflow-hidden p-4">
-                <div className="flex gap-6 h-[80vh]">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingBudget ? "Sửa dự toán" : "Lập dự toán mới"} maxWidth="max-w-[98vw]" contentClassName="overflow-hidden p-4">
+                <div className="flex gap-6 h-[85vh]">
                     {/* Column 1: Info (LEFT) */}
-                    <div className="w-[320px] flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar">
+                    <div className="w-[450px] flex flex-col gap-4 shrink-0 overflow-y-auto custom-scrollbar">
                         <div className="p-5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col gap-5">
                             <h4 className="text-[11px] font-extrabold text-sky-600 uppercase tracking-widest flex items-center gap-2"><ClipboardList size={14} /> Thông tin đơn hàng</h4>
                             <div>
-                                <label className="text-[11px] font-bold text-slate-400 uppercase">Dự án</label>
-                                <Input value={formData.projectName} onChange={e => handleProjectSelect(e.target.value)} placeholder="Gõ tên dự án..." className="h-10 text-sm" list="project-list" />
-                                <datalist id="project-list">{projects.map(p => <option key={p.id} value={p.name} />)}</datalist>
+                                <label className="text-[11px] font-bold text-slate-400 uppercase">Tên Dự án</label>
+                                <Input
+                                    readOnly
+                                    value={formData.projectName || ''}
+                                    placeholder="Tên công trình tương ứng..."
+                                    className="h-10 text-sm bg-slate-100/50 dark:bg-slate-800/50 italic text-slate-500"
+                                />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
+                            <div>
+                                <label className="text-[11px] font-bold text-slate-400 uppercase">Mã Dự án <span className="text-red-500">*</span></label>
+                                <select
+                                    className="w-full h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-sky-600 outline-none focus:border-sky-500 transition-all"
+                                    value={formData.projectCode || ''}
+                                    onChange={e => handleProjectSelect(e.target.value)}
+                                >
+                                    <option value="">-- Chọn mã dự án --</option>
+                                    {projects.map(p => <option key={p.id} value={p.code}>{p.code}</option>)}
+                                </select>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="flex-1">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase">Ngày lập</label>
-                                    <Input type="date" value={formData.createdAt ? new Date(formData.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} onChange={e => setFormData({ ...formData, createdAt: new Date(e.target.value).toISOString() })} className="h-10 text-sm" />
+                                    <DateInput
+                                        value={formData.createdAt ? new Date(formData.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                                        onChange={val => setFormData({ ...formData, createdAt: new Date(val).toISOString() })}
+                                        className="h-10 text-sm"
+                                    />
                                 </div>
-                                <div>
+                                <div className="w-[140px]">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase">Mã đơn</label>
-                                    <Input value={formData.orderCode} onChange={e => setFormData({ ...formData, orderCode: e.target.value.toUpperCase() })} placeholder="DH-..." className="h-10 text-sm" />
+                                    <Input
+                                        value={formData.orderCode || ''}
+                                        onChange={e => setFormData({ ...formData, orderCode: e.target.value.toUpperCase() })}
+                                        className="h-10 text-sm font-black text-sky-600"
+                                        placeholder="DH-..."
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label className="text-[11px] font-bold text-slate-400 uppercase">Xưởng</label>
-                                <select className="w-full h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold" value={formData.workshop} onChange={e => setFormData({ ...formData, workshop: e.target.value as WorkshopCode, items: [] })}>
+                                <select className="w-full h-10 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold" value={formData.workshop} onChange={e => handleWorkshopChange(e.target.value as WorkshopCode)}>
                                     {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[11px] font-bold text-slate-400 uppercase">Tên đơn hàng</label>
-                                <Input value={formData.orderName} onChange={e => setFormData({ ...formData, orderName: e.target.value })} placeholder="VD: Cửa nhôm xưởng A..." className="h-10 text-sm" />
+                                <label className="text-[11px] font-bold text-slate-400 uppercase">Tên đơn hàng <span className="text-red-500">*</span></label>
+                                <div className="relative group">
+                                    <Input
+                                        value={formData.projectCode && formData.orderName?.startsWith(`${formData.projectCode}-`)
+                                            ? formData.orderName.substring(formData.projectCode.length + 1)
+                                            : (formData.orderName || '')}
+                                        onChange={e => setFormData({ ...formData, orderName: formData.projectCode ? `${formData.projectCode}-${e.target.value}` : e.target.value })}
+                                        placeholder="Nhập tên đơn hàng..."
+                                        className="h-10 text-sm font-bold"
+                                        style={formData.projectCode ? { paddingLeft: `${formData.projectCode.length * 9 + 25}px` } : {}}
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sky-600 font-black text-sm pointer-events-none uppercase z-10">
+                                        {formData.projectCode ? `${formData.projectCode}-` : ''}
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label className="text-[11px] font-bold text-slate-400 uppercase">Ghi chú</label>
@@ -217,7 +316,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                     </div>
 
                     {/* Column 3: Material Picker (RIGHT) */}
-                    <div className="w-[500px] flex flex-col bg-slate-50 dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="w-[600px] flex flex-col bg-slate-50 dark:bg-slate-800/40 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                         <div className="space-y-3 mb-5">
                             <h4 className="text-[11px] font-extrabold text-sky-600 uppercase flex items-center gap-2"><Search size={14} /> Chọn vật tư</h4>
                             <div className="relative">
@@ -306,6 +405,26 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                     </div>
                 </Modal>
             )}
+            {importData && (
+                <ExcelMappingModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    fields={ESTIMATE_FIELDS}
+                    excelHeaders={importData.headers}
+                    excelData={importData.data}
+                    onImport={handleProcessImport}
+                    title="Nhập vật tư dự toán"
+                />
+            )}
+
+            <ConfirmModal
+                isOpen={confirmState.isOpen}
+                onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmState.onConfirm}
+                title={confirmState.title}
+                message={confirmState.message}
+                type={confirmState.type}
+            />
         </div>
     );
 };

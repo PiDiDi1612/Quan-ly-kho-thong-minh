@@ -58,7 +58,7 @@ export const DateInput: React.FC<DateInputProps> = ({
         <div className={`relative ${className}`}>
             <input
                 type="text"
-                className={`app-input px-3 py-2 font-bold text-[15px] transition-all shadow-sm ${readOnly ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`app-input pl-3 pr-10 py-2 font-bold text-[15px] transition-all shadow-sm ${readOnly ? 'opacity-70 pointer-events-none' : ''}`}
                 placeholder={placeholder}
                 value={displayValue}
                 onChange={handleTextChange}

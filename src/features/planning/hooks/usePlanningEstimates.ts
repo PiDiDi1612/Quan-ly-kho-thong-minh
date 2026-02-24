@@ -19,8 +19,17 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const [projectSearch, setProjectSearch] = useState('');
     const [workshopFilter, setWorkshopFilter] = useState<WorkshopCode | 'ALL'>('ALL');
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'Đang thực hiện' | 'Hoàn thành'>('ALL');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    const [startDate, setStartDate] = useState(() => {
+        const date = new Date();
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const offset = firstDay.getTimezoneOffset() * 60000;
+        return new Date(firstDay.getTime() - offset).toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => {
+        const date = new Date();
+        const offset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offset).toISOString().split('T')[0];
+    });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBudget, setEditingBudget] = useState<OrderBudget | null>(null);
@@ -29,6 +38,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const [formData, setFormData] = useState<Partial<OrderBudget>>({
         orderCode: '',
         orderName: '',
+        projectCode: '',
         projectName: '',
         address: '',
         phone: '',
@@ -40,6 +50,9 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
 
     const [materialSearch, setMaterialSearch] = useState('');
     const [selectedMaterialClass, setSelectedMaterialClass] = useState<'ALL' | 'Vật tư chính' | 'Vật tư phụ'>('ALL');
+
+    const [importData, setImportData] = useState<{ headers: string[], data: any[][] } | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const budgetFileInputRef = useRef<HTMLInputElement>(null);
     const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
@@ -81,7 +94,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
             window.removeEventListener('open-budget-modal', handleOpen);
             window.removeEventListener('import-budget-excel', handleImport);
         };
-    }, [handleOpenModal]); // Dependent on handleOpenModal to ensure it uses the latest version
+    }, [handleOpenModal]);
 
     const handleSave = async () => {
         if (!formData.orderCode || !formData.items || formData.items.length === 0) {
@@ -107,10 +120,10 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa dự toán này?')) return;
         try {
             await apiService.post('/api/budgets/delete', { id });
             onUpdate();
+            toast.success('Đã xóa dự toán thành công');
         } catch (error) {
             console.error('Failed to delete budget:', error);
             toast.error('Lỗi khi xóa dự toán');
@@ -142,19 +155,66 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
         setFormData({ ...formData, items: newItems });
     };
 
-    const handleProjectSelect = (projectName: string) => {
-        const project = projects.find(p => p.name === projectName);
+    const generateOrderCode = (projectCode: string, workshop: WorkshopCode) => {
+        if (!projectCode) return '';
+        const prefix = `${projectCode}-${workshop}`;
+        const existingCodes = budgets
+            .filter(b => b.orderCode && b.orderCode.startsWith(prefix))
+            .map(b => {
+                const parts = b.orderCode!.split('-');
+                const lastPart = parts[parts.length - 1];
+                const seq = parseInt(lastPart);
+                return isNaN(seq) ? 0 : seq;
+            });
+
+        const nextSeq = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+        return `${prefix}-${String(nextSeq).padStart(2, '0')}`;
+    };
+
+    const handleProjectSelect = (projectCode: string) => {
+        const project = projects.find(p => p.code === projectCode);
+        const workshop = formData.workshop || 'OG';
+
+        const newOrderCode = generateOrderCode(projectCode, workshop);
+
+        // Robust suffix extraction: if current orderName starts with current projectCode + '-', take the rest
+        const currentSuffix = (formData.projectCode && formData.orderName?.startsWith(`${formData.projectCode}-`))
+            ? formData.orderName.substring(formData.projectCode.length + 1)
+            : (formData.orderName || '');
+
+        // Generate new order name with prefix
+        const newOrderName = projectCode ? (projectCode + (currentSuffix ? `-${currentSuffix}` : '-')) : '';
+
         if (project) {
             setFormData(prev => ({
                 ...prev,
+                projectCode: project.code,
                 projectName: project.name,
                 address: project.address || prev.address,
                 phone: project.phone || prev.phone,
-                description: project.description || prev.description
+                description: project.description || prev.description,
+                orderCode: newOrderCode,
+                orderName: newOrderName
             }));
         } else {
-            setFormData(prev => ({ ...prev, projectName }));
+            setFormData(prev => ({
+                ...prev,
+                projectCode,
+                projectName: '',
+                orderCode: newOrderCode,
+                orderName: newOrderName
+            }));
         }
+    };
+
+    const handleWorkshopChange = (workshop: WorkshopCode) => {
+        const newOrderCode = generateOrderCode(formData.projectCode || '', workshop);
+        setFormData(prev => ({
+            ...prev,
+            workshop,
+            orderCode: newOrderCode,
+            items: []
+        }));
     };
 
     const handleImportBudgetExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,42 +222,57 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = async (evt) => {
+        reader.onload = (evt) => {
             try {
-                const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const dataBuf = evt.target?.result;
+                const wb = XLSX.read(dataBuf, { type: 'array' });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
-                const data = XLSX.utils.sheet_to_json(ws) as any[];
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
-                const newItems: BudgetItem[] = [...(formData.items || [])];
-                const workshopMaterials = materials.filter(m => m.workshop === formData.workshop);
-
-                for (const row of data) {
-                    const normalizedRow: any = {};
-                    Object.keys(row).forEach(key => normalizedRow[key.trim().toLowerCase()] = row[key]);
-
-                    const materialName = normalizedRow['materialname'] || normalizedRow['tên vật tư'] || normalizedRow['tên vt'] || normalizedRow['vật tư'];
-                    const qtyStr = normalizedRow['estimatedqty'] || normalizedRow['số lượng'] || normalizedRow['sl'] || normalizedRow['số lượng dự toán'];
-                    const qty = parseFloat(String(qtyStr || '0').replace(/,/g, ''));
-
-                    if (!materialName || qty <= 0) continue;
-
-                    const match = workshopMaterials.find(m => m.name.trim().toLowerCase() === String(materialName).trim().toLowerCase());
-                    if (match) {
-                        const existingIdx = newItems.findIndex(it => it.materialId === match.id);
-                        if (existingIdx >= 0) newItems[existingIdx].estimatedQty += qty;
-                        else newItems.push({ materialId: match.id, materialName: match.name, classification: match.classification, estimatedQty: qty, unit: match.unit });
-                    }
+                if (data.length > 0) {
+                    setImportData({
+                        headers: data[0].map(h => String(h || '').trim()),
+                        data: data.slice(1)
+                    });
+                    setIsImportModalOpen(true);
                 }
-                setFormData(prev => ({ ...prev, items: newItems }));
-            } catch (e) {
-                console.error(e);
-                toast.error('Lỗi khi nhập Excel dự toán');
+            } catch (err) {
+                console.error(err);
+                toast.error('Lỗi khi đọc file Excel');
             }
-            if (e.target) e.target.value = '';
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
+        if (e.target) e.target.value = '';
+    };
+
+    const handleProcessImport = (mappedData: any[]) => {
+        const newItems: BudgetItem[] = [...(formData.items || [])];
+        const workshopMaterials = materials.filter(m => m.workshop === formData.workshop);
+        let count = 0;
+
+        for (const item of mappedData) {
+            const materialName = item.materialName;
+            const qty = parseFloat(String(item.estimatedQty || '0').replace(/,/g, ''));
+
+            if (!materialName || qty <= 0) continue;
+
+            const match = workshopMaterials.find(m => m.name.trim().toLowerCase() === String(materialName).trim().toLowerCase());
+            if (match) {
+                const existingIdx = newItems.findIndex(it => it.materialId === match.id);
+                if (existingIdx >= 0) newItems[existingIdx].estimatedQty += qty;
+                else newItems.push({ materialId: match.id, materialName: match.name, classification: match.classification, estimatedQty: qty, unit: match.unit });
+                count++;
+            }
+        }
+
+        setFormData(prev => ({ ...prev, items: newItems }));
+        setIsImportModalOpen(false);
+        if (count > 0) {
+            toast.success(`Đã thêm ${count} vật tư từ Excel`);
+        } else {
+            toast.warning('Không tìm thấy vật tư tương ứng trong hệ thống');
+        }
     };
 
     const getIssuedQuantity = (orderCode: string, materialId: string, materialName?: string) => {
@@ -214,9 +289,10 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
             const matchStatus = statusFilter === 'ALL' || b.status === statusFilter;
 
             if (startDate || endDate) {
-                const bDate = new Date(b.createdAt);
-                if (startDate && bDate < new Date(startDate)) return false;
-                if (endDate && bDate > new Date(endDate)) return false;
+                const bDateStr = b.createdAt?.split('T')[0];
+                if (!bDateStr) return false;
+                if (startDate && bDateStr < startDate) return false;
+                if (endDate && bDateStr > endDate) return false;
             }
             return matchSearch && matchProject && matchWorkshop && matchStatus;
         }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -235,6 +311,9 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
         formData, setFormData,
         materialSearch, setMaterialSearch,
         selectedMaterialClass, setSelectedMaterialClass,
+        importData, setImportData,
+        isImportModalOpen, setIsImportModalOpen,
+        handleProcessImport,
         budgetFileInputRef,
         canModify,
         handleOpenModal,
@@ -244,6 +323,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
         updateItemQty,
         removeBudgetItem,
         handleProjectSelect,
+        handleWorkshopChange,
         handleImportBudgetExcel,
         getIssuedQuantity,
         filteredBudgets,

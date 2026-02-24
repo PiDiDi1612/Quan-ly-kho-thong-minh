@@ -40,7 +40,9 @@ import {
   Sun,
   Eye,
   EyeOff,
-  ClipboardList
+  ClipboardList,
+  Clock,
+  Globe
 } from 'lucide-react';
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
@@ -803,19 +805,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {canModify && (activeTab === 'planning_projects') && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={() => window.dispatchEvent(new CustomEvent('open-project-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm Dự Án</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('import-project-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
-              </div>
-            )}
-
-            {canModify && (activeTab === 'planning_estimates') && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={() => window.dispatchEvent(new CustomEvent('open-budget-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Lập Dự Toán</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('import-budget-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
-              </div>
-            )}
 
             {canModify && (activeTab === 'warehouse_suppliers') && (
               <div className="flex items-center gap-2 mr-2">
@@ -833,12 +822,17 @@ const App: React.FC = () => {
             >
               {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <div className="flex items-center gap-3 px-4 py-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-lg text-sm font-bold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-              <span className="text-blue-700 dark:text-blue-400 tabular-nums text-base">
-                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </span>
-              <span className="text-slate-300 dark:text-slate-600">|</span>
-              <span className="text-slate-600 dark:text-slate-400">{serverIp || '...'}</span>
+            <div className="flex items-center gap-1 xl:gap-2 px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl text-sm font-bold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900/50 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
+                <Clock size={14} className="text-blue-500" />
+                <span className="text-blue-700 dark:text-blue-400 tabular-nums text-xs xl:text-sm">
+                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900/50 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
+                <Globe size={14} className="text-emerald-500" />
+                <span className="text-slate-600 dark:text-slate-400 text-[11px] xl:text-xs">{serverIp || '192.168.10.149'}</span>
+              </div>
             </div>
           </div>
         </header>
@@ -1117,6 +1111,7 @@ const App: React.FC = () => {
               selectedItems={selectedItems}
               setSelectedItems={setSelectedItems}
               materials={materials}
+              budgets={budgets}
               receiptSearchWorkshop={receiptSearchWorkshop}
               setReceiptSearchWorkshop={setReceiptSearchWorkshop}
               receiptSearchClass={receiptSearchClass}

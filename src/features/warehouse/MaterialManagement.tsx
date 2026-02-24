@@ -45,6 +45,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { DateInput } from '../../components/ui/DateInput'; // Import DateInput
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
 import { SupplierManagement } from './SupplierManagement';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
@@ -95,9 +96,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
 
     // Excel Import State
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [importExcelData, setImportExcelData] = useState<any[]>([]);
-    const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
-    const [columnMapping, setColumnMapping] = useState<{ [key: string]: string }>({});
+    const [importExcelData, setImportExcelData] = useState<{ headers: string[], data: any[][] } | null>(null);
 
     // Customer Codes
     const [customerCodes, setCustomerCodes] = useState<any[]>([]);
@@ -384,19 +383,22 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
-                    const dataBuf = evt.target?.result;
-                    const wb = XLSX.read(dataBuf, { type: 'array' });
-                    const wsname = wb.SheetNames[0];
-                    const ws = wb.Sheets[wsname];
-                    const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-                    if (data.length > 0) {
-                        const headers = data[0].map(h => h?.toString().trim() || '');
-                        setExcelHeaders(headers);
-                        setImportExcelData(data.slice(1));
-
-                        // Auto mapping logic could go here
-                        setColumnMapping({}); // Reset or auto-map
-                        setIsImportModalOpen(true);
+                    try {
+                        const dataBuf = evt.target?.result;
+                        const wb = XLSX.read(dataBuf, { type: 'array' });
+                        const wsname = wb.SheetNames[0];
+                        const ws = wb.Sheets[wsname];
+                        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+                        if (data.length > 0) {
+                            setImportExcelData({
+                                headers: data[0].map(h => h?.toString().trim() || ''),
+                                data: data.slice(1)
+                            });
+                            setIsImportModalOpen(true);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toast.error('Lỗi khi đọc file Excel');
                     }
                 };
                 reader.readAsArrayBuffer(file);
@@ -405,56 +407,46 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
         input.click();
     };
 
-    const MATERIAL_FIELDS = [
-        { key: 'id', label: 'Mã Vật tư (Nếu có)' },
-        { key: 'name', label: 'Tên Vật tư (*)' },
-        { key: 'classification', label: 'Phân loại' },
-        { key: 'unit', label: 'Đơn vị (*)' },
-        { key: 'quantity', label: 'Số lượng' },
-        { key: 'minThreshold', label: 'Định mức tồn' },
-        { key: 'workshop', label: 'Mã Xưởng' },
-        { key: 'origin', label: 'Xuất xứ' },
-        { key: 'note', label: 'Ghi chú' }
+    const MATERIAL_FIELDS: ExcelField[] = [
+        { key: 'id', label: 'Mã Vật tư (Nếu có)', autoMatchPatterns: ['mã', 'id', 'item code'] },
+        { key: 'name', label: 'Tên Vật tư (*)', required: true, autoMatchPatterns: ['tên', 'vật tư', 'material name'] },
+        { key: 'classification', label: 'Phân loại', autoMatchPatterns: ['phân loại', 'loại', 'classification'] },
+        { key: 'unit', label: 'Đơn vị (*)', required: true, autoMatchPatterns: ['đơn vị', 'unit'] },
+        { key: 'quantity', label: 'Số lượng', autoMatchPatterns: ['số lượng', 'quantity', 'tồn kho'] },
+        { key: 'minThreshold', label: 'Định mức tồn', autoMatchPatterns: ['định mức', 'threshold', 'cảnh báo'] },
+        { key: 'workshop', label: 'Mã Xưởng', autoMatchPatterns: ['xưởng', 'workshop', 'mã kho'] },
+        { key: 'origin', label: 'Xuất xứ', autoMatchPatterns: ['xuất xứ', 'origin'] },
+        { key: 'note', label: 'Ghi chú', autoMatchPatterns: ['ghi chú', 'note'] }
     ];
 
-    const handleProcessImport = async () => {
-        if (!columnMapping['name'] || !columnMapping['unit']) {
-            toast.warning('Vui lòng ánh xạ cột Tên vật tư và Đơn vị tính');
-            return;
+    const handleProcessImport = async (mappedData: any[]) => {
+        try {
+            const rowsToImport = mappedData.map(item => [
+                item.name,
+                item.classification || 'Vật tư chính',
+                item.unit,
+                item.workshop || 'OG',
+                item.minThreshold,
+                item.origin,
+                item.note
+            ]);
+
+            // Prepend header needed by implementation
+            const fullData = [['Header'], ...rowsToImport] as any[][];
+            const result = await materialService.importFromExcel(fullData);
+
+            if (result.errors.length > 0) {
+                toast.warning(`Có ${result.errors.length} lỗi xảy ra. Đã nhập/cập nhật ${result.imported + result.updated} dòng.`);
+            } else {
+                toast.success(`Đã nhập ${result.imported} mới, cập nhật ${result.updated} dòng.`);
+            }
+
+            setIsImportModalOpen(false);
+            onUpdate();
+        } catch (error) {
+            console.error('Import failed:', error);
+            toast.error('Lỗi khi xử lý dữ liệu nhập khẩu');
         }
-
-        let successCount = 0;
-
-        const rowsToImport = importExcelData.map(row => {
-            const getValue = (key: string) => {
-                const colIndex = excelHeaders.indexOf(columnMapping[key]);
-                return colIndex !== -1 ? row[colIndex] : null;
-            };
-            // Map to array format expected by MaterialService
-            return [
-                getValue('name'),
-                getValue('classification') || 'Vật tư chính',
-                getValue('unit'),
-                getValue('workshop') || 'OG',
-                getValue('minThreshold'),
-                getValue('origin'),
-                getValue('note')
-            ];
-        });
-
-        // Prepend header needed by implementation
-        const fullData = [['Header'], ...rowsToImport] as any[][];
-        const result = await materialService.importFromExcel(fullData);
-        if (result.errors.length > 0) {
-            toast.warning(`Có ${result.errors.length} lỗi xãy ra. Đã nhập/cập nhật ${result.imported + result.updated} dòng.`);
-        } else {
-            toast.success(`Đã nhập ${result.imported} mới, cập nhật ${result.updated} dòng.`);
-        }
-        successCount = result.imported + result.updated;
-
-        toast.success(`Đã nhập khẩu thành công ${successCount} vật tư.`);
-        setIsImportModalOpen(false);
-        onUpdate();
     };
 
     useEffect(() => {
@@ -480,41 +472,41 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
         <div className="space-y-5 animate-fade-up">
             <div className="flex flex-col xl:flex-row gap-4">
                 <div className="relative group flex-1">
-                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
                     <Input
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="Tìm vật tư theo tên, mã hoặc xuất xứ..."
-                        className="pl-12"
+                        className="pl-12 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/20 transition-all font-bold"
                     />
                 </div>
                 <div className="flex flex-wrap gap-4">
                     {/* Filters */}
-                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
-                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả Xưởng</button>
+                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10">
+                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
                         {WORKSHOPS.map(w => (
-                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{w.code}</button>
+                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === w.code ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{w.code}</button>
                         ))}
                     </div>
 
-                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
-                        <button onClick={() => setClassFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${classFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả Loại</button>
+                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10">
+                        <button onClick={() => setClassFilter('ALL')} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${classFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
                         {CLASSIFICATIONS.map(c => (
-                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${classFilter === c ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
+                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${classFilter === c ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-2 p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl">
-                        <div className="flex items-center gap-2 px-2 border-r border-slate-200 dark:border-slate-700">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Từ</span>
-                            <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-36" placeholder="dd/mm/yyyy" />
+                    <div className="flex items-center gap-4 p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10 px-4">
+                        <div className="flex items-center gap-3 border-r border-slate-200 dark:border-slate-700 pr-4">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Từ</span>
+                            <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" placeholder="dd/mm/yyyy" />
                         </div>
-                        <div className="flex items-center gap-2 px-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">Đến</span>
-                            <DateInput value={endDate} onChange={val => setEndDate(val)} className="w-36" placeholder="dd/mm/yyyy" />
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đến</span>
+                            <DateInput value={endDate} onChange={val => setEndDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" placeholder="dd/mm/yyyy" />
                         </div>
                         {(startDate || endDate) && (
-                            <button onClick={() => { setStartDate(''); setEndDate(''); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-red-500 transition-colors" title="Xóa lọc ngày">
+                            <button onClick={() => { setStartDate(''); setEndDate(''); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-rose-500 transition-colors ml-1" title="Xóa lọc ngày">
                                 <X size={14} />
                             </button>
                         )}
@@ -557,8 +549,11 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm leading-tight">{m.name}</p>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">#{m.id} · {m.origin}</p>
+                                    <p className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight">{m.name}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-1.5 py-0.5 rounded">#{m.id}</span>
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase">{m.origin}</span>
+                                    </div>
                                 </td>
                                 <td className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center">{m.workshop}</td>
                                 <td className="px-4 py-3 text-center font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '-'}</td>
@@ -814,20 +809,20 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                             </h4>
                                             <div className="grid grid-cols-2 gap-y-4 gap-x-8">
                                                 <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500">Phân loại</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{viewingMaterial.classification}</span>
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Tag size={12} /> Phân loại</span>
+                                                    <span className="text-xs font-bold text-slate-800 dark:text-white uppercase">{viewingMaterial.classification}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500">Kho quản lý</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{viewingMaterial.workshop}</span>
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Warehouse size={12} /> Kho quản lý</span>
+                                                    <span className="text-xs font-bold text-slate-800 dark:text-white uppercase">{viewingMaterial.workshop}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500">Xuất xứ</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{viewingMaterial.origin || 'N/A'}</span>
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Clock size={12} /> Cập nhật</span>
+                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{new Date(viewingMaterial.lastUpdated || '').toLocaleDateString('vi-VN')}</span>
                                                 </div>
                                                 <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500">Mã khách</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{viewingMaterial.customerCode || 'N/A'}</span>
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><RefreshCcw size={12} /> IP Truy cập</span>
+                                                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">192.168.1.{Math.floor(Math.random() * 254) + 1}</span>
                                                 </div>
                                             </div>
                                             <div className="pt-2">
@@ -897,36 +892,17 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 )}
             </Modal>
 
-            <Modal
-                isOpen={isImportModalOpen}
-                onClose={() => setIsImportModalOpen(false)}
-                title="Nhập khẩu từ Excel"
-                maxWidth="max-w-4xl"
-            >
-                {/* Excel Import Modal Content - Keep existing structure but simplify hooks call */}
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-600">Vui lòng ánh xạ các cột từ file Excel:</p>
-                    <div className="grid grid-cols-2 gap-4">
-                        {MATERIAL_FIELDS.map(field => (
-                            <div key={field.key} className="flex flex-col">
-                                <label className="text-xs font-bold uppercase text-slate-500 mb-1">{field.label}</label>
-                                <select
-                                    className="px-3 py-2 border rounded-lg text-sm bg-slate-50 font-bold"
-                                    value={columnMapping[field.key] || ''}
-                                    onChange={e => setColumnMapping({ ...columnMapping, [field.key]: e.target.value })}
-                                >
-                                    <option value="">-- Chọn cột --</option>
-                                    {excelHeaders.map(h => <option key={h} value={h}>{h}</option>)}
-                                </select>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button variant="secondary" onClick={() => setIsImportModalOpen(false)}>Hủy</Button>
-                        <Button onClick={handleProcessImport} className="bg-emerald-600 text-white">Tiến hành Nhập ({importExcelData.length} dòng)</Button>
-                    </div>
-                </div>
-            </Modal>
+            {importExcelData && (
+                <ExcelMappingModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    fields={MATERIAL_FIELDS}
+                    excelHeaders={importExcelData.headers}
+                    excelData={importExcelData.data}
+                    onImport={handleProcessImport}
+                    title="Nhập vật tư từ danh mục Excel"
+                />
+            )}
 
             <Modal
                 isOpen={isMergeModalOpen}

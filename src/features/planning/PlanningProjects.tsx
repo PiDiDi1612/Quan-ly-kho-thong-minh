@@ -1,13 +1,15 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import {
-    Search, Plus, Edit2, Trash2, Save, X, Settings, Package, Download, Database, MapPin, Phone, StickyNote
+    Search, Plus, Edit2, Trash2, Save, X, Settings, Package, Download, Database, MapPin, Phone, StickyNote, FileSpreadsheet
 } from 'lucide-react';
 import { Project, User } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 interface PlanningProjectsProps {
     projects: Project[];
@@ -21,6 +23,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [formData, setFormData] = useState<Partial<Project>>({
+        code: '',
         name: '',
         address: '',
         phone: '',
@@ -28,7 +31,32 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [importData, setImportData] = useState<{ headers: string[], data: any[][] } | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    // Confirm Modal State
+    const [confirmState, setConfirmState] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
     const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
+
+    const PROJECT_FIELDS: ExcelField[] = [
+        { key: 'code', label: 'Mã dự án (*)', required: true, autoMatchPatterns: ['mã', 'công trình', 'project code'] },
+        { key: 'name', label: 'Tên dự án (*)', required: true, autoMatchPatterns: ['tên', 'project name'] },
+        { key: 'address', label: 'Địa chỉ', autoMatchPatterns: ['địa chỉ', 'location'] },
+        { key: 'phone', label: 'Số điện thoại', autoMatchPatterns: ['sđt', 'phone', 'liên hệ', 'điện thoại'] },
+        { key: 'description', label: 'Ghi chú', autoMatchPatterns: ['mô tả', 'ghi chú', 'note'] }
+    ];
 
     const handleOpenModal = (pj?: Project) => {
         if (pj) {
@@ -36,7 +64,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
             setFormData(pj);
         } else {
             setEditingProject(null);
-            setFormData({ name: '', address: '', phone: '', description: '' });
+            setFormData({ code: '', name: '', address: '', phone: '', description: '' });
         }
         setIsModalOpen(true);
     };
@@ -55,8 +83,8 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     }, []);
 
     const handleSave = async () => {
-        if (!formData.name) {
-            toast.warning('Vui lòng nhập tên dự án');
+        if (!formData.code || !formData.name) {
+            toast.warning('Vui lòng nhập mã và tên dự án');
             return;
         }
 
@@ -76,14 +104,27 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa cấu hình dự án này?')) return;
         try {
             await apiService.post('/api/projects/delete', { id });
             onUpdate();
+            toast.success('Đã xóa cấu hình dự án thành công');
         } catch (e) {
             console.error(e);
             toast.error('Lỗi khi xóa dự án');
         }
+    };
+
+    const requestDelete = (id: string) => {
+        setConfirmState({
+            isOpen: true,
+            title: 'Xóa dự án',
+            message: 'Bạn có chắc chắn muốn xóa cấu hình dự án này? Hành động này không thể hoàn tác.',
+            onConfirm: () => {
+                handleDelete(id);
+                setConfirmState(prev => ({ ...prev, isOpen: false }));
+            },
+            type: 'danger'
+        });
     };
 
     const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,75 +132,99 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = async (evt) => {
+        reader.onload = (evt) => {
             try {
-                const bstr = evt.target?.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const dataBuf = evt.target?.result;
+                const wb = XLSX.read(dataBuf, { type: 'array' });
                 const wsname = wb.SheetNames[0];
                 const ws = wb.Sheets[wsname];
-                const data = XLSX.utils.sheet_to_json(ws) as any[];
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false }) as any[][];
 
-                for (const row of data) {
-                    const normalizedRow: any = {};
-                    Object.keys(row).forEach(key => {
-                        normalizedRow[key.trim().toLowerCase()] = row[key];
+                if (data.length > 0) {
+                    setImportData({
+                        headers: data[0].map(h => String(h || '').trim()),
+                        data: data.slice(1)
                     });
-
-                    const name = normalizedRow['name'] || normalizedRow['tên dự án'] || normalizedRow['dự án'] || normalizedRow['tên'];
-                    if (!name) continue;
-
-                    const project: Project = {
-                        id: `PJ-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                        name: String(name),
-                        address: String(normalizedRow['address'] || normalizedRow['địa chỉ'] || ''),
-                        phone: String(normalizedRow['phone'] || normalizedRow['số điện thoại'] || normalizedRow['sđt'] || ''),
-                        description: String(normalizedRow['description'] || normalizedRow['ghi chú'] || ''),
-                        createdAt: new Date().toISOString()
-                    };
-                    await apiService.post('/api/projects/save', project);
+                    setIsImportModalOpen(true);
                 }
-                onUpdate();
-                toast.success('Đã nhập thành công danh sách dự án!');
             } catch (err) {
                 console.error(err);
-                toast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng.');
+                toast.error('Lỗi khi đọc file Excel');
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const handleProcessImport = async (mappedData: any[]) => {
+        try {
+            for (const item of mappedData) {
+                if (!item.code || !item.name) continue;
+
+                let phoneStr = String(item.phone || '').trim();
+                // Phục hồi số 0 ở đầu nếu Excel tự động chuyển thành số và làm mất
+                if (phoneStr.length === 9 && /^[35789]/.test(phoneStr)) {
+                    phoneStr = '0' + phoneStr;
+                }
+
+                const project: Project = {
+                    id: `PJ-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    code: String(item.code),
+                    name: String(item.name),
+                    address: String(item.address || ''),
+                    phone: phoneStr,
+                    description: String(item.description || ''),
+                    createdAt: new Date().toISOString()
+                };
+                await apiService.post('/api/projects/save', project);
+            }
+            setIsImportModalOpen(false);
+            onUpdate();
+            toast.success(`Đã nhập thành công ${mappedData.length} dự án!`);
+        } catch (err) {
+            console.error(err);
+            toast.error('Lỗi khi lưu dữ liệu dự án');
+        }
+    };
+
     const filteredProjects = projects.filter(p =>
+        p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.address || '').toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header Controls */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative group w-full md:w-96">
-                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Tìm dự án theo tên, địa chỉ..."
-                        className="pl-12"
-                    />
+            <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex flex-1 min-w-[300px] gap-2">
+                    <div className="relative group flex-1">
+                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                        <Input
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Tìm dự án theo tên, địa chỉ..."
+                            className="pl-10 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/20 transition-all font-bold"
+                        />
+                    </div>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
+                <div className="flex gap-2 ml-auto">
                     {canModify && (
                         <>
                             <input type="file" ref={fileInputRef} onChange={handleImportExcel} hidden accept=".xlsx,.xls" />
                             <Button
-                                variant="secondary"
                                 onClick={() => fileInputRef.current?.click()}
-                                leftIcon={<Download size={16} />}
-                                className="bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800"
+                                leftIcon={<FileSpreadsheet size={16} />}
+                                className="h-10 px-4 rounded-xl btn-gradient-info text-white font-black uppercase text-[10px] tracking-wider shadow-sm"
                             >
                                 Nhập Excel
                             </Button>
-                            <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={16} />} className="shadow-lg shadow-sky-500/20">Thêm Dự Án</Button>
+                            <Button
+                                onClick={() => handleOpenModal()}
+                                leftIcon={<Plus size={14} />}
+                                className="h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20"
+                            >
+                                Thêm Dự Án
+                            </Button>
                         </>
                     )}
                 </div>
@@ -170,9 +235,9 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><Database size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Tên dự án</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest min-w-[150px]"><Database size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Công trình</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><MapPin size={12} className="inline mr-1 text-red-400 -mt-0.5" />Địa chỉ</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><Phone size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Số điện thoại</th>
+                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Phone size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />SĐT</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><StickyNote size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Ghi chú</th>
                             <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
                         </tr>
@@ -185,13 +250,16 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                         <div className="w-10 h-10 bg-sky-50 dark:bg-sky-900/20 text-sky-600 rounded-xl flex items-center justify-center shrink-0">
                                             <Database size={18} />
                                         </div>
-                                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{pj.name}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest leading-none mb-1">{pj.code}</span>
+                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{pj.name}</span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{pj.address || '---'}</span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-300">
+                                <td className="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-300 text-center">
                                     {pj.phone || '---'}
                                 </td>
                                 <td className="px-6 py-4">
@@ -202,7 +270,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                         {canModify && (
                                             <>
                                                 <button onClick={() => handleOpenModal(pj)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(pj.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
+                                                <button onClick={() => requestDelete(pj.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
                                             </>
                                         )}
                                     </div>
@@ -237,12 +305,21 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
 
                         <div className="p-6 space-y-4">
                             <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mã dự án / Mã CT <span className="text-red-500">*</span></label>
+                                <Input
+                                    value={formData.code}
+                                    onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                    placeholder="Ví dụ: LuxD-GD2"
+                                    className="h-11 font-bold"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tên dự án <span className="text-red-500">*</span></label>
                                 <Input
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Ví dụ: Vinhomes Central Park"
-                                    className="h-11"
+                                    placeholder="Ví dụ: LuxD giai đoạn 2"
+                                    className="h-11 font-bold"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -259,7 +336,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                 <Input
                                     value={formData.address}
                                     onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                    placeholder="Ví dụ: Bình Thạnh, TP.HCM"
+                                    placeholder="Ví dụ: Hưng Nguyên, Nghệ An"
                                     className="h-11"
                                 />
                             </div>
@@ -282,6 +359,26 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                     </div>
                 </div>
             )}
+            {importData && (
+                <ExcelMappingModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    fields={PROJECT_FIELDS}
+                    excelHeaders={importData.headers}
+                    excelData={importData.data}
+                    onImport={handleProcessImport}
+                    title="Nhập danh sách dự án"
+                />
+            )}
+
+            <ConfirmModal
+                isOpen={confirmState.isOpen}
+                onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmState.onConfirm}
+                title={confirmState.title}
+                message={confirmState.message}
+                type={confirmState.type}
+            />
         </div>
     );
 };

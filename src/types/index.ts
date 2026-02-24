@@ -64,6 +64,7 @@ export interface Material {
 
 export interface Project {
   id: string;
+  code: string;
   name: string;
   address?: string;
   phone?: string;
@@ -83,6 +84,7 @@ export interface OrderBudget {
   id: string;
   orderCode: string;
   orderName: string;
+  projectCode: string;
   projectName: string;
   address?: string;
   phone?: string;

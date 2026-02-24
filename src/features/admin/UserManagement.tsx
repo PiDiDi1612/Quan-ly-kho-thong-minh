@@ -231,8 +231,26 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     </span>
                                 </td>
                                 <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{u.permissions.length} quyền</p>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-600 font-medium">
+                                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                        {u.role === 'ADMIN' ? (
+                                            <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded text-[9px] font-bold uppercase">Toàn quyền hệ thống</span>
+                                        ) : (
+                                            <>
+                                                {u.permissions.slice(0, 3).map(p => (
+                                                    <span key={p} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-bold uppercase truncate max-w-[80px]">
+                                                        {PERMISSIONS[p]?.split(' ')[0]}...
+                                                    </span>
+                                                ))}
+                                                {u.permissions.length > 3 && (
+                                                    <span className="px-2 py-0.5 bg-slate-50 text-slate-400 rounded text-[9px] font-bold">+{u.permissions.length - 3}</span>
+                                                )}
+                                                {u.permissions.length === 0 && (
+                                                    <span className="text-[10px] text-slate-400 italic">Chưa cấp quyền</span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 dark:text-slate-600 font-medium mt-1">
                                         {u.lastLogin ? `Đăng nhập: ${new Date(u.lastLogin).toLocaleDateString('en-GB')}` : 'Chưa đăng nhập'}
                                     </p>
                                 </td>
