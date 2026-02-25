@@ -6,11 +6,11 @@ import {
 } from 'lucide-react';
 import { Transaction, ActivityLog, User, TransactionType, WorkshopCode, Material } from '../../types';
 import { WORKSHOPS } from '../../constants';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DateInput } from '../../components/ui/DateInput';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { DateInput } from '../../components/ui/date-input';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 

@@ -4,12 +4,12 @@ import {
 } from 'lucide-react';
 import { OrderBudget, Material, Transaction, Project, User, WorkshopCode } from '../../types';
 import { WORKSHOPS } from '../../constants';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DateInput } from '../../components/ui/DateInput';
-import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { DateInput } from '../../components/ui/date-input';
+import { ExcelMappingModal, ExcelField } from '../../components/ui/excel-mapping-modal';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { usePlanningEstimates } from './hooks/usePlanningEstimates';
 
 interface PlanningEstimatesProps {

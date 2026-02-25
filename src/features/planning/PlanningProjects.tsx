@@ -6,10 +6,10 @@ import {
 import { Project, User } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
+import { ExcelMappingModal, ExcelField } from '../../components/ui/excel-mapping-modal';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 
 interface PlanningProjectsProps {
     projects: Project[];

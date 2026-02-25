@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Package, Search, Download, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw, Clock, Tag, Hash, ArrowDownLeft, ArrowUpRight, Layers, User as UserIcon, Ruler, Printer } from 'lucide-react';
 import { Transaction, TransactionType, User } from '../../types';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { useToast } from '../../hooks/useToast';
 import { useDebounce } from '../../hooks/useDebounce';
 import { transactionService } from '../../domain';

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, FileSpreadsheet, Download, Upload, X, Hash, Building2, FileText, Calendar, Settings, Search } from 'lucide-react';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { supplierService } from '../../domain/services/SupplierService';
 import { useToast } from '../../hooks/useToast';
 import * as XLSX from 'xlsx-js-style';

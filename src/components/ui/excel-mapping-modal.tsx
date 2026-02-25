@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal } from './Modal';
+import { Modal } from './modal';
 import { Button } from './button';
 import { FileSpreadsheet, X, Check, AlertCircle } from 'lucide-react';
 

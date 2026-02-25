@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield, Key, ToggleLeft, Settings } from 'lucide-react';
 import { User, UserRole, Permission } from '../../types';
 import { ROLE_PERMISSIONS, PERMISSIONS, VISIBLE_PERMISSIONS } from '../../constants';
-import { Modal } from '../../components/ui/Modal';
+import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { apiService } from '../../services/api';
 
 import { userService } from '../../domain';

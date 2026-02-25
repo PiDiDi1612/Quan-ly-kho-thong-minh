@@ -1,83 +1,38 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-    Package,
-    Search,
-    Download,
-    Upload,
-    Plus,
-    Moon,
-    Sun,
-    RefreshCcw,
-    LayoutDashboard,
-    AlertTriangle,
-    ShoppingCart,
-    Edit2,
-    Trash2,
-    Eye,
-    X,
-    Filter,
-    History,
-    BarChart2,
-    Check,
-    Settings,
-    Info,
-    Calendar,
-    Users,
-    RotateCcw,
-    Clock,
-    Tag,
-    Hash,
-    ArrowDownLeft,
-    ArrowUpRight,
-    Layers,
-    Archive,
-    Ruler,
-    FileSpreadsheet,
-    Printer,
-    Camera,
-    Warehouse,
-    PlusCircle,
-    ClipboardList
+    Package, Search, Download, Upload, Plus, RefreshCcw, LayoutDashboard,
+    AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History,
+    BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw, Clock,
+    Tag, Hash, ArrowDownLeft, ArrowUpRight, Layers, Archive, Ruler,
+    FileSpreadsheet, Printer, Camera, Warehouse, PlusCircle, ClipboardList,
+    MoreHorizontal
 } from 'lucide-react';
-import { Material, WorkshopCode, MaterialClassification, Transaction, TransactionType, User } from '../../types';
-import { WORKSHOPS, CLASSIFICATIONS } from '../../constants';
-import { Modal } from '../../components/ui/Modal';
+import { Material, WorkshopCode, MaterialClassification, Transaction, TransactionType, User } from '@/types';
+import { WORKSHOPS, CLASSIFICATIONS } from '@/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+    Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+    DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DateInput } from '../../components/ui/DateInput'; // Import DateInput
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
-import { SupplierManagement } from './SupplierManagement';
-import { apiService } from '../../services/api';
-import { useToast } from '../../hooks/useToast';
-import { useDebounce } from '../../hooks/useDebounce';
-import { materialService } from '../../domain';
+import { DateInput } from '@/components/ui/date-input';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { ExcelMappingModal, ExcelField } from '@/components/ui/excel-mapping-modal';
+import { apiService } from '@/services/api';
+import { useToast } from '@/hooks/useToast';
+import { useDebounce } from '@/hooks/useDebounce';
+import { materialService } from '@/domain';
 import * as XLSX from 'xlsx-js-style';
+import { Modal } from '@/components/ui/modal';
+import { MaterialMerge } from './MaterialMerge';
 
 interface MaterialManagementProps {
     materials: Material[];
@@ -92,13 +47,24 @@ const parseNumber = (value: any) => {
     return isNaN(parsed) ? 0 : parsed;
 };
 
+// Field metadata for mapping modal
+const MATERIAL_FIELDS = [
+    { key: 'name', label: 'Tên vật tư', required: true },
+    { key: 'classification', label: 'Phân loại (Vật tư chính/phụ)', required: false },
+    { key: 'unit', label: 'Đơn vị tính', required: true },
+    { key: 'workshop', label: 'Xưởng (OG, CD, CM...)', required: false },
+    { key: 'minThreshold', label: 'Định mức tồn tối thiểu', required: false },
+    { key: 'origin', label: 'Xuất xứ', required: false },
+    { key: 'note', label: 'Ghi chú', required: false },
+];
+
 export const MaterialManagement: React.FC<MaterialManagementProps> = ({ materials, transactions, currentUser, onUpdate, canManage }) => {
     const toast = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [workshopFilter, setWorkshopFilter] = useState<WorkshopCode | 'ALL'>('ALL');
     const [classFilter, setClassFilter] = useState<MaterialClassification | 'ALL'>('ALL');
-    // Default to current month (Local Time)
+
     const [startDate, setStartDate] = useState(() => {
         const date = new Date();
         const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -115,317 +81,106 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
     const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
     const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [isGlobalHistoryOpen, setIsGlobalHistoryOpen] = useState(false);
-    const [isGlobalAnalysisOpen, setIsGlobalAnalysisOpen] = useState(false);
-    const [isCustomerCodeModalOpen, setIsCustomerCodeModalOpen] = useState(false);
     const [dashboardTab, setDashboardTab] = useState<'INFO' | 'HISTORY' | 'ANALYSIS'>('INFO');
 
-    // Excel Import State
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importExcelData, setImportExcelData] = useState<{ headers: string[], data: any[][] } | null>(null);
-
-    // Customer Codes
     const [customerCodes, setCustomerCodes] = useState<any[]>([]);
-    const imageInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        loadCustomerCodes();
+        apiService.get('/api/customer-codes').then(setCustomerCodes).catch(console.error);
     }, []);
 
-    const loadCustomerCodes = async () => {
-        try {
-            const data = await apiService.get('/api/customer-codes');
-            setCustomerCodes(data);
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
     const [formData, setFormData] = useState<Partial<Material>>({
-        name: '',
-        classification: 'Vật tư chính',
-        unit: '',
-        quantity: 0,
-        minThreshold: 0,
-        workshop: 'OG',
-        origin: '',
-        note: '',
-        image: ''
-    });
-
-    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
-    const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
-    const [mergeFormData, setMergeFormData] = useState({
-        name: '',
-        classification: 'Vật tư chính' as MaterialClassification,
-        unit: '',
-        workshop: 'OG' as WorkshopCode,
-        origin: '',
-        note: ''
+        name: '', classification: 'Vật tư chính', unit: '', quantity: 0,
+        minThreshold: 0, workshop: 'OG', origin: '', note: '', image: ''
     });
 
     const [confirmState, setConfirmState] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-        type?: 'danger' | 'warning' | 'info';
-    }>({
-        isOpen: false,
-        title: '',
-        message: '',
-        onConfirm: () => { }
-    });
+        isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info';
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
-    // Formatting
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num);
 
-    // Data State
     const [fetchedMaterials, setFetchedMaterials] = useState<Material[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Fetch data when dates or base materials change
     useEffect(() => {
-        const loadData = async () => {
+        const loadStockData = async () => {
             setIsLoading(true);
             try {
-                // If we have local materials update, we want to reflect that, 
-                // but we also need the stock calculations from server.
-                // So we always fetch from server when dates change or "Refresh" is needed.
-                // We depend on 'materials' prop effectively acting as a signal.
                 const data = await materialService.getMaterialsWithStock(startDate, endDate);
                 setFetchedMaterials(data);
-            } catch (error) {
-                console.error('Failed to fetch stock data:', error);
-                toast.error('Lỗi khi tải dữ liệu tồn kho');
-            } finally {
-                setIsLoading(false);
-            }
+            } catch (error) { toast.error('Lỗi khi tải dữ liệu tồn kho'); }
+            finally { setIsLoading(false); }
         };
-
-        const timer = setTimeout(() => {
-            loadData();
-        }, 300); // Debounce slightly to prevent rapid firing on date inputs
-
+        const timer = setTimeout(loadStockData, 300);
         return () => clearTimeout(timer);
-    }, [startDate, endDate, materials]); // Refetch if parent updates or filters change
-
-    const materialInventory = fetchedMaterials; // Alias for compatibility with existing code structure
+    }, [startDate, endDate, materials]);
 
     const filteredMaterials = useMemo(() => {
         const term = debouncedSearch.toLowerCase();
-        return materialInventory.filter(m => {
-            const matchesSearch =
-                m.name.toLowerCase().includes(term) ||
-                m.id.toLowerCase().includes(term) ||
-                (m.origin || '').toLowerCase().includes(term);
-            const matchesWorkshop = workshopFilter === 'ALL' || m.workshop === workshopFilter;
-            const matchesClass = classFilter === 'ALL' || m.classification === classFilter;
-            return matchesSearch && matchesWorkshop && matchesClass;
+        return fetchedMaterials.filter(m => {
+            const ms = m.name.toLowerCase().includes(term) || m.id.toLowerCase().includes(term) || (m.origin || '').toLowerCase().includes(term);
+            const mw = workshopFilter === 'ALL' || m.workshop === workshopFilter;
+            const mc = classFilter === 'ALL' || m.classification === classFilter;
+            return ms && mw && mc;
         });
-    }, [materialInventory, debouncedSearch, workshopFilter, classFilter]);
+    }, [fetchedMaterials, debouncedSearch, workshopFilter, classFilter]);
 
-    // Handlers
     const handleOpenModal = (material?: Material) => {
-        if (material) {
-            setEditingMaterial(material);
-            setFormData(material);
-        } else {
-            setEditingMaterial(null);
-            setFormData({
-                name: '',
-                classification: 'Vật tư chính',
-                unit: '',
-                quantity: 0,
-                minThreshold: 0,
-                workshop: 'OG',
-                origin: '',
-                note: '',
-                image: ''
-            });
-        }
+        if (material) { setEditingMaterial(material); setFormData(material); }
+        else { setEditingMaterial(null); setFormData({ name: '', classification: 'Vật tư chính', unit: '', quantity: 0, minThreshold: 0, workshop: 'OG', origin: '', note: '', image: '' }); }
         setIsModalOpen(true);
     };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.unit) {
-            toast.warning('Vui lòng điền tên vật tư và đơn vị tính');
-            return;
-        }
-
+        if (!formData.name || !formData.unit) { toast.warning('Vui lòng điền đủ thông tin'); return; }
         try {
-            // NEW SERVICE LOGIC
             if (editingMaterial) {
-                if (formData.id && formData.id !== editingMaterial.id) {
-                    toast.error('Không thể thay đổi mã vật tư. Vui lòng tạo mới nếu muốn thay đổi mã.');
-                    return;
-                }
-
-                await materialService.updateMaterial(editingMaterial.id, {
-                    ...formData,
-                    quantity: undefined, // Prevent quantity update via this form
-                    workshop: undefined, // Prevent workshop update
-                } as any);
-
-                toast.success('Cập nhật vật tư thành công');
+                await materialService.updateMaterial(editingMaterial.id, { ...formData, quantity: undefined, workshop: undefined } as any);
+                toast.success('Cập nhật thành công');
             } else {
-                await materialService.createMaterial({
-                    id: formData.id || undefined, // Support custom ID or auto-gen
-                    name: formData.name!,
-                    classification: formData.classification!,
-                    unit: formData.unit!,
-                    workshop: formData.workshop!,
-                    quantity: 0,
-                    minThreshold: parseNumber(formData.minThreshold),
-                    origin: formData.origin,
-                    note: formData.note,
-                    image: formData.image
-                } as any);
+                await materialService.createMaterial({ ...formData, quantity: 0, minThreshold: parseNumber(formData.minThreshold) } as any);
                 toast.success('Tạo vật tư thành công');
             }
-
-            setIsModalOpen(false);
-            onUpdate();
-        } catch (error: any) {
-            console.error('Failed to save material:', error);
-            const msg = error.message || 'Lỗi khi lưu vật tư';
-            toast.error(msg);
-        }
+            setIsModalOpen(false); onUpdate();
+        } catch (error: any) { toast.error(error.message || 'Lỗi lưu vật tư'); }
     };
 
     const handleDelete = async (id: string) => {
         setConfirmState({
-            isOpen: true,
-            title: 'Xóa vật tư',
-            message: 'Bạn có chắc chắn muốn xóa vật tư này? Thao tác này không thể hoàn tác.',
-            type: 'danger',
+            isOpen: true, title: 'Xóa vật tư', message: 'Bạn có chắc chắn muốn xóa vật tư này?', type: 'danger',
             onConfirm: async () => {
-                try {
-                    await materialService.deleteMaterial(id);
-                    onUpdate();
-                    toast.success('Đã xóa vật tư');
-                } catch (error: any) {
-                    console.error('Failed to delete material:', error);
-                    toast.error(error.message || 'Lỗi khi xóa vật tư');
-                }
+                try { await materialService.deleteMaterial(id); onUpdate(); toast.success('Đã xóa vật tư'); }
+                catch (error: any) { toast.error(error.message || 'Lỗi khi xóa'); }
             }
         });
     };
 
-    // Handle open merge modal
-    const handleOpenMergeModal = () => {
-        if (selectedMaterials.length < 2) {
-            toast.warning('Vui lòng chọn ít nhất 2 vật tư để hợp nhất.');
-            return;
-        }
-
-        const selectedItems = materials.filter(m => selectedMaterials.includes(m.id));
-
-        // Validate: all materials must have same workshop
-        const workshops = [...new Set(selectedItems.map(m => m.workshop))];
-        if (workshops.length > 1) {
-            toast.error('Chỉ có thể hợp nhất vật tư cùng kho. Vật tư được chọn thuộc các kho: ' + workshops.join(', '));
-            return;
-        }
-
-        // Validate: all materials must have same unit
-        const units = [...new Set(selectedItems.map(m => m.unit))];
-        if (units.length > 1) {
-            toast.error('Chỉ có thể hợp nhất vật tư cùng đơn vị. Vật tư được chọn có đơn vị: ' + units.join(', '));
-            return;
-        }
-
-        // Set default merge form data from first material
-        setMergeFormData({
-            name: selectedItems[0].name,
-            classification: selectedItems[0].classification,
-            unit: selectedItems[0].unit,
-            workshop: selectedItems[0].workshop,
-            origin: selectedItems[0].origin || '',
-            note: selectedItems[0].note || ''
-        });
-        setIsMergeModalOpen(true);
-    };
-
-    // Handle merge materials
-    const handleMergeMaterials = async () => {
-        if (!mergeFormData.name || !mergeFormData.unit) {
-            toast.warning('Vui lòng nhập tên vật tư và đơn vị.');
-            return;
-        }
-
-        try {
-            await materialService.mergeMaterials(
-                selectedMaterials,
-                {
-                    name: mergeFormData.name,
-                    classification: mergeFormData.classification,
-                    unit: mergeFormData.unit,
-                    workshop: mergeFormData.workshop,
-                    origin: mergeFormData.origin,
-                    note: mergeFormData.note
-                },
-                currentUser?.id || 'SYSTEM',
-                'legacy-auth-bypass' // TODO: implement real auth
-            );
-
-            setIsMergeModalOpen(false);
-            setSelectedMaterials([]);
-            onUpdate();
-            toast.success('Hợp nhất vật tư thành công!');
-        } catch (error: any) {
-            console.error('Merge failed:', error);
-            const errorMessage = error.response?.data?.error || error.message || 'Lỗi không xác định';
-            toast.error(`Hợp nhất thất bại: ${errorMessage}`);
-        }
-    };
-
     const handleExportExcel = () => {
         const data = filteredMaterials.map(m => ({
-            'Mã VT': m.id,
-            'Tên vật tư': m.name,
-            'Phân loại': m.classification,
-            'Đơn vị': m.unit,
-            'Số lượng': m.quantity,
-            'Cảnh báo': m.minThreshold,
-            'Xưởng': m.workshop,
-            'Xuất xứ': m.origin,
-            'Ghi chú': m.note
+            'Mã VT': m.id, 'Tên vật tư': m.name, 'Phân loại': m.classification, 'ĐVT': m.unit,
+            'Tồn cuối': m.closingStock ?? m.quantity, 'Cảnh báo': m.minThreshold, 'Xưởng': m.workshop, 'Xuất xứ': m.origin
         }));
-
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Kho Vật Tư");
-        XLSX.writeFile(wb, `Kho_Vat_Tu_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `SmartStock_Materials_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
-    // Generic import handler (simplified for this component)
     const handleImportClick = () => {
         const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.xlsx, .xls';
+        input.type = 'file'; input.accept = '.xlsx, .xls';
         input.onchange = (e: any) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
-                    try {
-                        const dataBuf = evt.target?.result;
-                        const wb = XLSX.read(dataBuf, { type: 'array' });
-                        const wsname = wb.SheetNames[0];
-                        const ws = wb.Sheets[wsname];
-                        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-                        if (data.length > 0) {
-                            setImportExcelData({
-                                headers: data[0].map(h => h?.toString().trim() || ''),
-                                data: data.slice(1)
-                            });
-                            setIsImportModalOpen(true);
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        toast.error('Lỗi khi đọc file Excel');
-                    }
+                    const wb = XLSX.read(evt.target?.result, { type: 'array' });
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+                    if (data.length > 0) { setImportExcelData({ headers: data[0].map(h => h?.toString().trim() || ''), data: data.slice(1) }); setIsImportModalOpen(true); }
                 };
                 reader.readAsArrayBuffer(file);
             }
@@ -433,253 +188,115 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
         input.click();
     };
 
-    const MATERIAL_FIELDS: ExcelField[] = [
-        { key: 'id', label: 'Mã Vật tư (Nếu có)', autoMatchPatterns: ['mã', 'id', 'item code'] },
-        { key: 'name', label: 'Tên Vật tư (*)', required: true, autoMatchPatterns: ['tên', 'vật tư', 'material name'] },
-        { key: 'classification', label: 'Phân loại', autoMatchPatterns: ['phân loại', 'loại', 'classification'] },
-        { key: 'unit', label: 'Đơn vị (*)', required: true, autoMatchPatterns: ['đơn vị', 'unit'] },
-        { key: 'quantity', label: 'Số lượng', autoMatchPatterns: ['số lượng', 'quantity', 'tồn kho'] },
-        { key: 'minThreshold', label: 'Định mức tồn', autoMatchPatterns: ['định mức', 'threshold', 'cảnh báo'] },
-        { key: 'workshop', label: 'Mã Xưởng', autoMatchPatterns: ['xưởng', 'workshop', 'mã kho'] },
-        { key: 'origin', label: 'Xuất xứ', autoMatchPatterns: ['xuất xứ', 'origin'] },
-        { key: 'note', label: 'Ghi chú', autoMatchPatterns: ['ghi chú', 'note'] }
-    ];
-
     const handleProcessImport = async (mappedData: any[]) => {
         try {
-            const rowsToImport = mappedData.map(item => [
-                item.name,
-                item.classification || 'Vật tư chính',
-                item.unit,
-                item.workshop || 'OG',
-                item.minThreshold,
-                item.origin,
-                item.note
-            ]);
-
-            // Prepend header needed by implementation
-            const fullData = [['Header'], ...rowsToImport] as any[][];
-            const result = await materialService.importFromExcel(fullData);
-
-            if (result.errors.length > 0) {
-                toast.warning(`Có ${result.errors.length} lỗi xảy ra. Đã nhập/cập nhật ${result.imported + result.updated} dòng.`);
-            } else {
-                toast.success(`Đã nhập ${result.imported} mới, cập nhật ${result.updated} dòng.`);
-            }
-
-            setIsImportModalOpen(false);
-            onUpdate();
-        } catch (error) {
-            console.error('Import failed:', error);
-            toast.error('Lỗi khi xử lý dữ liệu nhập khẩu');
-        }
+            const res = await materialService.importFromExcel([['Header'], ...mappedData.map(i => [i.name, i.classification, i.unit, i.workshop, i.minThreshold, i.origin, i.note])]);
+            toast.success(`Thành công: ${res.imported} mới, ${res.updated} cập nhật.`);
+            setIsImportModalOpen(false); onUpdate();
+        } catch (e) { toast.error('Lỗi nhập dữ liệu'); }
     };
 
-    useEffect(() => {
-        const handleOpen = () => handleOpenModal();
-        const handleImport = () => handleImportClick();
-        const handleExport = () => handleExportExcel();
-        const handlePrint = () => window.print();
-
-        window.addEventListener('open-material-modal', handleOpen);
-        window.addEventListener('import-material-excel', handleImport);
-        window.addEventListener('export-excel', handleExport);
-        window.addEventListener('print-material', handlePrint);
-
-        return () => {
-            window.removeEventListener('open-material-modal', handleOpen);
-            window.removeEventListener('import-material-excel', handleImport);
-            window.removeEventListener('export-excel', handleExport);
-            window.removeEventListener('print-material', handlePrint);
-        };
-    }, [handleOpenModal, handleImportClick, handleExportExcel]);
-
     return (
-        <div className="space-y-5 animate-fade-up">
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Filter Hub */}
             <div className="flex flex-col xl:flex-row gap-4">
-                <div className="relative group flex-1">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
                     <Input
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Tìm vật tư theo tên, mã hoặc xuất xứ..."
-                        className="pl-12 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/20 transition-all font-bold"
+                        value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Tìm kiếm vật tư theo mã, tên..."
+                        className="pl-11 h-11 bg-card border-border rounded-xl focus-visible:ring-emerald-600/20 font-bold"
                     />
                 </div>
-                <div className="flex flex-wrap gap-4">
-                    {/* Filters */}
-                    <div className="flex items-center p-1 bg-muted/60 border border-border rounded-xl h-10">
-                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>Tất cả</button>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex bg-muted/50 p-1 rounded-xl h-11 border border-border">
+                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 rounded-lg text-xs font-black transition-all ${workshopFilter === 'ALL' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>TẤT CẢ</button>
                         {WORKSHOPS.map(w => (
-                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>{w.code}</button>
+                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 rounded-lg text-xs font-black transition-all ${workshopFilter === w.code ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>{w.code}</button>
                         ))}
                     </div>
 
-                    <div className="flex items-center p-1 bg-muted/60 border border-border rounded-xl h-10">
-                        <button onClick={() => setClassFilter('ALL')} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${classFilter === 'ALL' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>Tất cả</button>
-                        {CLASSIFICATIONS.map(c => (
-                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${classFilter === c ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
-                        ))}
-                    </div>
-
-                    <div className="flex items-center gap-4 p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10 px-4">
-                        <div className="flex items-center gap-3 border-r border-slate-200 dark:border-slate-700 pr-4">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Từ</span>
-                            <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" placeholder="dd/mm/yyyy" />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đến</span>
-                            <DateInput value={endDate} onChange={val => setEndDate(val)} className="w-36 border-none bg-transparent h-auto p-0 text-xs font-bold" placeholder="dd/mm/yyyy" />
-                        </div>
-                        {(startDate || endDate) && (
-                            <button onClick={() => { setStartDate(''); setEndDate(''); }} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-rose-500 transition-colors ml-1" title="Xóa lọc ngày">
-                                <X size={14} />
-                            </button>
-                        )}
+                    <div className="flex items-center gap-4 bg-muted/50 border border-border rounded-xl h-11 px-4">
+                        <DateInput value={startDate} onChange={setStartDate} className="w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
+                        <span className="mx-2 text-muted-foreground">→</span>
+                        <DateInput value={endDate} onChange={setEndDate} className="w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
                     </div>
                 </div>
 
                 {canManage && (
-                    <div className="flex flex-wrap items-center justify-end gap-2 ml-auto mt-4 xl:mt-0 xl:-order-none order-last w-full xl:w-auto">
-                        <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold" onClick={() => window.print()}>
-                            <Printer className="mr-2 h-4 w-4 text-slate-500" />
-                            <span className="hidden sm:inline">In mã</span>
+                    <div className="flex gap-2 ml-auto">
+                        <Button variant="outline" className="h-11 rounded-xl border-emerald-600/20 text-emerald-600 font-bold hover:bg-emerald-50 active:scale-95" onClick={handleExportExcel}>
+                            <Download size={18} className="mr-2" /> Xuất Excel
                         </Button>
-                        <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold" onClick={handleExportExcel}>
-                            <Download className="mr-2 h-4 w-4 text-emerald-600" />
-                            <span className="hidden sm:inline">Xuất Excel</span>
-                        </Button>
-                        <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold" onClick={handleImportClick}>
-                            <Upload className="mr-2 h-4 w-4 text-sky-600" />
-                            <span className="hidden sm:inline">Nhập Excel</span>
-                        </Button>
-                        <Button className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 transition-all text-xs font-bold tracking-wide uppercase px-5 ml-1" onClick={() => handleOpenModal()}>
-                            <Plus className="mr-1.5 h-4 w-4 stroke-[3]" />
-                            <span>Thêm Mới</span>
+                        <Button className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-600/10 font-black btn-hover-effect" onClick={() => handleOpenModal()}>
+                            <Plus size={18} className="mr-1.5" /> Thêm Mới
                         </Button>
                     </div>
                 )}
             </div>
 
-            {/* Print header */}
-            <div className="print:block hidden print-header">
-                <h1 className="text-2xl font-bold uppercase tracking-widest">DANH SÁCH VẬT TƯ TRONG KHO</h1>
-                <p className="text-sm mt-1">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
-                <div className="flex gap-10 mt-2 text-xs font-bold uppercase">
-                    <span>Xưởng: {workshopFilter === 'ALL' ? 'Tất cả' : workshopFilter}</span>
-                    <span>Phân loại: {classFilter === 'ALL' ? 'Tất cả' : classFilter}</span>
-                </div>
-            </div>
-
-            {/* Main table card */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+            {/* Table Core */}
+            <Card className="rounded-2xl overflow-hidden border-border bg-card shadow-sm group">
                 <Table>
-                    {/* Sticky header */}
-                    <TableHeader className="sticky top-0 z-10 bg-card border-b border-border">
-                        <TableRow className="hover:bg-transparent">
-                            <TableHead className="w-[72px] text-center text-[10px] uppercase tracking-wider font-semibold">Ảnh</TableHead>
-                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">
-                                <div className="flex items-center gap-1"><Package size={12} className="text-primary" /><span>Vật tư &amp; Mã</span></div>
-                            </TableHead>
-                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold">
-                                <div className="flex items-center justify-center gap-1"><Warehouse size={12} className="text-amber-500" /><span>Xưởng</span></div>
-                            </TableHead>
-                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold">
-                                <div className="flex items-center justify-center gap-1"><Archive size={12} className="text-muted-foreground" /><span>Tồn đầu</span></div>
-                            </TableHead>
-                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400">
-                                <div className="flex items-center justify-center gap-1"><ArrowDownLeft size={12} /><span>Nhập</span></div>
-                            </TableHead>
-                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-red-500">
-                                <div className="flex items-center justify-center gap-1"><ArrowUpRight size={12} /><span>Xuất</span></div>
-                            </TableHead>
-                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-primary">
-                                <div className="flex items-center justify-center gap-1"><BarChart2 size={12} /><span>Tồn cuối</span></div>
-                            </TableHead>
-                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">ĐVT</TableHead>
-                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">Loại</TableHead>
-                            <TableHead className="text-right text-[10px] uppercase tracking-wider font-semibold w-[60px]"></TableHead>
+                    <TableHeader className="bg-muted/40 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                        <TableRow className="border-b-2">
+                            <TableHead className="w-14 text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground">ẢNH</TableHead>
+                            <TableHead className="font-black uppercase text-[10px] tracking-widest text-muted-foreground">VẬT TƯ & MÃ</TableHead>
+                            <TableHead className="text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground">KHO</TableHead>
+                            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-muted-foreground">TỒN ĐẦU</TableHead>
+                            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-emerald-600">NHẬP</TableHead>
+                            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-rose-500">XUẤT</TableHead>
+                            <TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-primary">TỒN CUỐI</TableHead>
+                            <TableHead className="text-center font-black uppercase text-[10px] tracking-widest text-muted-foreground">ĐVT</TableHead>
+                            <TableHead className="w-16"></TableHead>
                         </TableRow>
                     </TableHeader>
-
                     <TableBody>
-                        {/* Skeleton loading */}
-                        {isLoading && filteredMaterials.length === 0 && (
-                            Array.from({ length: 6 }).map((_, i) => (
-                                <TableRow key={`sk-${i}`}>
-                                    <TableCell><Skeleton className="w-9 h-9 rounded-lg mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-40 mb-1" /><Skeleton className="h-3 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-10 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-14 mx-auto" /></TableCell>
-                                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
-                                    <TableCell></TableCell>
-                                </TableRow>
-                            ))
-                        )}
-
-                        {/* Rows */}
-                        {!isLoading && filteredMaterials.map((m) => (
-                            <TableRow key={m.id} className="group hover:bg-muted/50 transition-colors">
+                        {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                            <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-12 w-full rounded-lg" /></TableCell></TableRow>
+                        ))}
+                        {filteredMaterials.map(m => (
+                            <TableRow key={m.id} className="even:bg-emerald-50/5 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all group/row hover:scale-[1.005]">
                                 <TableCell className="text-center">
-                                    <div className="w-9 h-9 rounded-lg bg-muted border border-border overflow-hidden mx-auto flex items-center justify-center">
-                                        {m.image ? <img src={m.image} alt={m.name} className="w-full h-full object-cover" /> : <Package size={16} className="text-muted-foreground" />}
+                                    <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden shadow-inner">
+                                        {m.image ? <img src={m.image} alt="" className="w-full h-full object-cover" /> : <Package size={18} className="text-muted-foreground/40" />}
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="font-semibold text-foreground text-sm leading-tight">{m.name}</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">#{m.id}</span>
-                                        {m.origin && <span className="text-[10px] text-muted-foreground tracking-wide">{m.origin}</span>}
+                                    <p className="font-black text-foreground text-sm leading-tight mb-1">{m.name}</p>
+                                    <div className="flex gap-2">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-lg text-[9px] font-black uppercase bg-emerald-100 text-emerald-600 border-none leading-none h-4">{m.id}</span>
+                                        {m.origin && <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-tight">{m.origin}</span>}
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-center">
-                                    <span className="text-xs font-bold text-muted-foreground">{m.workshop}</span>
-                                </TableCell>
-                                <TableCell className="text-center tabular-nums text-sm text-muted-foreground">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '–'}</TableCell>
-                                <TableCell className="text-center tabular-nums text-sm font-medium text-emerald-600 dark:text-emerald-400">{m.periodIn !== undefined ? formatNumber(m.periodIn) : '–'}</TableCell>
-                                <TableCell className="text-center tabular-nums text-sm font-medium text-red-500">{m.periodOut !== undefined ? formatNumber(m.periodOut) : '–'}</TableCell>
-                                <TableCell className="text-center tabular-nums font-bold text-primary">{formatNumber(m.closingStock ?? m.quantity)}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground">{m.unit}</TableCell>
-                                <TableCell>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${m.classification === 'Vật tư chính'
-                                            ? 'bg-primary/10 text-primary'
-                                            : 'bg-muted text-muted-foreground'
-                                        }`}>
-                                        {m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}
-                                    </span>
-                                </TableCell>
+                                <TableCell className="text-center font-black text-xs text-muted-foreground">{m.workshop}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm font-medium opacity-60">{formatNumber(m.openingStock ?? 0)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm font-black text-emerald-600">{formatNumber(m.periodIn ?? 0)}</TableCell>
+                                <TableCell className="text-right tabular-nums text-sm font-black text-rose-500">{formatNumber(m.periodOut ?? 0)}</TableCell>
+                                <TableCell className="text-right tabular-nums font-black text-primary text-base underline decoration-emerald-200 decoration-2 underline-offset-4">{formatNumber(m.closingStock ?? m.quantity)}</TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-muted-foreground uppercase">{m.unit}</TableCell>
                                 <TableCell className="text-right">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <MoreHorizontal className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className="group-hover/row:opacity-100 opacity-0 transition-opacity rounded-lg">
+                                                <MoreHorizontal size={18} />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-44">
-                                            <DropdownMenuLabel className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Thao tác</DropdownMenuLabel>
+                                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border shadow-2xl">
+                                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground p-3">Tùy chọn vật tư</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => { setViewingMaterial(m); setDashboardTab('INFO'); setIsDetailModalOpen(true); }} className="cursor-pointer gap-2">
-                                                <Eye className="h-4 w-4 text-primary" />
-                                                <span className="text-sm">Xem chi tiết</span>
+                                            <DropdownMenuItem className="p-3 gap-3 cursor-pointer" onClick={() => { setViewingMaterial(m); setIsDetailModalOpen(true); }}>
+                                                <Eye size={18} className="text-emerald-600" /> <span className="font-bold text-sm">Xem chi tiết</span>
                                             </DropdownMenuItem>
                                             {canManage && (
                                                 <>
-                                                    <DropdownMenuItem onClick={() => handleOpenModal(m)} className="cursor-pointer gap-2">
-                                                        <Edit2 className="h-4 w-4 text-amber-500" />
-                                                        <span className="text-sm">Chỉnh sửa</span>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer gap-2">
-                                                        <Printer className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="text-sm">In mã</span>
+                                                    <DropdownMenuItem className="p-3 gap-3 cursor-pointer" onClick={() => handleOpenModal(m)}>
+                                                        <Edit2 size={18} className="text-emerald-600" /> <span className="font-bold text-sm">Chỉnh sửa</span>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => handleDelete(m.id)} className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                        <Trash2 className="h-4 w-4" />
-                                                        <span className="text-sm">Xóa vật tư</span>
+                                                    <DropdownMenuItem className="p-3 gap-3 cursor-pointer text-red-500 focus:bg-red-50" onClick={() => handleDelete(m.id)}>
+                                                        <Trash2 size={18} /> <span className="font-bold text-sm">Xóa vật tư</span>
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
@@ -690,435 +307,110 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                         ))}
                     </TableBody>
                 </Table>
+            </Card>
 
-                {/* Empty state */}
-                {!isLoading && filteredMaterials.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-24 text-center px-6">
-                        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-                            <Package size={40} className="text-primary" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground mb-2">Chưa có vật tư nào</h3>
-                        <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-                            {searchTerm || workshopFilter !== 'ALL' || classFilter !== 'ALL'
-                                ? 'Không tìm thấy vật tư phù hợp với bộ lọc hiện tại.'
-                                : 'Bắt đầu bằng cách thêm vật tư đầu tiên vào kho.'}
-                        </p>
-                        {canManage && !searchTerm && workshopFilter === 'ALL' && classFilter === 'ALL' && (
-                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => handleOpenModal()}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Thêm vật tư đầu tiên
-                            </Button>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* SIMPLIFIED MATERIAL EDIT MODAL */}
-            <Modal
-                isOpen={isModalOpen || isDetailModalOpen}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setIsDetailModalOpen(false);
-                    setEditingMaterial(null);
-                    setViewingMaterial(null);
-                }}
-                title={isDetailModalOpen ? "Chi tiết vật tư" : (editingMaterial ? `Chỉnh sửa: ${editingMaterial.name}` : "Thêm vật tư mới")}
-                maxWidth={isDetailModalOpen ? "max-w-3xl" : "max-w-3xl"}
-                contentClassName="p-0"
-            >
-                {isModalOpen && (
-                    <div className="bg-slate-50/50 dark:bg-[#0f172a] p-4 no-scrollbar">
-                        <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            {/* HEADER PROFILE MINI */}
-                            <div className="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-[24px] border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <div
-                                    className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-700 shrink-0 cursor-pointer hover:border-emerald-400 transition-all group/img relative"
-                                    onClick={() => imageInputRef.current?.click()}
-                                    title="Nhấn để thêm/thay ảnh"
-                                >
-                                    {formData.image
-                                        ? <img src={formData.image} className="w-full h-full object-cover" alt="preview" />
-                                        : <Camera size={22} className="text-slate-300 group-hover/img:text-emerald-400 transition-colors" />}
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                                        <Camera size={16} className="text-white" />
-                                    </div>
-                                    <input
-                                        ref={imageInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        hidden
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                                setFormData(prev => ({ ...prev, image: reader.result as string }));
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }}
-                                    />
+            {/* Modal Form */}
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingMaterial ? "Cập nhật vật tư" : "Thêm vật tư mới"} maxWidth="max-w-2xl">
+                <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5 ml-1">Tên vật tư (*)</label>
+                                <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="h-11 rounded-xl font-bold" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5 ml-1">Đơn vị (*)</label>
+                                    <Input value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="h-11 rounded-xl font-bold" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase leading-tight italic">{(editingMaterial || viewingMaterial)?.name || "Đang tạo vật tư mới"}</h2>
-                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-2">
-                                        <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-full">#{(editingMaterial || viewingMaterial)?.id || "NEW-ITEM"}</span>
-                                        <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full uppercase">{(editingMaterial || viewingMaterial)?.workshop || "OG"}</span>
-                                    </p>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5 ml-1">Xưởng</label>
+                                    <select value={formData.workshop} disabled={!!editingMaterial} onChange={e => setFormData({ ...formData, workshop: e.target.value as any })} className="h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-emerald-600/20 outline-none">
+                                        {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                                    </select>
                                 </div>
                             </div>
-
-                            {/* LIST-BASED FORM GROUPS */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Group 1: Basic Information */}
-                                <section className="space-y-3">
-                                    <div className="flex items-center gap-3 ml-2">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400"><Info size={18} /></div>
-                                        <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Thông tin cơ bản</h3>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[20px] overflow-hidden shadow-sm">
-                                        <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Tên vật tư (*)</p>
-                                            <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Nhập tên..." />
-                                        </div>
-                                        <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Mã vật tư (Tùy chỉnh)</p>
-                                            <input type="text" disabled={!!editingMaterial} className={`w - full px - 4 py - 2.5 bg - slate - 50 dark: bg - slate - 900 / 50 border border - slate - 200 dark: border - slate - 700 rounded - xl font - bold text - xs text - emerald - 600 dark: text - emerald - 400 outline - none focus: border - emerald - 500 transition - all uppercase ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''} `} value={formData.id || ''} onChange={e => setFormData({ ...formData, id: e.target.value })} placeholder="Hệ thống tự tạo..." />
-                                        </div>
-                                        <div className="p-4 flex gap-4">
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Đơn vị (*)</p>
-                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} placeholder="VD: cái" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Xuất xứ</p>
-                                                <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-emerald-500 transition-all" value={formData.origin} onChange={e => setFormData({ ...formData, origin: e.target.value })} placeholder="VD: Việt Nam" />
-                                            </div>
-                                        </div>
-
-                                        {/* Customer Code selection - MOVED TO COLUMN 1 */}
-                                        <div className="p-4 border-t border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Chọn mã khách (tùy chọn)</p>
-                                            <select
-                                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-800 dark:text-white outline-none focus:border-purple-500 transition-all accent-purple-600"
-                                                value={formData.customerCode || ''}
-                                                onChange={e => setFormData({ ...formData, customerCode: e.target.value })}
-                                            >
-                                                <option value="">-- Không chọn --</option>
-                                                {customerCodes.map(cc => (
-                                                    <option key={cc.id} value={cc.code}>{cc.code} - {cc.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Group 2: Management & Storage */}
-                                <section className="space-y-3">
-                                    <div className="flex items-center gap-3 ml-2">
-                                        <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400"><Settings size={18} /></div>
-                                        <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Quản lý & Lưu kho</h3>
-                                    </div>
-                                    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[20px] overflow-hidden shadow-sm">
-                                        <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase italic tracking-tighter">Phân loại hệ thống</p>
-                                            <div className="flex gap-2">
-                                                {CLASSIFICATIONS.map(c => (
-                                                    <button
-                                                        key={c}
-                                                        onClick={() => setFormData({ ...formData, classification: c as MaterialClassification })}
-                                                        className={`flex - 1 py - 2 rounded - xl text - [9px] font - black uppercase transition - all border ${formData.classification === c ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-slate-50 dark:bg-slate-900/50 text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-100'} `}
-                                                    >
-                                                        {c}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="p-4 border-b border-slate-50 dark:border-slate-700/50">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Xưởng quản lý</p>
-                                            <select disabled={!!editingMaterial} className={`w - full px - 4 py - 2.5 bg - slate - 50 dark: bg - slate - 900 / 50 border border - slate - 200 dark: border - slate - 700 rounded - xl font - bold text - xs text - slate - 800 dark: text - white outline - none focus: border - emerald - 500 transition - all accent - emerald - 600 ${!!editingMaterial ? 'opacity-50 cursor-not-allowed' : ''} `} value={formData.workshop} onChange={e => setFormData({ ...formData, workshop: e.target.value as WorkshopCode })}>
-                                                {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="p-4">
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase italic tracking-tighter">Định mức an toàn (Cảnh báo tồn kho thấp)</p>
-                                            <input
-                                                type="text"
-                                                className="w-full px-4 py-2.5 bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl font-black text-xs text-red-600 outline-none focus:border-red-500 transition-all font-mono"
-                                                value={formData.minThreshold}
-                                                onChange={e => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, '');
-                                                    const parts = val.split(/[.,]/);
-                                                    if (parts.length <= 2) {
-                                                        setFormData({ ...formData, minThreshold: val as any });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1.5 ml-1">Phân loại</label>
+                                <div className="flex gap-2 p-1 bg-muted rounded-xl h-11">
+                                    {CLASSIFICATIONS.map(c => (
+                                        <button key={c} onClick={() => setFormData({ ...formData, classification: c as any })} className={`flex-1 rounded-lg text-[10px] font-black transition-all ${formData.classification === c ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'}`}>{c === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</button>
+                                    ))}
+                                </div>
                             </div>
-
-                            {/* FOOTER ACTIONS */}
-                            <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => {
-                                        setIsModalOpen(false);
-                                        setEditingMaterial(null);
-                                    }}
-                                    className="px-6 py-3 rounded-xl hover:bg-slate-100 font-bold uppercase text-[11px]"
-                                >
-                                    Hủy bỏ
-                                </Button>
-                                <Button
-                                    onClick={handleSave}
-                                    className="flex-1 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-emerald-500/30 font-bold uppercase text-[11px]"
-                                >
-                                    {editingMaterial ? 'Lưu thay đổi' : 'Tạo vật tư mới'}
-                                </Button>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-rose-500 block mb-1.5 ml-1">Định mức cảnh báo</label>
+                                <Input value={formData.minThreshold} onChange={e => setFormData({ ...formData, minThreshold: e.target.value as any })} className="h-11 rounded-xl font-black text-rose-500 border-rose-100 bg-rose-50/20" />
                             </div>
                         </div>
                     </div>
-                )}
+                    <div className="flex gap-3 pt-6 border-t border-border mt-8">
+                        <Button variant="ghost" className="flex-1 h-12 rounded-xl font-black text-xs uppercase" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
+                        <Button className="flex-[2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-600/20 font-black text-xs uppercase btn-hover-effect" onClick={handleSave}>Lưu thông tin</Button>
+                    </div>
+                </div>
+            </Modal>
 
-                {isDetailModalOpen && viewingMaterial && (
-                    <div className="bg-white dark:bg-[#1e293b] p-6">
-                        <div className="grid grid-cols-12 gap-8 h-[600px]">
-                            {/* LEFT SIDEBAR - MENU */}
-                            <div className="col-span-3 border-r border-slate-100 dark:border-slate-700 pr-6 space-y-2">
-                                <div className="mb-8 text-center">
-                                    <div className="w-24 h-24 mx-auto bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-700 mb-4">
-                                        <Package size={48} className="text-slate-300 dark:text-slate-600" />
+            {/* Detail Modal */}
+            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Chi tiết vật tư" maxWidth="max-w-4xl">
+                {viewingMaterial && (
+                    <div className="grid grid-cols-12 gap-8 p-6 h-[600px]">
+                        <div className="col-span-3 border-r border-border pr-6 space-y-2">
+                            <div className="mb-8 text-center bg-emerald-50 dark:bg-emerald-950/30 p-4 rounded-2xl">
+                                <Package size={48} className="mx-auto text-emerald-600 mb-2" />
+                                <h3 className="font-black text-sm uppercase leading-tight">{viewingMaterial.name}</h3>
+                                <span className="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">{viewingMaterial.id}</span>
+                            </div>
+                            <Button variant={dashboardTab === 'INFO' ? 'default' : 'ghost'} className="w-full justify-start gap-3 rounded-xl font-bold" onClick={() => setDashboardTab('INFO')}><Info size={18} /> Thông tin</Button>
+                            <Button variant={dashboardTab === 'HISTORY' ? 'default' : 'ghost'} className="w-full justify-start gap-3 rounded-xl font-bold" onClick={() => setDashboardTab('HISTORY')}><History size={18} /> Lịch sử</Button>
+                        </div>
+                        <div className="col-span-9 overflow-y-auto pr-2 no-scrollbar">
+                            {dashboardTab === 'INFO' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 shadow-none"><CardContent className="p-4 text-center"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Tồn hiện tại</p><p className="text-3xl font-black text-emerald-600">{formatNumber(viewingMaterial.closingStock ?? viewingMaterial.quantity)}</p></CardContent></Card>
+                                        <Card className="bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 shadow-none"><CardContent className="p-4 text-center"><p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Định mức an toàn</p><p className="text-3xl font-black text-rose-500">{formatNumber(viewingMaterial.minThreshold)}</p></CardContent></Card>
                                     </div>
-                                    <h3 className="font-extrabold text-slate-800 dark:text-white uppercase leading-tight">{viewingMaterial.name}</h3>
-                                    <p className="text-xs font-bold text-slate-400 mt-2">#{viewingMaterial.id}</p>
+                                    <div className="bg-muted/30 p-6 rounded-2xl space-y-4">
+                                        <div className="flex justify-between border-b border-border pb-2"><span className="text-xs font-bold text-muted-foreground uppercase">Phân loại</span><span className="text-xs font-black uppercase">{viewingMaterial.classification}</span></div>
+                                        <div className="flex justify-between border-b border-border pb-2"><span className="text-xs font-bold text-muted-foreground uppercase">Xưởng</span><span className="text-xs font-black uppercase">{viewingMaterial.workshop}</span></div>
+                                        <div className="flex justify-between border-b border-border pb-2"><span className="text-xs font-bold text-muted-foreground uppercase">Xuất xứ</span><span className="text-xs font-black">{viewingMaterial.origin || 'N/A'}</span></div>
+                                        <div className="pt-2">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Ghi chú</p>
+                                            <p className="text-xs italic text-foreground bg-card p-4 rounded-xl border border-border">{viewingMaterial.note || 'Không có ghi chú.'}</p>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <button
-                                    onClick={() => setDashboardTab('INFO')}
-                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'INFO' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
-                                >
-                                    <Info size={16} /> Thông tin chung
-                                </button>
-                                <button
-                                    onClick={() => setDashboardTab('HISTORY')}
-                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'HISTORY' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
-                                >
-                                    <History size={16} /> Lịch sử giao dịch
-                                </button>
-                                <button
-                                    onClick={() => setDashboardTab('ANALYSIS')}
-                                    className={`w - full flex items - center gap - 3 px - 4 py - 3 rounded - xl text - xs font - bold uppercase transition - all ${dashboardTab === 'ANALYSIS' ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'} `}
-                                >
-                                    <BarChart2 size={16} /> Biểu đồ biến động
-                                </button>
-                            </div>
-
-                            {/* RIGHT CONTENT */}
-                            <div className="col-span-9 overflow-y-auto pr-2 no-scrollbar">
-                                {dashboardTab === 'INFO' && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tồn kho hiện tại</p>
-                                                <p className="text-3xl font-black text-slate-800 dark:text-white">{formatNumber(viewingMaterial.quantity)} <span className="text-sm font-bold text-slate-400">{viewingMaterial.unit}</span></p>
-                                            </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Định mức an toàn</p>
-                                                <p className="text-3xl font-black text-slate-800 dark:text-white">{formatNumber(viewingMaterial.minThreshold)} <span className="text-sm font-bold text-slate-400">{viewingMaterial.unit}</span></p>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4">
-                                            <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase flex items-center gap-2">
-                                                <Settings size={16} className="text-slate-400" />
-                                                Thông tin chi tiết
-                                            </h4>
-                                            <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-                                                <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Tag size={12} /> Phân loại</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white uppercase">{viewingMaterial.classification}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Warehouse size={12} /> Kho quản lý</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white uppercase">{viewingMaterial.workshop}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><Clock size={12} /> Cập nhật</span>
-                                                    <span className="text-xs font-bold text-slate-800 dark:text-white">{new Date(viewingMaterial.lastUpdated || '').toLocaleDateString('vi-VN')}</span>
-                                                </div>
-                                                <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
-                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1"><RefreshCcw size={12} /> IP Truy cập</span>
-                                                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">192.168.1.{Math.floor(Math.random() * 254) + 1}</span>
-                                                </div>
-                                            </div>
-                                            <div className="pt-2">
-                                                <span className="text-xs font-medium text-slate-500 block mb-2">Ghi chú</span>
-                                                <p className="text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 italic">
-                                                    {viewingMaterial.note || 'Không có ghi chú thêm.'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {dashboardTab === 'HISTORY' && (
-                                    <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
-                                            {transactions.filter(t => t.materialId === viewingMaterial.id).length > 0 ? (
-                                                <table className="w-full text-left text-xs">
-                                                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-widest font-bold">
-                                                        <tr>
-                                                            <th className="px-4 py-3">Ngày</th>
-                                                            <th className="px-4 py-3">Loại</th>
-                                                            <th className="px-4 py-3 text-right">Số lượng</th>
-                                                            <th className="px-4 py-3">Người thực hiện</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                                        {transactions
-                                                            .filter(t => t.materialId === viewingMaterial.id)
-                                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                                            .map(t => (
-                                                                <tr key={t.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
-                                                                    <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{new Date(t.date).toLocaleDateString('en-GB')}</td>
-                                                                    <td className="px-4 py-3">
-                                                                        <span className={`px - 2 py - 1 rounded text - [10px] font - bold uppercase ${t.type === 'IN' ? 'bg-green-100 text-green-700' :
-                                                                            t.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
-                                                                            } `}>
-                                                                            {t.type === 'IN' ? 'Nhập' : t.type === 'OUT' ? 'Xuất' : 'Điều chuyển'}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-right font-bold text-slate-800 dark:text-white">{formatNumber(t.quantity)}</td>
-                                                                    <td className="px-4 py-3 text-slate-500">{t.user}</td>
-                                                                </tr>
-                                                            ))}
-                                                    </tbody>
-                                                </table>
-                                            ) : (
-                                                <div className="p-8 text-center text-slate-400">
-                                                    <History size={32} className="mx-auto mb-2 opacity-50" />
-                                                    <p className="text-xs font-bold uppercase">Chưa có lịch sử giao dịch</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Analysis tab placeholder */}
-                                {dashboardTab === 'ANALYSIS' && (
-                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <BarChart2 size={48} className="mb-4 opacity-50 text-emerald-300" />
-                                        <p className="text-sm font-bold uppercase">Tính năng đang phát triển</p>
-                                        <p className="text-xs mt-1">Biểu đồ biến động tồn kho sẽ sớm ra mắt.</p>
-                                    </div>
-                                )}
-                            </div>
+                            )}
+                            {dashboardTab === 'HISTORY' && (
+                                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                                    <Table>
+                                        <TableHeader className="bg-muted/50"><TableRow><TableHead>Ngày</TableHead><TableHead>Loại</TableHead><TableHead className="text-right">Số lượng</TableHead><TableHead>Người xử lý</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {transactions.filter(t => t.materialId === viewingMaterial.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
+                                                <TableRow key={t.id}>
+                                                    <TableCell className="text-xs font-bold">{new Date(t.date).toLocaleDateString('vi-VN')}</TableCell>
+                                                    <TableCell><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase font-black ${t.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>{t.type === 'IN' ? 'Nhập' : 'Xuất'}</span></TableCell>
+                                                    <TableCell className="text-right font-black text-sm">{formatNumber(t.quantity)}</TableCell>
+                                                    <TableCell className="text-xs text-muted-foreground">{t.user}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
             </Modal>
 
             {importExcelData && (
-                <ExcelMappingModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
-                    fields={MATERIAL_FIELDS}
-                    excelHeaders={importExcelData.headers}
-                    excelData={importExcelData.data}
-                    onImport={handleProcessImport}
-                    title="Nhập vật tư từ danh mục Excel"
-                />
+                <ExcelMappingModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} fields={MATERIAL_FIELDS} excelHeaders={importExcelData.headers} excelData={importExcelData.data} onImport={handleProcessImport} title="Nhập vật tư từ Excel" />
             )}
 
-            <Modal
-                isOpen={isMergeModalOpen}
-                onClose={() => setIsMergeModalOpen(false)}
-                title="Hợp nhất vật tư"
-                maxWidth="max-w-2xl"
-            >
-                <div className="space-y-4 p-4">
-                    <div className="bg-emerald-50 p-4 rounded-lg flex gap-3 text-emerald-700 text-sm">
-                        <AlertTriangle size={20} className="shrink-0" />
-                        <div>
-                            <p className="font-bold">Hành động này sẽ gộp {selectedMaterials.length} vật tư đã chọn thành một.</p>
-                            <ul className="list-disc ml-4 mt-1 space-y-1 text-xs">
-                                <li>Tổng số lượng tồn sẽ được cộng dồn.</li>
-                                <li>Lịch sử giao dịch của các mã cũ sẽ bị xóa (hoặc chuyển sang mã mới tùy cấu hình).</li>
-                                <li>Các mã vật tư cũ sẽ bị xóa khỏi hệ thống.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <Input
-                            label="Tên vật tư sau hợp nhất (*)"
-                            value={mergeFormData.name}
-                            onChange={e => setMergeFormData({ ...mergeFormData, name: e.target.value })}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                            <Input
-                                label="Đơn vị (*)"
-                                value={mergeFormData.unit}
-                                onChange={e => setMergeFormData({ ...mergeFormData, unit: e.target.value })}
-                            />
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Kho quản lý</label>
-                                <select
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold"
-                                    value={mergeFormData.workshop}
-                                    onChange={e => setMergeFormData({ ...mergeFormData, workshop: e.target.value as WorkshopCode })}
-                                    disabled
-                                >
-                                    {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Phân loại</label>
-                                <div className="flex gap-2">
-                                    {CLASSIFICATIONS.map(c => (
-                                        <button
-                                            key={c}
-                                            onClick={() => setMergeFormData({ ...mergeFormData, classification: c as MaterialClassification })}
-                                            className={`flex - 1 py - 1.5 rounded text - xs font - bold border ${mergeFormData.classification === c ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300'} `}
-                                        >
-                                            {c}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <Input
-                                label="Xuất xứ"
-                                value={mergeFormData.origin}
-                                onChange={e => setMergeFormData({ ...mergeFormData, origin: e.target.value })}
-                            />
-                        </div>
-                        <Input
-                            label="Ghi chú"
-                            value={mergeFormData.note}
-                            onChange={e => setMergeFormData({ ...mergeFormData, note: e.target.value })}
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-6">
-                        <Button variant="secondary" onClick={() => setIsMergeModalOpen(false)}>Hủy</Button>
-                        <Button className="bg-emerald-600 text-white" onClick={handleMergeMaterials}>Xác nhận Hợp nhất</Button>
-                    </div>
-                </div>
-            </Modal>
-
-            <ConfirmModal
-                isOpen={confirmState.isOpen}
-                onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={confirmState.onConfirm}
-                title={confirmState.title}
-                message={confirmState.message}
-                type={confirmState.type}
-            />
+            <ConfirmModal isOpen={confirmState.isOpen} onClose={() => setConfirmState(p => ({ ...p, isOpen: false }))} title={confirmState.title} message={confirmState.message} onConfirm={confirmState.onConfirm} type={confirmState.type} />
         </div>
     );
 };
-
