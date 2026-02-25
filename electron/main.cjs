@@ -52,15 +52,18 @@ function createWindow() {
             const loadURL = () => {
                 const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
 
-                if (fs.existsSync(indexPath)) {
-                    win.loadFile(indexPath).catch(err => {
-                        console.error('Failed to load file:', err);
+                if (process.env.NODE_ENV === 'development') {
+                    win.loadURL('http://localhost:5173').catch(() => {
+                        console.error('Frontend dev server not running.');
                     });
                 } else {
-                    // Falls back to dev server port ONLY if file doesn't exist (Dev mode)
-                    win.loadURL('http://localhost:5173').catch(() => {
-                        console.error('Frontend not built and dev server not running.');
-                    });
+                    if (fs.existsSync(indexPath)) {
+                        win.loadFile(indexPath).catch(err => {
+                            console.error('Failed to load file:', err);
+                        });
+                    } else {
+                        console.error('dist/index.html not found, please build first.');
+                    }
                 }
             };
             loadURL();

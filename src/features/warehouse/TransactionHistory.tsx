@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Package, Search, Download, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw, Clock, Tag, Hash, ArrowDownLeft, ArrowUpRight, Layers, User as UserIcon, Ruler, Printer } from 'lucide-react';
 import { Transaction, TransactionType, User } from '../../types';
 import { Modal } from '../../components/ui/Modal';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { useToast } from '../../hooks/useToast';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -224,13 +224,25 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <div className="flex p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        <button onClick={() => setTypeFilter('ALL')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${typeFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
-                        <button onClick={() => setTypeFilter('IN')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${typeFilter === 'IN' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Nhập kho</button>
-                        <button onClick={() => setTypeFilter('OUT')} className={`px-4 py-2 rounded-lg text-[11px] font-bold uppercase transition-all ${typeFilter === 'OUT' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Xuất kho</button>
+                <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto ml-auto">
+                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10 shadow-sm mr-2">
+                        <button onClick={() => setTypeFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${typeFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
+                        <button onClick={() => setTypeFilter('IN')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${typeFilter === 'IN' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Nhập kho</button>
+                        <button onClick={() => setTypeFilter('OUT')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${typeFilter === 'OUT' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Xuất kho</button>
                     </div>
 
+                    {canManage && (
+                        <>
+                            <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm" onClick={() => window.print()}>
+                                <Printer className="mr-2 h-4 w-4 text-slate-500" />
+                                <span className="hidden sm:inline">In Lịch Sử</span>
+                            </Button>
+                            <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm" onClick={handleExportHistory}>
+                                <Download className="mr-2 h-4 w-4 text-emerald-600" />
+                                <span className="hidden sm:inline">Xuất Excel</span>
+                            </Button>
+                        </>
+                    )}
                 </div>
 
                 {/* Batch Action Bar */}

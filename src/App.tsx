@@ -67,7 +67,9 @@ import { AuthScreen } from './features/auth/AuthScreen';
 import { AccountModal, type AccountForm } from './features/account/AccountModal';
 import { AppSidebar, type AppTab } from './features/layout/AppSidebar';
 import { apiService } from './services/api';
-import { ToastContainer } from './components/ui/ToastContainer';
+import { Toaster } from '@/components/ui/toaster';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from './hooks/useToast';
 import { jwtDecode } from 'jwt-decode';
 import {
@@ -721,7 +723,7 @@ const App: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <>
-        <ToastContainer />
+        <Toaster />
         <AuthScreen
           isConnectionSetupOpen={isConnectionSetupOpen}
           setIsConnectionSetupOpen={setIsConnectionSetupOpen}
@@ -743,7 +745,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app-bg-gradient app-readable flex h-screen font-inter text-slate-600 selection:bg-emerald-100 selection:text-emerald-700">
-      <ToastContainer />
+      <Toaster />
       {/* SIDEBAR */}
       <AppSidebar
         activeTab={activeTab}
@@ -755,95 +757,49 @@ const App: React.FC = () => {
         onOpenAccount={() => setIsAccountModalOpen(true)}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
 
 
-        <header className="print:hidden flex items-center justify-between px-8 h-16 bg-white/80 dark:bg-[#1E293B]/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-white/5 sticky top-0 z-40">
-          <div className="flex items-center gap-3">
-            <div>
-              {activeTab !== 'dashboard' && (
-                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-0.5">
-                  <span className="cursor-pointer hover:text-sky-500 transition-colors" onClick={() => setActiveTab('dashboard')}>SmartStock</span>
-                  <>
-                    <ChevronRight size={10} />
-                    <span>
-                      {(activeTab === 'warehouse_inventory' || activeTab === 'warehouse_transfer' || activeTab === 'warehouse_receipt' || activeTab === 'warehouse_customers' || activeTab === 'warehouse_history' || activeTab === 'warehouse_merge') ? 'Phòng kho' :
-                        (activeTab === 'reports_history' || activeTab === 'reports_activity') ? 'Báo cáo' :
-                          (activeTab === 'planning_projects' || activeTab === 'planning_estimates') ? 'Phòng kế hoạch' :
-                            activeTab === 'users' ? 'Người dùng' :
-                              'Hệ thống'}
-                    </span>
-                  </>
-                </div>
-              )}
-              <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-                {activeTab === 'dashboard' ? 'Tổng quan' :
-                  activeTab === 'warehouse_inventory' ? 'Danh Sách Vật Tư' :
-                    activeTab === 'warehouse_transfer' ? 'Điều Chuyển Vật Tư' :
-                      activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
-                        activeTab === 'warehouse_customers' ? 'Quản Lý NCC' :
-                          activeTab === 'warehouse_history' ? 'Lịch Sử Nhập Xuất' :
-                            activeTab === 'warehouse_merge' ? 'Hợp Nhất Vật Tư' :
-                              activeTab === 'planning_projects' ? 'Cấu Hình Dự Án' :
-                                activeTab === 'planning_estimates' ? 'Lập Dự Toán' :
-                                  activeTab === 'reports_history' ? 'Lịch Sử Giao Dịch' :
-                                    activeTab === 'reports_activity' ? 'Nhật Ký Hoạt Động' :
-                                      activeTab === 'users' ? 'Quản Lý Người Dùng' :
-                                        'Tác Giả'}
-              </h1>
+        <header className="h-14 bg-card border-b flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-4 flex-1">
+            <h2 className="text-lg font-semibold tracking-tight">
+              {activeTab === 'dashboard' ? 'Tổng quan' :
+                activeTab === 'warehouse_inventory' ? 'Danh Sách Vật Tư' :
+                  activeTab === 'warehouse_transfer' ? 'Điều Chuyển Vật Tư' :
+                    activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
+                      activeTab === 'warehouse_customers' ? 'Quản Lý NCC' :
+                        activeTab === 'warehouse_history' ? 'Lịch Sử Nhập Xuất' :
+                          activeTab === 'warehouse_merge' ? 'Hợp Nhất Vật Tư' :
+                            activeTab === 'planning_projects' ? 'Cấu Hình Dự Án' :
+                              activeTab === 'planning_estimates' ? 'Lập Dự Toán' :
+                                activeTab === 'reports_history' ? 'Lịch Sử Giao Dịch' :
+                                  activeTab === 'reports_activity' ? 'Nhật Ký Hoạt Động' :
+                                    activeTab === 'users' ? 'Quản Lý Người Dùng' :
+                                      'Tác Giả'}
+            </h2>
+            <div className="hidden md:flex relative max-w-md w-full ml-8">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Tìm kiếm vật tư, mã dự án..."
+                className="w-full bg-muted/50 pl-8 rounded-full border-none focus-visible:ring-1 focus-visible:ring-primary shadow-inner"
+              />
             </div>
           </div>
-          <div className="flex items-center gap-2">
 
-            {canModify && (activeTab === 'warehouse_inventory') && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={() => window.dispatchEvent(new CustomEvent('open-material-modal'))} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm mới</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('import-material-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('print-material'))} className="btn-gradient-success px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Printer size={16} /> In Danh Sách</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('export-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
-              </div>
-            )}
-
-            {canModify && (activeTab === 'warehouse_history') && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={() => window.dispatchEvent(new CustomEvent('print-transactions'))} className="btn-gradient-success px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Printer size={16} /> In Lịch Sử</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('export-transactions-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
-              </div>
-            )}
-
-
-            {canModify && (activeTab === 'warehouse_suppliers') && (
-              <div className="flex items-center gap-2 mr-2">
-                <button onClick={() => {
-                  window.dispatchEvent(new CustomEvent('open-supplier-modal'));
-                }} className="btn-gradient-primary px-5 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Plus size={16} /> Thêm mới</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('import-supplier-excel'))} className="btn-gradient-info px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><FileSpreadsheet size={16} /> Nhập Excel</button>
-                <button onClick={() => window.dispatchEvent(new CustomEvent('export-supplier-excel'))} className="btn-gradient-warning px-4 py-2 text-[11px] font-bold text-white flex items-center gap-2 uppercase tracking-wider"><Download size={16} /> Xuất Excel</button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all"
-            >
-              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-            <div className="flex items-center gap-1 xl:gap-2 px-3 py-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl text-sm font-bold border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900/50 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
-                <Clock size={14} className="text-blue-500" />
-                <span className="text-blue-700 dark:text-blue-400 tabular-nums text-xs xl:text-sm">
-                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900/50 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
-                <Globe size={14} className="text-emerald-500" />
-                <span className="text-slate-600 dark:text-slate-400 text-[11px] xl:text-xs">{serverIp || '192.168.10.149'}</span>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex text-sm font-medium text-muted-foreground items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
+              <Clock size={14} />
+              {currentTime.toLocaleTimeString('vi-VN')}
             </div>
+
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </Button>
           </div>
         </header>
 
-        <div className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-up">
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -1173,8 +1129,8 @@ const App: React.FC = () => {
               onUpdate={loadData}
             />
           )}
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* CONFIRM DIALOG */}
       {

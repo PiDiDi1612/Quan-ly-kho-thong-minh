@@ -4,8 +4,8 @@ import {
     Search, Plus, Edit2, Trash2, Save, X, Settings, Package, Download, Database, MapPin, Phone, StickyNote, FileSpreadsheet
 } from 'lucide-react';
 import { Project, User } from '../../types';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
 import { apiService } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
@@ -213,16 +213,16 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                             <input type="file" ref={fileInputRef} onChange={handleImportExcel} hidden accept=".xlsx,.xls" />
                             <Button
                                 onClick={() => fileInputRef.current?.click()}
-                                leftIcon={<FileSpreadsheet size={16} />}
                                 className="h-10 px-4 rounded-xl btn-gradient-info text-white font-black uppercase text-[10px] tracking-wider shadow-sm"
                             >
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
                                 Nhập Excel
                             </Button>
                             <Button
                                 onClick={() => handleOpenModal()}
-                                leftIcon={<Plus size={14} />}
                                 className="h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20"
                             >
+                                <Plus className="mr-1.5 h-4 w-4 stroke-[3]" />
                                 Thêm Dự Án
                             </Button>
                         </>
@@ -354,7 +354,10 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
 
                         <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex gap-3">
                             <Button variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 font-bold uppercase tracking-wide">Hủy</Button>
-                            <Button onClick={handleSave} className="flex-1 h-12 font-bold uppercase tracking-wide shadow-lg shadow-sky-500/20" leftIcon={<Save size={18} />}>Lưu dự án</Button>
+                            <Button onClick={handleSave} className="flex-1 h-12 font-bold uppercase tracking-wide shadow-lg shadow-sky-500/20">
+                                <Save className="mr-2 h-4 w-4" />
+                                Lưu dự án
+                            </Button>
                         </div>
                     </div>
                 </div>

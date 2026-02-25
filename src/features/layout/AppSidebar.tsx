@@ -1,40 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  ChevronRight,
-  ClipboardList,
-  FileText,
-  Info,
-  LayoutDashboard,
-  LogOut,
-  Package,
-  User as UserIcon,
-  Users,
-  Warehouse
+  Activity, Package, Plus, ArrowRightLeft, History, ShoppingCart,
+  MapPin, ClipboardList, Database, FileText, Settings, Users, ChevronLeft, ChevronRight, LogOut
 } from 'lucide-react';
-import { Permission, User, UserRole } from '@/types';
+import { User, UserRole, Permission } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export type AppTab =
   | 'dashboard'
-  | 'warehouse_inventory'
-  | 'warehouse_transfer'
-  | 'warehouse_receipt'
-  | 'warehouse_history'
-  | 'warehouse_merge'
-  | 'warehouse_customers'
-  | 'planning_projects'
-  | 'planning_estimates'
-  | 'reports_activity'
-  | 'users'
-  | 'account'
-  | 'credits';
-
-interface SidebarItem {
-  id: string;
-  label: string;
-  icon?: any;
-  group?: string;
-  subItems?: { id: AppTab; label: string }[];
-}
+  | 'warehouse_inventory' | 'warehouse_receipt' | 'warehouse_transfer' | 'warehouse_history'
+  | 'supplier_management' | 'warehouse_merge'
+  | 'planning_projects' | 'planning_estimates'
+  | 'reports_inventory' | 'users' | 'settings' | 'materials_categories';
 
 interface AppSidebarProps {
   activeTab: AppTab;
@@ -47,179 +26,124 @@ interface AppSidebarProps {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
-  activeTab,
-  setActiveTab,
-  hasPermission,
-  currentUser,
-  userRole,
-  onLogout,
-  onOpenAccount
+  activeTab, setActiveTab, hasPermission, currentUser, userRole, onLogout, onOpenAccount
 }) => {
-  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const toggleExpand = (id: string) => {
-    setExpandedItems(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const tabs: SidebarItem[] = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', group: 'CHÍNH' },
+  const menuGroups = [
     {
-      id: 'warehouse',
-      icon: Package,
-      label: 'Phòng kho',
-      group: 'QUẢN LÝ KHO',
-      subItems: [
-        { id: 'warehouse_inventory', label: 'Danh sách vật tư' },
-        { id: 'warehouse_transfer', label: 'Điều chuyển' },
-        { id: 'warehouse_receipt', label: 'Lập phiếu' },
-        { id: 'warehouse_history', label: 'Lịch sử nhập xuất' },
-        { id: 'warehouse_merge', label: 'Hợp nhất vật tư' },
-        { id: 'warehouse_customers', label: 'Quản lý NCC' }
+      title: "PHÒNG KHO",
+      items: [
+        { id: 'dashboard', label: 'Bàn Làm Việc', icon: Activity, permission: null },
+        { id: 'warehouse_inventory', label: 'Danh Sách Vật Tư', icon: Package, permission: 'VIEW_MATERIAL' },
+        { id: 'warehouse_receipt', label: 'Lập Phiếu (Nhập/Xuất)', icon: Plus, permission: 'MANAGE_WAREHOUSE' },
+        { id: 'warehouse_transfer', label: 'Chuyển Kho', icon: ArrowRightLeft, permission: 'MANAGE_WAREHOUSE' },
+        { id: 'warehouse_history', label: 'Lịch Sử Giao Dịch', icon: History, permission: 'VIEW_TRANSACTION' },
+        { id: 'supplier_management', label: 'Quản Lý NCC', icon: ShoppingCart, permission: 'MANAGE_SUPPLIERS' },
+        { id: 'warehouse_merge', label: 'Bóc Tách Vật Tư', icon: Database, permission: 'MANAGE_WAREHOUSE' },
       ]
     },
     {
-      id: 'planning_dept',
-      icon: ClipboardList,
-      label: 'Phòng kế hoạch',
-      subItems: [
-        { id: 'planning_projects', label: 'Cấu hình dự án' },
-        { id: 'planning_estimates', label: 'Lập dự toán' }
+      title: "KẾ HOẠCH",
+      items: [
+        { id: 'planning_projects', label: 'Cấu Hình Dự Án', icon: MapPin, permission: 'PLANNING_PROJECTS' },
+        { id: 'planning_estimates', label: 'Dự Toán (Ngân Sách)', icon: ClipboardList, permission: 'PLANNING_ESTIMATES' },
       ]
     },
     {
-      id: 'reports',
-      icon: FileText,
-      label: 'Báo cáo',
-      group: 'HỆ THỐNG',
-      subItems: [
-        { id: 'reports_activity', label: 'Nhật ký hoạt động' }
+      title: "BÁO CÁO",
+      items: [
+        { id: 'reports_inventory', label: 'Báo Cáo Tồn Kho', icon: FileText, permission: 'VIEW_REPORT' },
       ]
     },
-    ...(hasPermission('MANAGE_USERS') ? [{ id: 'users', icon: Users, label: 'Người dùng' }] : []),
-    { id: 'credits', icon: Info, label: 'Tác giả' }
+    {
+      title: "HỆ THỐNG",
+      items: [
+        { id: 'users', label: 'Phân Quyền & User', icon: Users, permission: 'MANAGE_USERS' },
+        { id: 'settings', label: 'Nhật Ký & Cài Đặt', icon: Settings, permission: 'MANAGE_ROLES' },
+      ]
+    }
   ];
 
-  const roleName =
-    userRole === 'ADMIN' ? 'Quản trị viên' :
-      userRole === 'WAREHOUSE' ? 'Quản lý kho' :
-        userRole === 'PLANNING' ? 'Phòng kế hoạch' : 'Khách';
-
-  // Track which groups we've already rendered
-  let renderedGroups = new Set<string>();
-
   return (
-    <aside className="sidebar-neo print:hidden fixed inset-y-0 left-0 z-50 w-[272px] flex flex-col transition-all md:relative md:translate-x-0">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-sky-500/20 border border-sky-500/30">
-            <Warehouse size={22} />
-          </div>
-          <div>
-            <span className="text-lg font-bold tracking-tight leading-none block text-white">
-              SmartStock
-            </span>
-            <p className="text-[10px] font-semibold text-sky-400/80 uppercase tracking-wider mt-1">WMS Platform</p>
-          </div>
-        </div>
+    <div className={`relative flex flex-col bg-card border-r transition-all duration-300 z-20 ${isCollapsed ? 'w-[72px]' : 'w-[280px]'}`}>
+      <div className="flex items-center justify-between h-14 px-4 border-b">
+        {!isCollapsed && <span className="font-bold text-lg text-primary truncate">SmartStock</span>}
+        <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setIsCollapsed(!isCollapsed)}>
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </Button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-        {tabs.map((tab, idx) => {
-          const isExpanded = expandedItems.includes(tab.id);
-          const hasSubItems = tab.subItems && tab.subItems.length > 0;
-          const isActive = activeTab === tab.id || (tab.subItems?.some(s => s.id === activeTab));
+      <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+        <TooltipProvider delayDuration={0}>
+          {menuGroups.map((group, idx) => {
+            const visibleItems = group.items.filter(item => !item.permission || hasPermission(item.permission as Permission));
+            if (visibleItems.length === 0) return null;
 
-          // Group separator
-          let groupLabel = null;
-          if (tab.group && !renderedGroups.has(tab.group)) {
-            renderedGroups.add(tab.group);
-            groupLabel = (
-              <div className="sidebar-separator" key={`group-${tab.group}`}>
-                {tab.group}
+            return (
+              <div key={idx} className="mb-6 px-3">
+                {!isCollapsed && (
+                  <h4 className="mb-2 px-2 text-xs font-semibold text-muted-foreground tracking-wider">
+                    {group.title}
+                  </h4>
+                )}
+                <div className="space-y-1">
+                  {visibleItems.map(item => {
+                    const isActive = activeTab === item.id;
+                    const Icon = item.icon;
+
+                    const buttonContent = (
+                      <Button
+                        variant={isActive ? "secondary" : "ghost"}
+                        className={`w-full justify-start ${isCollapsed ? 'px-0 justify-center' : 'px-3'} ${isActive ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-l-4 border-l-emerald-600 rounded-l-none' : 'text-muted-foreground hover:text-foreground'}`}
+                        onClick={() => setActiveTab(item.id as AppTab)}
+                      >
+                        <Icon size={18} className={isCollapsed ? '' : 'mr-3'} />
+                        {!isCollapsed && <span className="truncate">{item.label}</span>}
+                      </Button>
+                    );
+
+                    return isCollapsed ? (
+                      <Tooltip key={item.id}>
+                        <TooltipTrigger asChild>{buttonContent}</TooltipTrigger>
+                        <TooltipContent side="right">{item.label}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div key={item.id}>{buttonContent}</div>
+                    );
+                  })}
+                </div>
               </div>
             );
-          }
+          })}
+        </TooltipProvider>
+      </div>
 
-          return (
-            <React.Fragment key={tab.id}>
-              {groupLabel}
-              <div className="space-y-0.5">
-                <button
-                  onClick={() => {
-                    if (hasSubItems) {
-                      if (!isExpanded) {
-                        setActiveTab(tab.subItems![0].id);
-                      }
-                      toggleExpand(tab.id);
-                    } else {
-                      setActiveTab(tab.id as AppTab);
-                    }
-                  }}
-                  className={`group flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 relative ${isActive && !hasSubItems
-                    ? 'sidebar-active text-white font-semibold'
-                    : 'sidebar-item-hover'
-                    }`}
-                >
-                  <div className={`transition-transform duration-200 ${isActive ? 'scale-110 text-sky-400' : 'text-white/60 group-hover:text-white/90'}`}>
-                    {tab.icon && <tab.icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />}
-                  </div>
-                  <span className={`text-sm tracking-wide ${isActive ? 'font-semibold text-white' : 'font-medium text-white/70 group-hover:text-white/90'}`}>
-                    {tab.label}
-                  </span>
-                  {hasSubItems && (
-                    <ChevronRight
-                      size={14}
-                      className={`ml-auto transition-transform duration-200 text-white/30 ${isExpanded ? 'rotate-90' : ''}`}
-                    />
-                  )}
-                </button>
-
-                {hasSubItems && isExpanded && (
-                  <div className="ml-8 space-y-0.5 mt-0.5 border-l border-white/10 pl-3">
-                    {tab.subItems?.map(sub => (
-                      <button
-                        key={sub.id}
-                        onClick={() => setActiveTab(sub.id)}
-                        className={`flex items-center w-full gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium tracking-wide ${activeTab === sub.id
-                          ? 'text-sky-400 bg-sky-500/10'
-                          : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                          }`}
-                      >
-                        {sub.label}
-                        {activeTab === sub.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-400" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </React.Fragment>
-          );
-        })}
-      </nav>
-
-      {/* User Card */}
-      <div className="p-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-            <div className="w-9 h-9 bg-sky-500/20 text-sky-400 rounded-lg flex items-center justify-center font-bold text-sm border border-sky-500/20">
-              {currentUser?.fullName?.[0] || userRole[0]}
+      <div className="p-4 border-t bg-muted/20">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9 cursor-pointer" onClick={onOpenAccount}>
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {currentUser?.fullName?.charAt(0) || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{currentUser?.fullName}</p>
+              <p className="text-xs text-muted-foreground truncate">{userRole}</p>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-semibold text-white truncate leading-tight">
-                {currentUser?.fullName || roleName}
-              </p>
-              <p className="text-[10px] font-medium text-white/40 uppercase mt-0.5">{userRole}</p>
-            </div>
-            <button onClick={onLogout} className="p-1.5 text-white/30 hover:text-red-400 transition-colors" title="Đăng xuất">
-              <LogOut size={16} />
-            </button>
-          </div>
+          )}
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={onLogout} className="text-muted-foreground hover:text-destructive">
+                  <LogOut size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Đăng xuất</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
-    </aside>
+    </div>
   );
 };

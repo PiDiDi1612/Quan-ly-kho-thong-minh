@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Material, WorkshopCode, MaterialClassification } from '../../types';
 import { materialService } from '../../domain';
-import { Button } from '../../components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useToast } from '../../hooks/useToast';
 import { GitMerge, Search, Filter, AlertTriangle, Check, X, ArrowRight } from 'lucide-react';
-import { Input } from '../../components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { WORKSHOPS, CLASSIFICATIONS } from '../../constants';
 
 interface MaterialMergeProps {

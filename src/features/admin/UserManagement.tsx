@@ -3,8 +3,8 @@ import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shi
 import { User, UserRole, Permission } from '../../types';
 import { ROLE_PERMISSIONS, PERMISSIONS, VISIBLE_PERMISSIONS } from '../../constants';
 import { Modal } from '../../components/ui/Modal';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { apiService } from '../../services/api';
 
@@ -189,9 +189,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 </p>
                 <Button
                     onClick={() => handleOpenModal()}
-                    leftIcon={<Plus size={16} />}
                     className="shadow-lg shadow-sky-500/20"
                 >
+                    <Plus className="mr-2 h-4 w-4" />
                     Thêm người dùng
                 </Button>
             </div>

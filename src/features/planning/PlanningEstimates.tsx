@@ -5,8 +5,8 @@ import {
 import { OrderBudget, Material, Transaction, Project, User, WorkshopCode } from '../../types';
 import { WORKSHOPS } from '../../constants';
 import { Modal } from '../../components/ui/Modal';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { DateInput } from '../../components/ui/DateInput';
 import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
@@ -127,7 +127,10 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
 
                 {canModify && (
                     <div className="flex gap-2 ml-auto">
-                        <Button onClick={() => handleOpenModal()} leftIcon={<Plus size={14} />} className="shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 h-10 px-5 font-black uppercase text-[10px] tracking-widest rounded-xl">Lập Dự Toán</Button>
+                        <Button onClick={() => handleOpenModal()} className="shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-700 h-10 px-5 font-black uppercase text-[10px] tracking-widest rounded-xl">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Lập Dự Toán
+                        </Button>
                     </div>
                 )}
             </div>
@@ -262,7 +265,10 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                         </div>
                         <div className="flex gap-2">
                             <Button variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 font-bold text-xs">Hủy</Button>
-                            <Button onClick={handleSave} className="flex-[2] font-bold text-xs" leftIcon={<Save size={16} />}>Lưu dự toán</Button>
+                            <Button onClick={handleSave} className="flex-[2] font-bold text-xs">
+                                <Save className="mr-2 h-4 w-4" />
+                                Lưu dự toán
+                            </Button>
                         </div>
                     </div>
 
@@ -278,16 +284,16 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                     onClick={() => setFormData({ ...formData, items: [] })}
                                     variant="secondary"
                                     className="h-9 text-[10px] font-bold uppercase bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                                    leftIcon={<Trash2 size={14} />}
                                 >
+                                    <Trash2 className="mr-2 h-4 w-4" />
                                     Xóa hết
                                 </Button>
                                 <input type="file" ref={budgetFileInputRef} onChange={handleImportBudgetExcel} hidden accept=".xlsx,.xls" />
                                 <Button
                                     onClick={() => budgetFileInputRef.current?.click()}
                                     className="h-9 text-[10px] font-bold uppercase bg-sky-50 text-sky-600 border-sky-100 hover:bg-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800"
-                                    leftIcon={<Download size={14} />}
                                 >
+                                    <Download className="mr-2 h-4 w-4" />
                                     Nhập Excel
                                 </Button>
                             </div>

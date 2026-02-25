@@ -7,8 +7,8 @@ import {
 import { Transaction, ActivityLog, User, TransactionType, WorkshopCode, Material } from '../../types';
 import { WORKSHOPS } from '../../constants';
 import { Modal } from '../../components/ui/Modal';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { DateInput } from '../../components/ui/DateInput';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { apiService } from '../../services/api';
@@ -359,13 +359,16 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                 {selectedReceipts.size > 0 && (
                                     <Button
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                                        leftIcon={<Printer size={16} />}
                                         onClick={handleBulkPrint}
                                     >
+                                        <Printer className="mr-2 h-4 w-4" />
                                         In đã chọn ({selectedReceipts.size})
                                     </Button>
                                 )}
-                                <Button className="bg-green-600 hover:bg-green-700 text-white shadow-green-500/20" leftIcon={<Download size={16} />} onClick={handleExportExcel}>Xuất Excel</Button>
+                                <Button className="bg-green-600 hover:bg-green-700 text-white shadow-green-500/20" onClick={handleExportExcel}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Xuất Excel
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -472,7 +475,10 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                             </select>
                         </div>
                         {isAdmin && filteredActivityLogs.length > 0 && (
-                            <Button onClick={handleClearLogs} variant="danger" className="ml-auto" leftIcon={<Trash2 size={16} />}>Xóa tất cả</Button>
+                            <Button onClick={handleClearLogs} variant="danger" className="ml-auto">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Xóa tất cả
+                            </Button>
                         )}
                     </div>
 
