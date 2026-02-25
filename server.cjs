@@ -40,7 +40,8 @@ const db = new Database(path.join(dataDir, 'data.db'));
 // Enable WAL (Write-Ahead Logging) mode for better concurrent access
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');  // Faster writes, safe with WAL
-db.pragma('cache_size = -8000');    // 8MB page cache
+db.pragma('cache_size = -64000');   // 64MB page cache
+db.pragma('mmap_size = 268435456'); // 256MB memory mapped I/O
 db.pragma('temp_store = MEMORY');   // Temp tables in RAM
 
 // Removed: SESSION_TTL_MS and sessions Map - JWT is stateless
@@ -243,6 +244,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tx_workshop          ON transactions(workshop);
   CREATE INDEX IF NOT EXISTS idx_mat_workshop         ON materials(workshop);
   CREATE INDEX IF NOT EXISTS idx_log_timestamp        ON activity_logs(timestamp DESC);
+  
+  -- Composite Indexes for Performance Optimization
+  CREATE INDEX IF NOT EXISTS idx_tx_mat_date_type     ON transactions(materialId, date, type, quantity);
+  CREATE INDEX IF NOT EXISTS idx_tx_date_time         ON transactions(date DESC, transactionTime DESC);
 `);
 
 // Migration: Ensure 'image' column exists in 'materials'

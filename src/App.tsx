@@ -58,6 +58,7 @@ import { useWarehouseTransfer } from './features/warehouse/hooks/useWarehouseTra
 import { WarehouseReceipt } from './features/warehouse/WarehouseReceipt';
 import { SupplierManagement } from './features/warehouse/SupplierManagement';
 import { TransactionHistory } from './features/warehouse/TransactionHistory';
+import { debounce } from 'lodash';
 import { MaterialMerge } from './features/warehouse/MaterialMerge';
 import { PlanningProjects } from './features/planning/PlanningProjects';
 import { PlanningEstimates } from './features/planning/PlanningEstimates';
@@ -302,19 +303,24 @@ const App: React.FC = () => {
     }
   }, [connectionConfig.mode]);
 
+  // Use debounce to prevent React from firing loadData thousands of times during bulk excel imports
+  const debouncedLoadData = useMemo(() => debounce(() => {
+    loadData(true);
+  }, 1000, { leading: false, trailing: true }), [isSyncing, connectionConfig.mode]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Initialize socket
-    // We pass loadData as callback, but need to be careful with stale closure if loadData uses stale scope.
+    // We pass debouncedLoadData as callback, but need to be careful with stale closure if loadData uses stale scope.
     // However, apiService handles data_updated event.
-    apiService.initSocket(() => loadData(true)); // isBackground=true
+    apiService.initSocket(debouncedLoadData); // isBackground=true
 
     // Poll every 10 seconds to keep data synced
     const interval = setInterval(() => loadData(true), 10000);
 
     return () => {
       clearInterval(interval);
+      debouncedLoadData.cancel();
       apiService.disconnectSocket();
     };
   }, [isAuthenticated, connectionConfig.mode]);
