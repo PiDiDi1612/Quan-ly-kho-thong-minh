@@ -744,7 +744,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="app-bg-gradient app-readable flex h-screen font-inter text-slate-600 selection:bg-emerald-100 selection:text-emerald-700">
+    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-950 font-inter text-foreground selection:bg-emerald-100 selection:text-emerald-700">
       <Toaster />
       {/* SIDEBAR */}
       <AppSidebar
@@ -757,48 +757,74 @@ const App: React.FC = () => {
         onOpenAccount={() => setIsAccountModalOpen(true)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      {/* MAIN COLUMN */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
+        {/* HEADER 64px */}
+        <header className="h-16 shrink-0 bg-card border-b border-border flex items-center justify-between px-6 gap-4 z-10">
+          {/* Left: page title */}
+          <h2 className="text-base font-semibold text-foreground tracking-tight whitespace-nowrap shrink-0">
+            {activeTab === 'dashboard' ? '📊 Tổng quan' :
+              activeTab === 'warehouse_inventory' ? 'Danh Sách Vật Tư' :
+                activeTab === 'warehouse_transfer' ? 'Điều Chuyển Vật Tư' :
+                  activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
+                    activeTab === 'supplier_management' ? 'Quản Lý NCC' :
+                      activeTab === 'warehouse_history' ? 'Lịch Sử Giao Dịch' :
+                        activeTab === 'warehouse_merge' ? 'Bóc Tách Vật Tư' :
+                          activeTab === 'planning_projects' ? 'Cấu Hình Dự Án' :
+                            activeTab === 'planning_estimates' ? 'Lập Dự Toán' :
+                              activeTab === 'reports_history' ? 'Lịch Sử GD' :
+                                activeTab === 'reports_activity' ? 'Nhật Ký HĐ' :
+                                  activeTab === 'users' ? 'Quản Lý Người Dùng' : 'SmartStock'}
+          </h2>
 
-        <header className="h-14 bg-card border-b flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
-          <div className="flex items-center gap-4 flex-1">
-            <h2 className="text-lg font-semibold tracking-tight">
-              {activeTab === 'dashboard' ? 'Tổng quan' :
-                activeTab === 'warehouse_inventory' ? 'Danh Sách Vật Tư' :
-                  activeTab === 'warehouse_transfer' ? 'Điều Chuyển Vật Tư' :
-                    activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
-                      activeTab === 'warehouse_customers' ? 'Quản Lý NCC' :
-                        activeTab === 'warehouse_history' ? 'Lịch Sử Nhập Xuất' :
-                          activeTab === 'warehouse_merge' ? 'Hợp Nhất Vật Tư' :
-                            activeTab === 'planning_projects' ? 'Cấu Hình Dự Án' :
-                              activeTab === 'planning_estimates' ? 'Lập Dự Toán' :
-                                activeTab === 'reports_history' ? 'Lịch Sử Giao Dịch' :
-                                  activeTab === 'reports_activity' ? 'Nhật Ký Hoạt Động' :
-                                    activeTab === 'users' ? 'Quản Lý Người Dùng' :
-                                      'Tác Giả'}
-            </h2>
-            <div className="hidden md:flex relative max-w-md w-full ml-8">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Tìm kiếm vật tư, mã dự án..."
-                className="w-full bg-muted/50 pl-8 rounded-full border-none focus-visible:ring-1 focus-visible:ring-primary shadow-inner"
-              />
-            </div>
+          {/* Center: Global Search */}
+          <div className="flex-1 max-w-md hidden md:flex relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Tìm kiếm vật tư, mã dự án..."
+              className="pl-9 h-9 bg-muted/60 border-0 rounded-full focus-visible:ring-1 focus-visible:ring-primary text-sm"
+            />
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex text-sm font-medium text-muted-foreground items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
-              <Clock size={14} />
+          {/* Right: user + theme + logout */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Clock */}
+            <div className="hidden lg:flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full">
+              <Clock size={13} />
               {currentTime.toLocaleTimeString('vi-VN')}
             </div>
 
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {/* User info */}
+            <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-muted/60">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shrink-0">
+                {currentUser?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="leading-tight">
+                <p className="text-xs font-semibold text-foreground">{currentUser?.fullName || 'Người dùng'}</p>
+                <p className="text-[10px] text-muted-foreground">{userRole}</p>
+              </div>
+            </div>
+
+            {/* Theme toggle */}
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            </Button>
+
+            {/* Account */}
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => setIsAccountModalOpen(true)}>
+              <Settings size={17} />
+            </Button>
+
+            {/* Logout */}
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive" onClick={handleLogout}>
+              <X size={17} />
             </Button>
           </div>
         </header>
 
+        {/* MAIN CONTENT */}
         <main className="flex-1 p-6 overflow-y-auto">
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-up">
@@ -807,52 +833,48 @@ const App: React.FC = () => {
                   {
                     label: 'TỔNG VẬT TƯ',
                     value: summary.totalItems,
-                    color: 'text-sky-600 dark:text-sky-400',
-                    bg: 'bg-sky-50 dark:bg-sky-500/10',
-                    borderClass: 'kpi-border-primary',
                     icon: Package,
-                    description: 'Loại vật tư đang quản lý'
+                    description: 'Loại vật tư đang quản lý',
+                    accent: 'text-primary',
+                    iconBg: 'bg-primary/10 text-primary',
                   },
                   {
                     label: 'NHẬP HÔM NAY',
                     value: summary.todayIn,
-                    color: 'text-green-600 dark:text-green-400',
-                    bg: 'bg-green-50 dark:bg-green-500/10',
-                    borderClass: 'kpi-border-green',
                     icon: ArrowDownLeft,
-                    description: 'Tổng số lượng nhập'
+                    description: 'Tổng số lượng nhập kho',
+                    accent: 'text-emerald-600 dark:text-emerald-400',
+                    iconBg: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
                   },
                   {
                     label: 'XUẤT HÔM NAY',
                     value: summary.todayOut,
-                    color: 'text-orange-600 dark:text-orange-400',
-                    bg: 'bg-orange-50 dark:bg-orange-500/10',
-                    borderClass: 'kpi-border-orange',
                     icon: ArrowUpRight,
-                    description: 'Tổng số lượng xuất'
+                    description: 'Tổng số lượng xuất kho',
+                    accent: 'text-orange-600 dark:text-orange-400',
+                    iconBg: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
                   },
                   {
                     label: 'CẢNH BÁO TỒN',
                     value: summary.lowStockCount,
-                    color: 'text-red-600 dark:text-red-400',
-                    bg: 'bg-red-50 dark:bg-red-500/10',
-                    borderClass: 'kpi-border-red',
                     icon: AlertTriangle,
-                    description: 'Cần bổ sung ngay'
+                    description: 'Cần bổ sung ngay',
+                    accent: 'text-destructive',
+                    iconBg: 'bg-destructive/10 text-destructive',
                   },
                 ].map((stat, i) => (
                   <div
                     key={i}
-                    className={`neo-card p-6 group relative overflow-hidden ${stat.borderClass}`}
+                    className="bg-card rounded-2xl p-6 border border-border border-t-4 border-t-primary shadow-sm hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
-                        <stat.icon size={22} />
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${stat.iconBg} group-hover:scale-105 transition-transform duration-200`}>
+                        <stat.icon size={26} />
                       </div>
                     </div>
-                    <p className="text-3xl font-extrabold text-slate-800 dark:text-white mb-1 tracking-tight tabular-nums">{stat.value}</p>
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
-                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{stat.description}</p>
+                    <p className={`text-4xl font-semibold tabular-nums ${stat.accent} mb-1`}>{stat.value}</p>
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground">{stat.description}</p>
                   </div>
                 ))}
               </div>

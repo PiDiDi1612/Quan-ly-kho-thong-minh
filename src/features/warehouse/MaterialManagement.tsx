@@ -67,7 +67,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DateInput } from '../../components/ui/DateInput'; // Import DateInput
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { ExcelMappingModal, ExcelField } from '../../components/ui/ExcelMappingModal';
@@ -507,17 +508,17 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 </div>
                 <div className="flex flex-wrap gap-4">
                     {/* Filters */}
-                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10">
-                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
+                    <div className="flex items-center p-1 bg-muted/60 border border-border rounded-xl h-10">
+                        <button onClick={() => setWorkshopFilter('ALL')} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>Tất cả</button>
                         {WORKSHOPS.map(w => (
-                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === w.code ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{w.code}</button>
+                            <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${workshopFilter === w.code ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>{w.code}</button>
                         ))}
                     </div>
 
-                    <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-10">
-                        <button onClick={() => setClassFilter('ALL')} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${classFilter === 'ALL' ? 'bg-slate-800 dark:bg-slate-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>
+                    <div className="flex items-center p-1 bg-muted/60 border border-border rounded-xl h-10">
+                        <button onClick={() => setClassFilter('ALL')} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${classFilter === 'ALL' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>Tất cả</button>
                         {CLASSIFICATIONS.map(c => (
-                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-4 py-1 rounded-lg text-xs font-black uppercase transition-all ${classFilter === c ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
+                            <button key={c} onClick={() => setClassFilter(c as MaterialClassification)} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${classFilter === c ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background'}`}>{c === 'Vật tư chính' ? 'Chính' : 'Phụ'}</button>
                         ))}
                     </div>
 
@@ -560,6 +561,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 )}
             </div>
 
+            {/* Print header */}
             <div className="print:block hidden print-header">
                 <h1 className="text-2xl font-bold uppercase tracking-widest">DANH SÁCH VẬT TƯ TRONG KHO</h1>
                 <p className="text-sm mt-1">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
@@ -569,134 +571,147 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                 </div>
             </div>
 
-            <Card className="border-none shadow-none bg-transparent">
-                <CardContent className="p-0">
-                    <div className="neo-card-static overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200/60 dark:border-white/5 hover:bg-transparent">
-                                    <TableHead className="w-[80px] text-center text-[10px] uppercase tracking-wider">Ảnh</TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <Package size={13} className="text-sky-500" />
-                                            <span>Vật tư & Mã</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-center text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <Warehouse size={13} className="text-amber-500" />
-                                            <span>Xưởng</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-center text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <Archive size={13} className="text-slate-400" />
-                                            <span>Tồn đầu</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-center text-[10px] uppercase tracking-wider text-green-600 dark:text-green-400">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <ArrowDownLeft size={13} />
-                                            <span>Nhập</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-center text-[10px] uppercase tracking-wider text-red-600 dark:text-red-400">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <ArrowUpRight size={13} />
-                                            <span>Xuất</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-center text-[10px] uppercase tracking-wider text-sky-600 dark:text-sky-400">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <BarChart2 size={13} />
-                                            <span>Tồn cuối</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <Ruler size={13} />
-                                            <span>Đơn vị</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <Tag size={13} />
-                                            <span>Loại</span>
-                                        </div>
-                                    </TableHead>
-                                    <TableHead className="text-right text-[10px] uppercase tracking-wider">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <Settings size={13} />
-                                            <span>Thao tác</span>
-                                        </div>
-                                    </TableHead>
+            {/* Main table card */}
+            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+                <Table>
+                    {/* Sticky header */}
+                    <TableHeader className="sticky top-0 z-10 bg-card border-b border-border">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[72px] text-center text-[10px] uppercase tracking-wider font-semibold">Ảnh</TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">
+                                <div className="flex items-center gap-1"><Package size={12} className="text-primary" /><span>Vật tư &amp; Mã</span></div>
+                            </TableHead>
+                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold">
+                                <div className="flex items-center justify-center gap-1"><Warehouse size={12} className="text-amber-500" /><span>Xưởng</span></div>
+                            </TableHead>
+                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold">
+                                <div className="flex items-center justify-center gap-1"><Archive size={12} className="text-muted-foreground" /><span>Tồn đầu</span></div>
+                            </TableHead>
+                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400">
+                                <div className="flex items-center justify-center gap-1"><ArrowDownLeft size={12} /><span>Nhập</span></div>
+                            </TableHead>
+                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-red-500">
+                                <div className="flex items-center justify-center gap-1"><ArrowUpRight size={12} /><span>Xuất</span></div>
+                            </TableHead>
+                            <TableHead className="text-center text-[10px] uppercase tracking-wider font-semibold text-primary">
+                                <div className="flex items-center justify-center gap-1"><BarChart2 size={12} /><span>Tồn cuối</span></div>
+                            </TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">ĐVT</TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider font-semibold">Loại</TableHead>
+                            <TableHead className="text-right text-[10px] uppercase tracking-wider font-semibold w-[60px]"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                        {/* Skeleton loading */}
+                        {isLoading && filteredMaterials.length === 0 && (
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <TableRow key={`sk-${i}`}>
+                                    <TableCell><Skeleton className="w-9 h-9 rounded-lg mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-40 mb-1" /><Skeleton className="h-3 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-10 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-14 mx-auto" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {materialInventory.map((m, idx) => (
-                                    <TableRow key={m.id} className={`group transition-colors ${idx % 2 === 1 ? 'bg-slate-50/50 dark:bg-slate-800/20' : ''}`}>
-                                        <TableCell className="text-center">
-                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 overflow-hidden mx-auto flex items-center justify-center">
-                                                {m.image ? <img src={m.image} alt={m.name} className="w-full h-full object-cover" /> : <Package size={18} className="text-slate-300 dark:text-slate-600" />}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <p className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight">{m.name}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-1.5 py-0.5 rounded">#{m.id}</span>
-                                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase">{m.origin}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-semibold text-slate-500 dark:text-slate-400 text-xs text-center">{m.workshop}</TableCell>
-                                        <TableCell className="text-center font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '-'}</TableCell>
-                                        <TableCell className="text-center font-semibold text-green-600 dark:text-green-400 tabular-nums">{m.periodIn !== undefined ? formatNumber(m.periodIn) : '-'}</TableCell>
-                                        <TableCell className="text-center font-semibold text-red-600 dark:text-red-400 tabular-nums">{m.periodOut !== undefined ? formatNumber(m.periodOut) : '-'}</TableCell>
-                                        <TableCell className="text-center font-bold text-sky-600 dark:text-sky-400 tabular-nums">{formatNumber(m.closingStock ?? m.quantity)}</TableCell>
-                                        <TableCell>
-                                            <span className="text-xs text-slate-400 dark:text-slate-500">{m.unit}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-semibold ${m.classification === 'Vật tư chính' ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'}`}>
-                                                {m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                        <span className="sr-only">Mở menu</span>
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-[160px]">
-                                                    <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Thao tác</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => { setViewingMaterial(m); setDashboardTab('INFO'); setIsDetailModalOpen(true); }} className="cursor-pointer gap-2">
-                                                        <Eye className="h-4 w-4 text-sky-500" />
-                                                        <span className="text-xs font-bold">Xem chi tiết</span>
+                            ))
+                        )}
+
+                        {/* Rows */}
+                        {!isLoading && filteredMaterials.map((m) => (
+                            <TableRow key={m.id} className="group hover:bg-muted/50 transition-colors">
+                                <TableCell className="text-center">
+                                    <div className="w-9 h-9 rounded-lg bg-muted border border-border overflow-hidden mx-auto flex items-center justify-center">
+                                        {m.image ? <img src={m.image} alt={m.name} className="w-full h-full object-cover" /> : <Package size={16} className="text-muted-foreground" />}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <p className="font-semibold text-foreground text-sm leading-tight">{m.name}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">#{m.id}</span>
+                                        {m.origin && <span className="text-[10px] text-muted-foreground tracking-wide">{m.origin}</span>}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <span className="text-xs font-bold text-muted-foreground">{m.workshop}</span>
+                                </TableCell>
+                                <TableCell className="text-center tabular-nums text-sm text-muted-foreground">{m.openingStock !== undefined ? formatNumber(m.openingStock) : '–'}</TableCell>
+                                <TableCell className="text-center tabular-nums text-sm font-medium text-emerald-600 dark:text-emerald-400">{m.periodIn !== undefined ? formatNumber(m.periodIn) : '–'}</TableCell>
+                                <TableCell className="text-center tabular-nums text-sm font-medium text-red-500">{m.periodOut !== undefined ? formatNumber(m.periodOut) : '–'}</TableCell>
+                                <TableCell className="text-center tabular-nums font-bold text-primary">{formatNumber(m.closingStock ?? m.quantity)}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{m.unit}</TableCell>
+                                <TableCell>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${m.classification === 'Vật tư chính'
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'bg-muted text-muted-foreground'
+                                        }`}>
+                                        {m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-44">
+                                            <DropdownMenuLabel className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Thao tác</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => { setViewingMaterial(m); setDashboardTab('INFO'); setIsDetailModalOpen(true); }} className="cursor-pointer gap-2">
+                                                <Eye className="h-4 w-4 text-primary" />
+                                                <span className="text-sm">Xem chi tiết</span>
+                                            </DropdownMenuItem>
+                                            {canManage && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleOpenModal(m)} className="cursor-pointer gap-2">
+                                                        <Edit2 className="h-4 w-4 text-amber-500" />
+                                                        <span className="text-sm">Chỉnh sửa</span>
                                                     </DropdownMenuItem>
-                                                    {canManage && (
-                                                        <>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handleOpenModal(m)} className="cursor-pointer gap-2">
-                                                                <Edit2 className="h-4 w-4 text-amber-500" />
-                                                                <span className="text-xs font-bold">Chỉnh sửa</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleDelete(m.id)} className="cursor-pointer gap-2 text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-900/10">
-                                                                <Trash2 className="h-4 w-4" />
-                                                                <span className="text-xs font-bold">Xóa vật tư</span>
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                                    <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer gap-2">
+                                                        <Printer className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm">In mã</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => handleDelete(m.id)} className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                        <Trash2 className="h-4 w-4" />
+                                                        <span className="text-sm">Xóa vật tư</span>
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+
+                {/* Empty state */}
+                {!isLoading && filteredMaterials.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-24 text-center px-6">
+                        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+                            <Package size={40} className="text-primary" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Chưa có vật tư nào</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+                            {searchTerm || workshopFilter !== 'ALL' || classFilter !== 'ALL'
+                                ? 'Không tìm thấy vật tư phù hợp với bộ lọc hiện tại.'
+                                : 'Bắt đầu bằng cách thêm vật tư đầu tiên vào kho.'}
+                        </p>
+                        {canManage && !searchTerm && workshopFilter === 'ALL' && classFilter === 'ALL' && (
+                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => handleOpenModal()}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Thêm vật tư đầu tiên
+                            </Button>
+                        )}
                     </div>
-                </CardContent>
-            </Card>
+                )}
+            </div>
 
             {/* SIMPLIFIED MATERIAL EDIT MODAL */}
             <Modal

@@ -2,83 +2,122 @@
    SMARTSTOCK WMS — NEO ENTERPRISE DESIGN SYSTEM
    ===================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
-  /* Layout */
+  /* shadcn/ui tokens */
+  --background: 0 0% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 152 69% 32%;           /* emerald-600 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 152 50% 94%;
+  --accent-foreground: 152 69% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 152 69% 32%;
+  --radius: 0.75rem;
+
+  /* Layout tokens */
   --header-h: 64px;
   --sidebar-w: 272px;
   --content-padding: 32px;
   --section-gap: 24px;
-  --radius-card: 20px;
-  --radius-btn: 12px;
-  --radius-input: 12px;
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --radius-input: 10px;
 
-  /* Light Theme */
-  --bg: #F0F2F5;
+  /* Legacy tokens (still used in some components) */
+  --bg: #F4F6F8;
   --bg-elevated: #ffffff;
-  --surface: rgba(255, 255, 255, 0.85);
-  --surface-strong: rgba(255, 255, 255, 0.95);
+  --surface: rgba(255, 255, 255, 0.9);
   --text: #0F172A;
   --text-secondary: #475569;
   --text-muted: #94A3B8;
-  --border: #E2E8F0;
-  --border-light: rgba(226, 232, 240, 0.6);
-  --ring: rgba(16, 185, 129, 0.24);
+  --border-light: rgba(214, 221, 230, 0.6);
+  --ring-color: rgba(5, 150, 105, 0.25);
 
-  /* Sidebar (Deep Blue Gradient) */
-  --sidebar-from: #0f172a;
-  /* Slate 900 */
-  --sidebar-to: #1e3a8a;
-  /* Blue 900 */
-  --sidebar-text: rgba(255, 255, 255, 0.7);
-  --sidebar-text-active: #ffffff;
-  --sidebar-hover: rgba(255, 255, 255, 0.1);
-  --sidebar-active: rgba(56, 189, 248, 0.15);
-  /* Sky 400 with opacity */
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  /* Sidebar */
+  --sidebar-from: #ffffff;
+  --sidebar-to: #f8fafb;
+  --sidebar-text: #64748b;
+  --sidebar-text-active: #065f46;
+  --sidebar-hover: rgba(5, 150, 105, 0.06);
+  --sidebar-active: rgba(5, 150, 105, 0.08);
+  --sidebar-border: rgba(214, 221, 230, 0.8);
 
-  /* Blue/Sky Primary */
-  --primary-500: #0EA5E9;
-  /* Sky 500 (Lighter Blue) */
-  --primary-600: #0284C7;
-  /* Sky 600 */
-  --primary-700: #0369A1;
-  --accent: #0EA5E9;
-  --accent-soft: rgba(14, 165, 233, 0.1);
+  /* Primary (emerald) */
+  --primary-500: #10b981;
+  --primary-600: #059669;
+  --primary-700: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.1);
 
   /* Status */
   --success: #10B981;
-  /* Keep success green */
   --warning: #F59E0B;
   --danger: #EF4444;
   --info: #3B82F6;
 
-  /* Shadows - Clearer layering */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.02);
-  --shadow-card-hover: 0 10px 25px rgba(14, 165, 233, 0.15), 0 4px 10px rgba(0, 0, 0, 0.05);
-  /* Blue tinted shadow */
-  --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.1);
-  --shadow-btn: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 8px 20px rgba(5, 150, 105, 0.12), 0 4px 10px rgba(0,0,0,0.04);
+  --shadow-float: 0 20px 50px rgba(0,0,0,0.1);
+  --shadow-btn: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .dark {
-  --bg: #0B1120;
-  /* Darker navy */
-  --bg-elevated: #151F32;
-  /* Distinct card layer */
-  --surface: rgba(21, 31, 50, 0.7);
-  --surface-strong: rgba(21, 31, 50, 0.9);
-  --text: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #64748B;
-  --border: rgba(56, 189, 248, 0.1);
-  /* Subtle blueish border */
-  --border-light: rgba(56, 189, 248, 0.05);
-  --ring: rgba(14, 165, 233, 0.25);
+  /* shadcn/ui dark tokens */
+  --background: 222 47% 7%;
+  --foreground: 210 40% 96%;
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 96%;
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 152 69% 32%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 55%;
+  --accent: 152 50% 15%;
+  --accent-foreground: 152 60% 65%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 217 33% 20%;
+  --input: 217 33% 20%;
+  --ring: 152 69% 45%;
 
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
-  --shadow-card-hover: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
-  --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.4);
-  --shadow-btn: 0 4px 16px rgba(0, 0, 0, 0.3);
+  /* Legacy dark tokens */
+  --bg: #0B1120;
+  --bg-elevated: #132033;
+  --surface: rgba(19, 32, 51, 0.8);
+  --text: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #475569;
+  --border-light: rgba(255,255,255,0.06);
+
+  /* Sidebar dark */
+  --sidebar-from: #0f172a;
+  --sidebar-to: #0f172a;
+  --sidebar-text: rgba(148, 163, 184, 0.9);
+  --sidebar-text-active: #34d399;
+  --sidebar-hover: rgba(52, 211, 153, 0.07);
+  --sidebar-active: rgba(52, 211, 153, 0.1);
+  --sidebar-border: rgba(255,255,255,0.06);
+
+  --shadow-card: 0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-card-hover: 0 10px 30px rgba(0,0,0,0.4);
+  --shadow-float: 0 24px 60px rgba(0,0,0,0.4);
+  --shadow-btn: 0 4px 16px rgba(0,0,0,0.3);
 }
 
 /* =====================================================
