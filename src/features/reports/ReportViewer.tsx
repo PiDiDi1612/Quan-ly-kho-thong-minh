@@ -166,7 +166,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
     // --- HISTORY LOGIC ---
     const filteredTransactions = useMemo(() => {
         const sTerm = historySearchTerm.toLowerCase();
-        return transactions.filter(t => {
+        const safeTransactions = Array.isArray(transactions) ? transactions : [];
+        return safeTransactions.filter(t => {
             const matchType = historyFilter.type === 'ALL' || t.type === historyFilter.type;
             const matchWorkshop = historyFilter.workshop === 'ALL' || t.workshop === historyFilter.workshop;
             const txTime = toTimestamp(t.date);
@@ -174,8 +175,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             const matchEnd = !historyFilter.endDate || txTime <= toEndOfDay(historyFilter.endDate);
             const matchOrder = !historyFilter.orderCode || (t.orderCode || '').toLowerCase().includes(historyFilter.orderCode.toLowerCase());
             const matchSearch = !sTerm ||
-                t.materialName.toLowerCase().includes(sTerm) ||
-                t.receiptId.toLowerCase().includes(sTerm) ||
+                (t.materialName || '').toLowerCase().includes(sTerm) ||
+                (t.receiptId || '').toLowerCase().includes(sTerm) ||
                 (t.orderCode || '').toLowerCase().includes(sTerm);
 
             return matchType && matchWorkshop && matchStart && matchEnd && matchOrder && matchSearch;
@@ -272,7 +273,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
 
     // --- ACTIVITY LOGIC ---
     const filteredActivityLogs = useMemo(() => {
-        return activityLogs.filter(log => {
+        const safeLogs = Array.isArray(activityLogs) ? activityLogs : [];
+        return safeLogs.filter(log => {
             const matchUser = activityFilter.userId === 'ALL' || log.userId === activityFilter.userId;
             const matchType = activityFilter.entityType === 'ALL' || log.entityType === activityFilter.entityType;
             const logTime = toTimestamp(log.timestamp);

@@ -129,11 +129,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 try {
                     await userService.deleteUser(userId);
                     // Log activity
+                    const safeUsers = Array.isArray(users) ? users : [];
                     await apiService.post('/api/activity_logs/save', {
                         id: `log-${Date.now()}`,
                         userId: currentUser?.id,
                         username: currentUser?.username,
-                        action: `Xóa người dùng ${users.find(u => u.id === userId)?.username}`,
+                        action: `Xóa người dùng ${safeUsers.find(u => u.id === userId)?.username}`,
                         entityType: 'USER',
                         entityId: userId,
                         details: 'Xóa người dùng',

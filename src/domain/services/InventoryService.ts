@@ -232,8 +232,8 @@ export class InventoryService implements IInventoryService {
      * This is a synchronous wrapper for now
      */
     private getTransactionsSync(): Transaction[] {
-        const result = this.allTransactions || [];
-        console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${this.allTransactions ? 'loaded' : 'null'}`);
+        const result = Array.isArray(this.allTransactions) ? this.allTransactions : [];
+        console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${Array.isArray(this.allTransactions) ? 'loaded' : 'null/invalid'}`);
         return result;
     }
 
@@ -243,7 +243,8 @@ export class InventoryService implements IInventoryService {
      */
     async loadTransactions(): Promise<void> {
         console.log('[InventoryService] loadTransactions: fetching from repository...');
-        this.allTransactions = await transactionRepository.fetchAll();
+        const fetched = await transactionRepository.fetchAll();
+        this.allTransactions = Array.isArray(fetched) ? fetched : [];
         this.transactionsByMaterial.clear(); // Clear index on fresh load
 
         // Rebuild index

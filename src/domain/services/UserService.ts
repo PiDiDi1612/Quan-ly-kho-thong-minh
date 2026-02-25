@@ -31,7 +31,7 @@ export class UserService implements IUserService {
         // Need to fetch current user to merge, as save is a full replace/upsert
         // We can optimize by accepting full user object in interface, but for now we fetch.
         const users = await this.listUsers();
-        const existing = users.find(u => u.id === id);
+        const existing = (Array.isArray(users) ? users : []).find(u => u.id === id);
         if (!existing) throw new Error('User not found');
 
         const updatedUser = {

@@ -119,9 +119,13 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
     }, [startDate, endDate, materials]);
 
     const filteredMaterials = useMemo(() => {
-        const term = debouncedSearch.toLowerCase();
-        return fetchedMaterials.filter(m => {
-            const ms = m.name.toLowerCase().includes(term) || m.id.toLowerCase().includes(term) || (m.origin || '').toLowerCase().includes(term);
+        const term = String(debouncedSearch || '').toLowerCase();
+        const safeMaterials = Array.isArray(fetchedMaterials) ? fetchedMaterials : [];
+        return safeMaterials.filter(m => {
+            const ms =
+                String(m.name || '').toLowerCase().includes(term) ||
+                String(m.id || '').toLowerCase().includes(term) ||
+                String(m.origin || '').toLowerCase().includes(term);
             const mw = workshopFilter === 'ALL' || m.workshop === workshopFilter;
             const mc = classFilter === 'ALL' || m.classification === classFilter;
             return ms && mw && mc;
@@ -389,7 +393,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                                     <Table>
                                         <TableHeader className="bg-muted/50"><TableRow><TableHead>Ngày</TableHead><TableHead>Loại</TableHead><TableHead className="text-right">Số lượng</TableHead><TableHead>Người xử lý</TableHead></TableRow></TableHeader>
                                         <TableBody>
-                                            {transactions.filter(t => t.materialId === viewingMaterial.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
+                                            {(Array.isArray(transactions) ? transactions : []).filter(t => t.materialId === viewingMaterial.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
                                                 <TableRow key={t.id}>
                                                     <TableCell className="text-xs font-bold">{new Date(t.date).toLocaleDateString('vi-VN')}</TableCell>
                                                     <TableCell><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase font-black ${t.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>{t.type === 'IN' ? 'Nhập' : 'Xuất'}</span></TableCell>

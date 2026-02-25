@@ -83,7 +83,7 @@ export class AuthService implements IAuthService {
     }
 
     hasPermission(user: User | null, permission: Permission): boolean {
-        if (!user) return false;
+        if (!user || !Array.isArray(user.permissions)) return false;
         if (user.role === 'ADMIN') return true;
         return user.permissions.includes(permission);
     }

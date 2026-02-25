@@ -81,7 +81,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
     parseNumber
 }) => {
     // Lọc danh sách đơn hàng đang thực hiện cho xưởng đang chọn
-    const activeOrders = budgets.filter(b =>
+    const activeOrders = (Array.isArray(budgets) ? budgets : []).filter(b =>
         b.status === 'Đang thực hiện' &&
         (b.workshop === receiptWorkshop)
     );
@@ -176,14 +176,14 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     const inputCode = e.target.value.toUpperCase();
                                                     setOrderCode(inputCode);
                                                     // Tự động điền tên NCC khi tìm thấy mã khớp
-                                                    const matchedSupplier = suppliers.find(s => s.code === inputCode);
+                                                    const matchedSupplier = (Array.isArray(suppliers) ? suppliers : []).find(s => s.code === inputCode);
                                                     if (matchedSupplier) {
                                                         setReceiptSupplier(matchedSupplier.name);
                                                     }
                                                 }}
                                             />
-                                            <datalist id="supplier-codes">
-                                                {suppliers.map(s => (
+                                        <datalist id="supplier-codes">
+                                                {(Array.isArray(suppliers) ? suppliers : []).map(s => (
                                                     <option key={s.id} value={s.code}>{s.name}</option>
                                                 ))}
                                             </datalist>
@@ -200,14 +200,14 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     const inputName = e.target.value;
                                                     setReceiptSupplier(inputName);
                                                     // Tự động điền mã NCC khi tìm thấy tên khớp
-                                                    const matchedSupplier = suppliers.find(s => s.name === inputName);
+                                                    const matchedSupplier = (Array.isArray(suppliers) ? suppliers : []).find(s => s.name === inputName);
                                                     if (matchedSupplier) {
                                                         setOrderCode(matchedSupplier.code);
                                                     }
                                                 }}
                                             />
                                             <datalist id="supplier-names">
-                                                {suppliers.map(s => (
+                                                {(Array.isArray(suppliers) ? suppliers : []).map(s => (
                                                     <option key={s.id} value={s.name}>{s.code}</option>
                                                 ))}
                                             </datalist>
@@ -222,7 +222,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                             list="active-order-codes"
                                             className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm transition-all"
                                             placeholder="Chọn đơn hàng..."
-                                            value={budgets.find(b => b.orderCode === orderCode)?.orderName || orderCode}
+                                            value={(Array.isArray(budgets) ? budgets : []).find(b => b.orderCode === orderCode)?.orderName || orderCode}
                                             onChange={e => {
                                                 const val = e.target.value;
                                                 const matched = activeOrders.find(b => b.orderName === val);
@@ -258,8 +258,8 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                         <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
                             {selectedItems.length > 0 ? (
                                 selectedItems.map((it, idx) => {
-                                    const m = materials.find(mat => mat.id === it.materialId);
-                                    const currentInWorkshop = materials.find(mat => mat.name === m?.name && mat.workshop === receiptWorkshop);
+                                    const m = (Array.isArray(materials) ? materials : []).find(mat => mat.id === it.materialId);
+                                    const currentInWorkshop = (Array.isArray(materials) ? materials : []).find(mat => mat.name === m?.name && mat.workshop === receiptWorkshop);
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-[#1e293b] border border-slate-100 dark:border-slate-700 rounded-xl group hover:border-sky-200 dark:hover:border-sky-700 transition-all">
                                             <div className="flex-1 min-w-0 mr-3">
@@ -278,7 +278,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     }} />
                                                     <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: parseNumber(x.quantity) + 1 } : x))} className="w-6 h-6 flex items-center justify-center text-sky-500 hover:text-sky-700"><Plus size={12} /></button>
                                                 </div>
-                                                <button onClick={() => setSelectedItems(selectedItems.filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                                <button onClick={() => setSelectedItems((Array.isArray(selectedItems) ? selectedItems : []).filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"> <Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     )
@@ -310,8 +310,8 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
 
                     <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {materials.filter(m => {
-                                const matchSearch = m.name.toLowerCase().includes(materialSearch.toLowerCase());
+                            {(Array.isArray(materials) ? materials : []).filter(m => {
+                                const matchSearch = String(m.name || '').toLowerCase().includes(String(materialSearch || '').toLowerCase());
                                 const matchWorkshop = m.workshop === receiptWorkshop; // Auto-filter by selected receiptWorkshop
                                 const matchClass = receiptSearchClass === 'ALL' || m.classification === receiptSearchClass;
                                 return matchSearch && matchWorkshop && matchClass;

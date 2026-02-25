@@ -187,10 +187,13 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
         }
     };
 
-    const filteredProjects = projects.filter(p =>
-        p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.address || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const safeProjects = Array.isArray(projects) ? projects : [];
+    const safeSearch = String(searchTerm || '').toLowerCase();
+
+    const filteredProjects = safeProjects.filter(p =>
+        String(p.code || '').toLowerCase().includes(safeSearch) ||
+        String(p.name || '').toLowerCase().includes(safeSearch) ||
+        String(p.address || '').toLowerCase().includes(safeSearch)
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return (

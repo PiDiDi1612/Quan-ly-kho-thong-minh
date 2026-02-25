@@ -95,13 +95,14 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                                 <div className="p-1.5 bg-sky-100/50 dark:bg-sky-900/30 rounded-lg text-sky-600 dark:text-sky-400"><ShoppingCart size={16} /></div>
                                 <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Danh mục điều chuyển</h4>
                             </div>
-                            <span className="px-2.5 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-full text-[10px] font-bold">{transferForm.items.length} Item</span>
+                            <span className="px-2.5 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-full text-[10px] font-bold">{(Array.isArray(transferForm.items) ? transferForm.items : []).length} Item</span>
                         </div>
 
                         <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 p-3">
-                            {transferForm.items.length > 0 ? (
+                            {Array.isArray(transferForm.items) && transferForm.items.length > 0 ? (
                                 transferForm.items.map((item: any, idx: number) => {
-                                    const mat = materials.find(m => m.id === item.materialId);
+                                    const mList = Array.isArray(materials) ? materials : [];
+                                    const mat = mList.find(m => m.id === item.materialId);
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-[#1e293b] border border-slate-100 dark:border-slate-700 rounded-xl group hover:border-sky-200 dark:hover:border-sky-700 transition-all">
                                             <div className="min-w-0 flex-1 mr-3">
@@ -129,7 +130,15 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                                                         setTransferForm({ ...transferForm, items: newItems });
                                                     }} className="p-1 text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors w-6 h-6 flex items-center justify-center"><Plus size={12} /></button>
                                                 </div>
-                                                <button onClick={() => setTransferForm({ ...transferForm, items: transferForm.items.filter((_: any, i: number) => i !== idx) })} className="p-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                                <button
+                                                    onClick={() => {
+                                                        const items = Array.isArray(transferForm.items) ? transferForm.items : [];
+                                                        setTransferForm({ ...transferForm, items: items.filter((_: any, i: number) => i !== idx) });
+                                                    }}
+                                                    className="p-2 text-slate-300 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
                                     );
@@ -168,21 +177,25 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
 
                     <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {materials.filter(m => {
-                                const matchSearch = m.name.toLowerCase().includes(transferForm.search.toLowerCase());
+                            {(Array.isArray(materials) ? materials : []).filter(m => {
+                                const search = String(transferForm.search || '').toLowerCase();
+                                const matchSearch = String(m.name || '').toLowerCase().includes(search);
                                 const matchClass = receiptSearchClass === 'ALL' || m.classification === receiptSearchClass;
                                 const matchWorkshop = m.workshop === transferForm.fromWorkshop;
-                                return matchSearch && matchClass && matchWorkshop;
+                                return matchSearch && matchWorkshop && matchClass;
                             }).map(m => {
-                                const isInCart = transferForm.items.some((it: any) => it.materialId === m.id);
+                                const safeItems = Array.isArray(transferForm.items) ? transferForm.items : [];
+                                const isInCart = safeItems.some((it: any) => it.materialId === m.id);
                                 return (
                                     <button key={m.id} onClick={() => {
+                                        const items = Array.isArray(transferForm.items) ? transferForm.items : [];
+                                        const isInCart = items.some((it: any) => it.materialId === m.id);
                                         if (isInCart) {
-                                            setTransferForm({ ...transferForm, items: transferForm.items.filter((it: any) => it.materialId !== m.id) });
+                                            setTransferForm({ ...transferForm, items: items.filter((it: any) => it.materialId !== m.id) });
                                         } else {
-                                            setTransferForm({ ...transferForm, items: [...transferForm.items, { materialId: m.id, quantity: 1 }] });
+                                            setTransferForm({ ...transferForm, items: [...items, { materialId: m.id, quantity: 1 }] });
                                         }
-                                    }} className={`group relative p-3.5 text-left bg-white dark:bg-[#1e293b] border rounded-xl transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between gap-3 h-full ${isInCart ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50/10 dark:bg-sky-900/10' : 'border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:shadow-md'}`}>
+                                    }} className={`group relative p-3.5 text-left bg-white dark:bg-[#1e293b] border rounded-xl transition-all shadow-sm active:scale-[0.98] flex flex-col justify-between gap-3 h-full ${Array.isArray(transferForm.items) && transferForm.items.some((it: any) => it.materialId === m.id) ? 'border-sky-500 ring-1 ring-sky-500 bg-sky-50/10 dark:bg-sky-900/10' : 'border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:shadow-md'}`}>
                                         <div className="min-w-0 w-full">
                                             <h5 className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700 dark:group-hover:text-sky-400">{m.name}</h5>
                                             <span className={`px-1.5 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100/50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-orange-100/50 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'} text-[10px] font-bold rounded uppercase inline-block`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
@@ -200,7 +213,7 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                                 );
                             })}
                         </div>
-                        {materials.filter(m => m.workshop === transferForm.fromWorkshop).length === 0 && (
+                        {(Array.isArray(materials) ? materials : []).filter(m => m.workshop === transferForm.fromWorkshop).length === 0 && (
                             <div className="h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-4 py-20 opacity-60">
                                 <Inbox size={48} className="stroke-1" />
                                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Xưởng nguồn chưa có vật tư nào</p>

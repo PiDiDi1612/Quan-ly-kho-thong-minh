@@ -21,7 +21,7 @@ export class MaterialRepository implements IMaterialRepository {
     async fetchById(id: string): Promise<Material | null> {
         try {
             const all = await this.fetchAll();
-            return all.find(m => m.id === id) || null;
+            return (Array.isArray(all) ? all : []).find(m => m.id === id) || null;
         } catch (error) {
             // Return null if not found
             return null;

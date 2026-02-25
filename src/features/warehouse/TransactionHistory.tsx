@@ -86,10 +86,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
     const filteredTransactions = useMemo(() => {
         const term = debouncedSearch.toLowerCase();
-        return transactions.filter(t => {
+        const safeTxs = Array.isArray(transactions) ? transactions : [];
+        return safeTxs.filter(t => {
             const matchesSearch =
-                t.materialId.toLowerCase().includes(term) ||
-                t.user.toLowerCase().includes(term) ||
+                (t.materialId || '').toLowerCase().includes(term) ||
+                (t.user || '').toLowerCase().includes(term) ||
                 (t.customerName || '').toLowerCase().includes(term); // Search by customer
             const matchesType = typeFilter === 'ALL' || t.type === typeFilter;
             return matchesSearch && matchesType;

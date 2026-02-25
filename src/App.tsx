@@ -167,21 +167,22 @@ const App: React.FC = () => {
         apiService.get<any>('/api/dashboard/summary').catch(() => null)
       ]);
 
-      setMaterials(matRes);
-      setTransactions(txData);
-      setProjects(projData);
-      setBudgets(budData);
-      setSuppliers(suppData);
+      setMaterials(Array.isArray(matRes) ? matRes : []);
+      setTransactions(Array.isArray(txData) ? txData : []);
+      setProjects(Array.isArray(projData) ? projData : []);
+      setBudgets(Array.isArray(budData) ? budData : []);
+      setSuppliers(Array.isArray(suppData) ? suppData : []);
       setServerSummary(summaryData);
 
-      (inventoryService as any).allTransactions = txData;
+      (inventoryService as any).allTransactions = Array.isArray(txData) ? txData : [];
       (inventoryService as any).lastFetchTime = Date.now();
       (inventoryService as any).stockCache.clear();
 
       if (currentUser?.role === 'ADMIN') {
-        setUsers(usersData);
-        setActivityLogs(logsData);
-        const updatedSelf = usersData.find((u: User) => u.id === currentUser.id);
+        const safeUsers = Array.isArray(usersData) ? usersData : [];
+        setUsers(safeUsers);
+        setActivityLogs(Array.isArray(logsData) ? logsData : []);
+        const updatedSelf = currentUser ? safeUsers.find((u: User) => u.id === currentUser.id) : null;
         if (updatedSelf) setCurrentUser(updatedSelf);
       }
       setLastSync(new Date());
@@ -272,7 +273,8 @@ const App: React.FC = () => {
   const generateReceiptId = (type: TransactionType, workshop: WorkshopCode) => {
     const year = new Date().getFullYear().toString().slice(-2);
     const prefix = type === TransactionType.IN ? 'PNK' : type === TransactionType.OUT ? 'PXK' : 'PDC';
-    const sameTypeTxs = transactions.filter(t => t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`));
+    const safeTxs = Array.isArray(transactions) ? transactions : [];
+    const sameTypeTxs = safeTxs.filter(t => t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`));
     let nextNum = 1;
     if (sameTypeTxs.length > 0) {
       const nums = sameTypeTxs.map(t => parseInt(t.receiptId.split('/')[3], 10) || 0);
@@ -328,16 +330,34 @@ const App: React.FC = () => {
   const canModify = hasPermission('MANAGE_WAREHOUSE');
 
   const summary = useMemo(() => {
-    if (serverSummary) return { ...serverSummary, txCount: transactions.length, mainItems: materials.filter(m => m.classification === 'Vật tư chính').length };
+    const safeMaterials = Array.isArray(materials) ? materials : [];
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+    // Always calculate local fallback even if serverSummary exists, to ensure properties like lowStockItems are present
+    const lowStockMaterials = safeMaterials.filter(m => (parseNumber(m.quantity ?? 0)) <= (parseNumber(m.minThreshold ?? 0)));
     const today = new Date().toISOString().split('T')[0];
-    const todayTxs = transactions.filter(t => t.date === today);
-    return {
-      totalItems: materials.length,
-      lowStockCount: materials.filter(m => m.quantity <= m.minThreshold).length,
-      lowStockItems: materials.filter(m => m.quantity <= m.minThreshold).slice(0, 5),
-      todayIn: todayTxs.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + t.quantity, 0),
-      todayOut: todayTxs.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + t.quantity, 0),
+    const todayTxs = safeTransactions.filter(t => t.date === today);
+
+    const baseSummary = {
+      totalItems: safeMaterials.length,
+      lowStockCount: lowStockMaterials.length,
+      lowStockItems: lowStockMaterials.slice(0, 5),
+      todayIn: todayTxs.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + (t.quantity || 0), 0),
+      todayOut: todayTxs.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + (t.quantity || 0), 0),
     };
+
+    if (serverSummary) {
+      return {
+        ...baseSummary,
+        ...serverSummary,
+        // Ensure lowStockItems from server is an array, otherwise fallback to local
+        lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : baseSummary.lowStockItems,
+        txCount: safeTransactions.length,
+        mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
+      };
+    }
+
+    return baseSummary;
   }, [materials, transactions, serverSummary]);
 
   const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
@@ -375,7 +395,7 @@ const App: React.FC = () => {
     });
   };
 
-  const { transferForm, setTransferForm, handleTransfer } = useWarehouseTransfer({
+  const { transferForm, setTransferForm, handleTransfer, receiptSearchClass, setReceiptSearchClass } = useWarehouseTransfer({
     transactions, currentUser, userRole, activeTab, loadData, logActivity, setActiveTab, requestConfirm, setModalError,
     closeConfirmDialog: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
   });
@@ -518,7 +538,7 @@ const App: React.FC = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-6">
-                    {summary.lowStockItems.length > 0 ? (
+                    {Array.isArray(summary.lowStockItems) && summary.lowStockItems.length > 0 ? (
                       <div className="space-y-3">
                         {summary.lowStockItems.map(m => (
                           <div key={m.id} className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/30 hover:bg-muted/60 hover:border-emerald-600/30 transition-all group">
@@ -566,7 +586,7 @@ const App: React.FC = () => {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="divide-y divide-border border-t border-border mt-2">
-                      {transactions.slice(0, 5).map(t => (
+                      {(Array.isArray(transactions) ? transactions : []).slice(0, 5).map(t => (
                         <div key={t.id} className="p-5 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-colors flex items-center justify-between group">
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 ${t.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
@@ -605,7 +625,7 @@ const App: React.FC = () => {
 
           {activeTab === 'warehouse_receipt' && (
             <WarehouseReceipt
-              materials={materials} currentUser={currentUser} onUpdate={loadData} recipes={budgets}
+              materials={materials} currentUser={currentUser} onUpdate={loadData} budgets={budgets}
               receiptId={receiptId} setReceiptId={setReceiptId} receiptType={receiptType}
               setReceiptType={setReceiptType} receiptWorkshop={receiptWorkshop} setReceiptWorkshop={setReceiptWorkshop}
               receiptTime={receiptTime} setReceiptTime={setReceiptTime} receiptTimeDisplay={receiptTimeDisplay}
@@ -617,9 +637,15 @@ const App: React.FC = () => {
 
           {activeTab === 'warehouse_transfer' && (
             <WarehouseTransfer
-              materials={materials} currentUser={currentUser} onUpdate={loadData}
-              form={transferForm} setForm={setTransferForm} onTransfer={handleTransfer}
-              modalError={modalError} setModalError={setModalError}
+              materials={materials}
+              transferForm={transferForm}
+              setTransferForm={setTransferForm}
+              handleTransfer={handleTransfer}
+              modalError={modalError}
+              formatNumber={formatNumber}
+              parseNumber={parseNumber}
+              receiptSearchClass={receiptSearchClass}
+              setReceiptSearchClass={setReceiptSearchClass}
             />
           )}
 

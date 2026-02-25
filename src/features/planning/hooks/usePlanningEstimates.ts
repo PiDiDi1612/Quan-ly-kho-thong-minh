@@ -158,7 +158,8 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const generateOrderCode = (projectCode: string, workshop: WorkshopCode) => {
         if (!projectCode) return '';
         const prefix = `${projectCode}-${workshop}`;
-        const existingCodes = budgets
+        const safeBudgets = Array.isArray(budgets) ? budgets : [];
+        const existingCodes = safeBudgets
             .filter(b => b.orderCode && b.orderCode.startsWith(prefix))
             .map(b => {
                 const parts = b.orderCode!.split('-');
@@ -172,7 +173,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     };
 
     const handleProjectSelect = (projectCode: string) => {
-        const project = projects.find(p => p.code === projectCode);
+        const project = (Array.isArray(projects) ? projects : []).find(p => p.code === projectCode);
         const workshop = formData.workshop || 'OG';
 
         const newOrderCode = generateOrderCode(projectCode, workshop);
@@ -248,7 +249,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
 
     const handleProcessImport = (mappedData: any[]) => {
         const newItems: BudgetItem[] = [...(formData.items || [])];
-        const workshopMaterials = materials.filter(m => m.workshop === formData.workshop);
+        const workshopMaterials = (Array.isArray(materials) ? materials : []).filter(m => m.workshop === formData.workshop);
         let count = 0;
 
         for (const item of mappedData) {
@@ -257,7 +258,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
 
             if (!materialName || qty <= 0) continue;
 
-            const match = workshopMaterials.find(m => m.name.trim().toLowerCase() === String(materialName).trim().toLowerCase());
+            const match = (Array.isArray(workshopMaterials) ? workshopMaterials : []).find(m => m.name.trim().toLowerCase() === String(materialName).trim().toLowerCase());
             if (match) {
                 const existingIdx = newItems.findIndex(it => it.materialId === match.id);
                 if (existingIdx >= 0) newItems[existingIdx].estimatedQty += qty;
@@ -276,15 +277,22 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     };
 
     const getIssuedQuantity = (orderCode: string, materialId: string, materialName?: string) => {
-        return transactions
+        const safeTransactions = Array.isArray(transactions) ? transactions : [];
+        return safeTransactions
             .filter(t => t.type === TransactionType.OUT && t.orderCode === orderCode && (t.materialId === materialId || (!!materialName && t.materialName === materialName)))
             .reduce((sum, t) => sum + t.quantity, 0);
     };
 
     const filteredBudgets = useMemo(() => {
-        return budgets.filter(b => {
-            const matchSearch = (b.orderCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.orderName || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchProject = (b.projectName || '').toLowerCase().includes(projectSearch.toLowerCase());
+        const safeBudgets = Array.isArray(budgets) ? budgets : [];
+        const safeSearch = String(searchTerm || '').toLowerCase();
+        const safeProjectSearch = String(projectSearch || '').toLowerCase();
+
+        return safeBudgets.filter(b => {
+            const matchSearch =
+                String(b.orderCode || '').toLowerCase().includes(safeSearch) ||
+                String(b.orderName || '').toLowerCase().includes(safeSearch);
+            const matchProject = String(b.projectName || '').toLowerCase().includes(safeProjectSearch);
             const matchWorkshop = workshopFilter === 'ALL' || b.workshop === workshopFilter;
             const matchStatus = statusFilter === 'ALL' || b.status === statusFilter;
 

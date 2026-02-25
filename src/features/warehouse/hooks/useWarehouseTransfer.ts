@@ -45,8 +45,9 @@ export const useWarehouseTransfer = ({
         const year = new Date().getFullYear().toString().slice(-2);
         const prefix = type === TransactionType.IN ? 'PNK' : type === TransactionType.OUT ? 'PXK' : 'PDC';
 
-        const sameTypeTxs = transactions.filter(t =>
-            t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`)
+        const safeTxs = Array.isArray(transactions) ? transactions : [];
+        const sameTypeTxs = safeTxs.filter(t =>
+            t.receiptId && t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`)
         );
 
         let nextNum = 1;

@@ -33,19 +33,19 @@ export const ExcelMappingModal: React.FC<ExcelMappingModalProps> = ({
 
     // Auto-mapping logic
     useEffect(() => {
-        if (isOpen && excelHeaders.length > 0) {
+        if (isOpen && Array.isArray(excelHeaders) && excelHeaders.length > 0) {
             const initialMapping: { [key: string]: string } = {};
 
             fields.forEach(field => {
                 const patterns = [
-                    field.label.toLowerCase(),
-                    field.key.toLowerCase(),
-                    ...(field.autoMatchPatterns || []).map(p => p.toLowerCase())
+                    String(field.label || '').toLowerCase(),
+                    String(field.key || '').toLowerCase(),
+                    ...(field.autoMatchPatterns || []).map(p => String(p || '').toLowerCase())
                 ];
 
                 const match = excelHeaders.find(header => {
-                    const h = header.toLowerCase().trim();
-                    return patterns.some(p => h.includes(p) || p.includes(h));
+                    const h = String(header || '').toLowerCase().trim();
+                    return h && patterns.some(p => p && (h.includes(p) || p.includes(h)));
                 });
 
                 if (match) {

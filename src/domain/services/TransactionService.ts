@@ -30,10 +30,11 @@ export class TransactionService implements ITransactionService {
         const yearPrefix = `${prefix}/${workshop}/${year}/`;
 
         // Get all transactions of same type & workshop
-        const allTxs = await transactionRepository.list({
+        let allTxs = await transactionRepository.list({
             type,
             workshop
         });
+        if (!Array.isArray(allTxs)) allTxs = [];
 
         // Filter by year prefix and find max number
         const samePeriod = allTxs.filter(t => t.receiptId.startsWith(yearPrefix));
@@ -382,7 +383,8 @@ export class TransactionService implements ITransactionService {
         startDate?: Date;
         endDate?: Date;
     }): Promise<Transaction[]> {
-        return transactionRepository.list(filters);
+        const transactions = await transactionRepository.list(filters);
+        return Array.isArray(transactions) ? transactions : [];
     }
 }
 

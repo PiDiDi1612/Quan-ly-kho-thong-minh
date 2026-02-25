@@ -86,7 +86,8 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
         { key: 'estimatedQty', label: 'Số lượng (*)', required: true, autoMatchPatterns: ['số lượng', 'sl', 'qty', 'dự toán'] }
     ];
 
-    const { projects, materials } = props;
+    const projects = Array.isArray(props.projects) ? props.projects : [];
+    const materials = Array.isArray(props.materials) ? props.materials : [];
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -337,8 +338,8 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                         </div>
                         <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-2 custom-scrollbar items-start content-start">
                             {materials.filter(m => {
-                                const search = materialSearch.toLowerCase();
-                                const matchName = m.name.toLowerCase().includes(search);
+                                const search = String(materialSearch || '').toLowerCase();
+                                const matchName = String(m.name || '').toLowerCase().includes(search);
                                 const matchWorkshop = m.workshop === formData.workshop;
                                 const matchClass = selectedMaterialClass === 'ALL' || m.classification === selectedMaterialClass;
                                 return matchName && matchWorkshop && matchClass;

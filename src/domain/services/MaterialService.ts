@@ -36,7 +36,8 @@ export class MaterialService implements IMaterialService {
      */
     async generateMaterialId(workshop: WorkshopCode): Promise<string> {
         // Get all materials
-        const allMaterials = await materialRepository.fetchAll();
+        let allMaterials = await materialRepository.fetchAll();
+        if (!Array.isArray(allMaterials)) allMaterials = [];
 
         // Filter by workshop prefix
         const prefix = `VT/${workshop}/`;
@@ -71,7 +72,8 @@ export class MaterialService implements IMaterialService {
         }
 
         // 2. Check duplicate name in same workshop
-        const allMaterials = await materialRepository.fetchAll();
+        let allMaterials = await materialRepository.fetchAll();
+        if (!Array.isArray(allMaterials)) allMaterials = [];
         const existing = allMaterials.filter(m => m.workshop === data.workshop);
 
         const duplicate = existing.find(m =>
@@ -221,7 +223,9 @@ export class MaterialService implements IMaterialService {
 
         // 6. **CHECK FOR DUPLICATE TARGET NAME**
         // IMPORTANT: Exclude the source materials being merged from this check
-        const allMaterials = await materialRepository.fetchAll();
+        let allMaterials = await materialRepository.fetchAll();
+        if (!Array.isArray(allMaterials)) allMaterials = [];
+
         const duplicate = allMaterials.find(m =>
             m.name.toLowerCase().trim() === targetData.name.toLowerCase().trim() &&
             m.workshop === workshop &&
@@ -317,7 +321,9 @@ export class MaterialService implements IMaterialService {
                 }
 
                 // Check if material exists (same name + workshop)
-                const allMaterials = await materialRepository.fetchAll();
+                let allMaterials = await materialRepository.fetchAll();
+                if (!Array.isArray(allMaterials)) allMaterials = [];
+
                 const existing = allMaterials.filter(m => m.workshop === workshop);
                 const duplicate = existing.find(m =>
                     m.name.toLowerCase().trim() === String(name).toLowerCase().trim()
@@ -367,6 +373,12 @@ export class MaterialService implements IMaterialService {
     }): Promise<Material[]> {
 
         let materials = await materialRepository.fetchAll();
+
+        // Defensive check: Ensure materials is an array
+        if (!Array.isArray(materials)) {
+            console.error('MaterialService.listMaterials: Expected an array from repository, got:', materials);
+            return [];
+        }
 
         // Apply workshop filter
         if (filters.workshop) {

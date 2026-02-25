@@ -68,9 +68,10 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
 
     // Filter Logic
     const filteredMaterials = useMemo(() => {
-        return materials.filter(m => {
-            const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                m.id.toLowerCase().includes(searchTerm.toLowerCase());
+        const safeMaterials = Array.isArray(materials) ? materials : [];
+        return safeMaterials.filter(m => {
+            const matchesSearch = (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (m.id || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesWorkshop = workshopFilter === 'ALL' || m.workshop === workshopFilter;
             const matchesClassification = classificationFilter === 'ALL' || m.classification === classificationFilter;
             return matchesSearch && matchesWorkshop && matchesClassification;
@@ -272,7 +273,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-6 border border-slate-100 dark:border-slate-700">
                             <h4 className="text-sm font-bold text-slate-500 uppercase mb-3">Các vật tư được chọn để gộp</h4>
                             <div className="space-y-2">
-                                {materials.filter(m => selectedIds.includes(m.id)).map(m => (
+                                {(Array.isArray(materials) ? materials : []).filter(m => selectedIds.includes(m.id)).map(m => (
                                     <div key={m.id} className="flex justify-between items-center text-sm">
                                         <div>
                                             <span className="font-bold text-slate-700 dark:text-slate-200">{m.name}</span>
@@ -287,7 +288,7 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                                 <span className="font-bold text-slate-800 dark:text-white uppercase text-sm">Tổng tồn kho sau gộp</span>
                                 <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-lg">
-                                    {materials.filter(m => selectedIds.includes(m.id)).reduce((sum, m) => sum + m.quantity, 0).toLocaleString()} {targetMaterial.unit}
+                                    {(Array.isArray(materials) ? materials : []).filter(m => selectedIds.includes(m.id)).reduce((sum, m) => sum + m.quantity, 0).toLocaleString()} {targetMaterial.unit}
                                 </span>
                             </div>
                         </div>
