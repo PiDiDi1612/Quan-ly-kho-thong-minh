@@ -50,14 +50,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: 'warehouse_transfer', label: 'Chuyển Kho', icon: ArrowRightLeft, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_history', label: 'Lịch Sử Giao Dịch', icon: History, permission: 'VIEW_TRANSACTION' },
         { id: 'supplier_management', label: 'Quản Lý NCC', icon: ShoppingCart, permission: 'MANAGE_SUPPLIERS' },
-        { id: 'warehouse_merge', label: 'Bóc Tách Vật Tư', icon: Database, permission: 'MANAGE_WAREHOUSE' },
+        { id: 'warehouse_merge', label: 'Hợp nhất vật tư', icon: Database, permission: 'MANAGE_WAREHOUSE' },
       ]
     },
     {
       title: 'KẾ HOẠCH',
       items: [
         { id: 'planning_projects', label: 'Cấu Hình Dự Án', icon: MapPin, permission: 'PLANNING_PROJECTS' },
-        { id: 'planning_estimates', label: 'Dự Toán (Ngân Sách)', icon: ClipboardList, permission: 'PLANNING_ESTIMATES' },
+        { id: 'planning_estimates', label: 'Dự Toán Đơn Hàng', icon: ClipboardList, permission: 'PLANNING_ESTIMATES' },
       ]
     },
     {
@@ -162,55 +162,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         </TooltipProvider>
       </div>
 
-      {/* User Section (Refined) */}
-      <div className="p-4 border-t border-border bg-emerald-50/20 dark:bg-emerald-950/5">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar
-                  className="h-10 w-10 cursor-pointer ring-2 ring-emerald-600/10 hover:ring-emerald-600/40 hover:scale-105 transition-all shadow-sm"
-                  onClick={onOpenAccount}
-                >
-                  <AvatarFallback className="bg-emerald-600 text-white font-black text-sm">
-                    {currentUser?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              {isCollapsed && (
-                <TooltipContent side="right" className="font-bold">
-                  {currentUser?.fullName || 'Tài khoản'}
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0 animate-in fade-in duration-300">
-              <p className="text-sm font-bold text-foreground truncate">{currentUser?.fullName || 'Người dùng'}</p>
-              <Badge variant="secondary" className="mt-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-none h-4 px-1.5 text-[9px] font-black uppercase">
-                {ROLE_LABELS[userRole] || userRole}
-              </Badge>
-            </div>
-          )}
-
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onLogout}
-                  className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all active:scale-95"
-                >
-                  <LogOut size={18} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="font-bold">Đăng xuất</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
     </aside>
   );
 };

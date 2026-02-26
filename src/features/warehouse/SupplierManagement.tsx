@@ -287,6 +287,14 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                         <FileSpreadsheet className="mr-2 h-4 w-4 text-sky-600" />
                         <span className="hidden sm:inline">Nhập Excel</span>
                     </Button>
+                    <Button
+                        variant="outline"
+                        className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm"
+                        onClick={handleOpenMergeModal}
+                    >
+                        <Settings className="mr-2 h-4 w-4 text-purple-600" />
+                        <span className="hidden sm:inline">Hợp nhất NCC</span>
+                    </Button>
                     <Button className="h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20 ml-1" onClick={() => handleOpenModal()}>
                         <Plus size={14} className="mr-1.5 stroke-[3]" />
                         Thêm Mới

@@ -221,10 +221,10 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ material
                         ))}
                     </div>
 
-                    <div className="flex items-center gap-4 bg-muted/50 border border-border rounded-xl h-11 px-4">
-                        <DateInput value={startDate} onChange={setStartDate} className="w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
+                    <div className="flex items-center gap-3 bg-muted/50 border border-border rounded-xl h-11 px-3">
+                        <DateInput value={startDate} onChange={setStartDate} className="w-28 sm:w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
                         <span className="mx-2 text-muted-foreground">→</span>
-                        <DateInput value={endDate} onChange={setEndDate} className="w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
+                        <DateInput value={endDate} onChange={setEndDate} className="w-28 sm:w-32 border-none bg-transparent h-auto p-0 text-sm font-black" />
                     </div>
                 </div>
 

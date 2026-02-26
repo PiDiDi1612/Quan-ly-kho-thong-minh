@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Calendar, Package, ArrowUpRight, ArrowDownLeft, History, Plus,
   Search, AlertTriangle, X, Warehouse, FileText, Printer, Trash2,
@@ -6,7 +6,7 @@ import {
   List, ChevronRight, Filter, ShoppingCart, HelpCircle, FileSpreadsheet,
   Download, Users, Settings, Activity, Shield, ListChecks, Save,
   AlertCircle, Info, Heart, Inbox, Moon, Sun, Eye, EyeOff,
-  ClipboardList, Clock, Globe
+  ClipboardList, Clock, Globe, LogOut
 } from 'lucide-react';
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
@@ -447,7 +447,7 @@ const App: React.FC = () => {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="h-16 shrink-0 bg-card border-b border-border flex items-center justify-between px-8 gap-6 z-20 backdrop-blur-md bg-card/80 sticky top-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <h2 className="text-lg font-extrabold text-foreground tracking-tight whitespace-nowrap">
               {activeTab === 'dashboard' ? '📊 Dashboard' :
                 activeTab === 'warehouse_inventory' ? 'Kho Vật Tư' :
@@ -458,15 +458,6 @@ const App: React.FC = () => {
                           activeTab === 'planning_estimates' ? 'Dự Toán' :
                             activeTab === 'users' ? 'Người Dùng' : 'SmartStock'}
             </h2>
-          </div>
-
-          <div className="flex-1 max-w-xl hidden md:flex relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
-            <Input
-              type="search"
-              placeholder="Tìm kiếm nhanh vật tư, mã dự án..."
-              className="pl-11 h-10 bg-muted/50 border-border rounded-xl focus-visible:ring-emerald-600/20 focus-visible:border-emerald-600 transition-all font-medium"
-            />
           </div>
 
           <div className="flex items-center gap-3">
@@ -491,6 +482,14 @@ const App: React.FC = () => {
               <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-emerald-600/10 hover:ring-emerald-600/40 transition-all shadow-sm" onClick={() => setIsAccountModalOpen(true)}>
                 <AvatarFallback className="bg-emerald-600 text-white font-black">{currentUser?.fullName?.charAt(0) || 'U'}</AvatarFallback>
               </Avatar>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="h-9 rounded-xl text-xs font-bold uppercase hidden sm:inline-flex"
+              >
+                <LogOut size={16} className="mr-1" /> Đăng xuất
+              </Button>
             </div>
           </div>
         </header>
@@ -619,19 +618,23 @@ const App: React.FC = () => {
             <MaterialManagement materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} canManage={canModify} />
           )}
 
+          {activeTab === 'warehouse_history' && (
+            <TransactionHistory transactions={transactions} materials={materials} currentUser={currentUser} onRefresh={loadData} />
+          )}
+
           {(activeTab === 'reports_history' || activeTab === 'reports_activity') && (
             <ReportViewer transactions={transactions} activityLogs={activityLogs} materials={materials} currentUser={currentUser} onRefresh={loadData} initialTab={activeTab === 'reports_history' ? 'history' : 'activity'} />
           )}
 
           {activeTab === 'warehouse_receipt' && (
             <WarehouseReceipt
-              materials={materials} currentUser={currentUser} onUpdate={loadData} budgets={budgets}
+              materials={materials} budgets={budgets} suppliers={suppliers}
               receiptId={receiptId} setReceiptId={setReceiptId} receiptType={receiptType}
               setReceiptType={setReceiptType} receiptWorkshop={receiptWorkshop} setReceiptWorkshop={setReceiptWorkshop}
               receiptTime={receiptTime} setReceiptTime={setReceiptTime} receiptTimeDisplay={receiptTimeDisplay}
               setReceiptTimeDisplay={setReceiptTimeDisplay} receiptSupplier={receiptSupplier} setReceiptSupplier={setReceiptSupplier}
               selectedItems={selectedItems} setSelectedItems={setSelectedItems} orderCode={orderCode}
-              setOrderCode={setOrderCode} handleCreateReceipt={handleCreateReceipt} modalError={modalError} setModalError={setModalError}
+              setOrderCode={setOrderCode} handleCreateReceipt={handleCreateReceipt} modalError={modalError}
             />
           )}
 

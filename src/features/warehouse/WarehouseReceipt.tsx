@@ -34,18 +34,9 @@ interface WarehouseReceiptProps {
     setSelectedItems: (items: any[]) => void;
     materials: Material[];
     budgets: OrderBudget[];
-    receiptSearchWorkshop: string;
-    setReceiptSearchWorkshop: (w: string) => void;
-    receiptSearchClass: string;
-    setReceiptSearchClass: (c: string) => void;
-    materialSearch: string;
-    setMaterialSearch: (s: string) => void;
     modalError: string | null;
     suppliers: any[]; // Danh sách NCC
     handleCreateReceipt: () => void;
-    requestConfirm: (title: string, msg: string, onConfirm: () => void, type?: any) => void;
-    formatNumber: (n: any) => string;
-    parseNumber: (n: any) => number;
 }
 
 export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
@@ -66,20 +57,29 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
     selectedItems,
     setSelectedItems,
     materials,
-    receiptSearchWorkshop,
-    setReceiptSearchWorkshop,
-    receiptSearchClass,
-    setReceiptSearchClass,
-    materialSearch,
-    setMaterialSearch,
     modalError,
     suppliers,
     budgets,
-    handleCreateReceipt,
-    requestConfirm,
-    formatNumber,
-    parseNumber
+    handleCreateReceipt
 }) => {
+    const [materialSearch, setMaterialSearch] = React.useState('');
+    const [receiptSearchClass, setReceiptSearchClass] = React.useState<'ALL' | 'Vật tư chính' | 'Vật tư phụ'>('ALL');
+
+    const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];
+
+    const localFormatNumber = (val: any): string => {
+        if (val === null || val === undefined) return '0';
+        const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, '.'));
+        return isNaN(num) ? '0' : num.toLocaleString('vi-VN');
+    };
+
+    const localParseNumber = (val: any): number => {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        const clean = String(val).replace(/,/g, '.');
+        const num = parseFloat(clean);
+        return isNaN(num) ? 0 : num;
+    };
     // Lọc danh sách đơn hàng đang thực hiện cho xưởng đang chọn
     const activeOrders = (Array.isArray(budgets) ? budgets : []).filter(b =>
         b.status === 'Đang thực hiện' &&
@@ -176,14 +176,14 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     const inputCode = e.target.value.toUpperCase();
                                                     setOrderCode(inputCode);
                                                     // Tự động điền tên NCC khi tìm thấy mã khớp
-                                                    const matchedSupplier = (Array.isArray(suppliers) ? suppliers : []).find(s => s.code === inputCode);
+                                                    const matchedSupplier = safeSuppliers.find(s => s.code === inputCode);
                                                     if (matchedSupplier) {
                                                         setReceiptSupplier(matchedSupplier.name);
                                                     }
                                                 }}
                                             />
-                                        <datalist id="supplier-codes">
-                                                {(Array.isArray(suppliers) ? suppliers : []).map(s => (
+                                            <datalist id="supplier-codes">
+                                                {safeSuppliers.map(s => (
                                                     <option key={s.id} value={s.code}>{s.name}</option>
                                                 ))}
                                             </datalist>
@@ -200,14 +200,14 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     const inputName = e.target.value;
                                                     setReceiptSupplier(inputName);
                                                     // Tự động điền mã NCC khi tìm thấy tên khớp
-                                                    const matchedSupplier = (Array.isArray(suppliers) ? suppliers : []).find(s => s.name === inputName);
+                                                    const matchedSupplier = safeSuppliers.find(s => s.name === inputName);
                                                     if (matchedSupplier) {
                                                         setOrderCode(matchedSupplier.code);
                                                     }
                                                 }}
                                             />
                                             <datalist id="supplier-names">
-                                                {(Array.isArray(suppliers) ? suppliers : []).map(s => (
+                                                {safeSuppliers.map(s => (
                                                     <option key={s.id} value={s.name}>{s.code}</option>
                                                 ))}
                                             </datalist>
@@ -264,11 +264,11 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-[#1e293b] border border-slate-100 dark:border-slate-700 rounded-xl group hover:border-sky-200 dark:hover:border-sky-700 transition-all">
                                             <div className="flex-1 min-w-0 mr-3">
                                                 <p className="font-bold text-sm uppercase truncate text-slate-700 dark:text-slate-200 leading-tight group-hover:text-sky-700 transition-colors">{m?.name}</p>
-                                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5">Tồn {receiptWorkshop}: <span className="text-slate-600 dark:text-slate-400">{formatNumber(currentInWorkshop?.quantity || 0)}</span></p>
+                                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5">Tồn {receiptWorkshop}: <span className="text-slate-600 dark:text-slate-400">{localFormatNumber(currentInWorkshop?.quantity || 0)}</span></p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg p-1 border border-slate-200/50 dark:border-slate-700">
-                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: Math.max(0.01, parseNumber(x.quantity) - 1) } : x))} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500"><Minus size={12} /></button>
+                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: Math.max(0.01, localParseNumber(x.quantity) - 1) } : x))} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500"><Minus size={12} /></button>
                                                     <input type="text" className="w-16 bg-transparent text-center text-sm font-bold outline-none text-slate-800 dark:text-white" value={it.quantity} onChange={e => {
                                                         const val = e.target.value.replace(/[^0-9.,]/g, '');
                                                         const parts = val.split(/[.,]/);
@@ -276,7 +276,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                             setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: val } : x));
                                                         }
                                                     }} />
-                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: parseNumber(x.quantity) + 1 } : x))} className="w-6 h-6 flex items-center justify-center text-sky-500 hover:text-sky-700"><Plus size={12} /></button>
+                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: localParseNumber(x.quantity) + 1 } : x))} className="w-6 h-6 flex items-center justify-center text-sky-500 hover:text-sky-700"><Plus size={12} /></button>
                                                 </div>
                                                 <button onClick={() => setSelectedItems((Array.isArray(selectedItems) ? selectedItems : []).filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"> <Trash2 size={16} /></button>
                                             </div>
@@ -336,7 +336,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                         <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50 dark:border-slate-700">
                                             <div>
                                                 <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Số lượng tồn</p>
-                                                <p className="text-sm font-extrabold text-slate-800 dark:text-white">{formatNumber(m.quantity)}</p>
+                                                <p className="text-sm font-extrabold text-slate-800 dark:text-white">{localFormatNumber(m.quantity)}</p>
                                             </div>
                                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isInCart ? 'bg-sky-600 text-white shadow-sm' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 group-hover:bg-sky-600 group-hover:text-white'}`}>
                                                 {isInCart ? <Check size={16} /> : <Plus size={16} />}
@@ -356,14 +356,12 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
 
                     <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-slate-200/50">
                         <button
-                            onClick={() => requestConfirm(
-                                'Xác nhận in',
-                                'Bạn có chắc chắn muốn in phiếu tạm này không?',
-                                () => {
+                            onClick={() => {
+                                if (selectedItems.length === 0) return;
+                                if (window.confirm('Bạn có chắc chắn muốn in phiếu tạm này không?')) {
                                     window.print();
-                                },
-                                'info'
-                            )}
+                                }
+                            }}
                             disabled={selectedItems.length === 0}
                             className="px-6 py-3 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 rounded-xl font-extrabold uppercase text-[10px] flex items-center gap-2 shadow-sm hover:bg-slate-50 disabled:opacity-30 transition-all"
                         >
