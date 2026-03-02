@@ -232,9 +232,19 @@ export class InventoryService implements IInventoryService {
      * This is a synchronous wrapper for now
      */
     private getTransactionsSync(): Transaction[] {
+<<<<<<< HEAD
         const result = Array.isArray(this.allTransactions) ? this.allTransactions : [];
         console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${Array.isArray(this.allTransactions) ? 'loaded' : 'null/invalid'}`);
         return result;
+=======
+<<<<<<< HEAD
+        return Array.isArray(this.allTransactions) ? this.allTransactions : [];
+=======
+        const result = Array.isArray(this.allTransactions) ? this.allTransactions : [];
+        console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${Array.isArray(this.allTransactions) ? 'loaded' : 'null/invalid'}`);
+        return result;
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -242,7 +252,14 @@ export class InventoryService implements IInventoryService {
      * Call this once on app startup or when needed
      */
     async loadTransactions(): Promise<void> {
+<<<<<<< HEAD
         console.log('[InventoryService] loadTransactions: fetching from repository...');
+=======
+<<<<<<< HEAD
+=======
+        console.log('[InventoryService] loadTransactions: fetching from repository...');
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         const fetched = await transactionRepository.fetchAll();
         this.allTransactions = Array.isArray(fetched) ? fetched : [];
         this.transactionsByMaterial.clear(); // Clear index on fresh load

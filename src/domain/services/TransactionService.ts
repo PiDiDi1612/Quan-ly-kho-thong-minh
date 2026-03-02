@@ -225,11 +225,22 @@ export class TransactionService implements ITransactionService {
             // 8. **ROLLBACK MECHANISM**
             // If IN creation failed but OUT succeeded, delete OUT
             if (createdOut && !createdIn) {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                try {
+                    await transactionRepository.delete(createdOut.id);
+=======
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
                 console.error('Transfer IN creation failed, attempting rollback...');
 
                 try {
                     await transactionRepository.delete(createdOut.id);
                     console.log('Successfully rolled back OUT transaction:', createdOut.id);
+<<<<<<< HEAD
+=======
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
                 } catch (rollbackError: any) {
                     // CRITICAL: Rollback failed - manual intervention needed
                     console.error('CRITICAL: Rollback failed!', {
@@ -237,9 +248,18 @@ export class TransactionService implements ITransactionService {
                         receiptId: createdOut.receiptId,
                         error: rollbackError.message
                     });
+<<<<<<< HEAD
 
                     // TODO: Log to admin panel or alert system
                     // This requires manual database cleanup
+=======
+<<<<<<< HEAD
+=======
+
+                    // TODO: Log to admin panel or alert system
+                    // This requires manual database cleanup
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
                 }
             }
 

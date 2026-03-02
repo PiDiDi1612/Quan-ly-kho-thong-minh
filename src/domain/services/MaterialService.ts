@@ -26,6 +26,7 @@ export class MaterialService implements IMaterialService {
         if (endDate) params.append('endDate', endDate);
 
         // Use apiService for consistent base URL handling and authentication
+<<<<<<< HEAD
         const response = await apiService.get<any>(`/api/materials?${params.toString()}`);
 
         // Extract data array from paginated response
@@ -34,6 +35,10 @@ export class MaterialService implements IMaterialService {
         }
 
         return Array.isArray(response) ? response : [];
+=======
+        const data = await apiService.get<Material[]>(`/api/materials?${params.toString()}`);
+        return data;
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -41,25 +46,39 @@ export class MaterialService implements IMaterialService {
      * Format: VT/OG/00001
      */
     async generateMaterialId(workshop: WorkshopCode): Promise<string> {
+<<<<<<< HEAD
         // MUST fetch ALL materials (not paginated) to find the true maximum ID
+=======
+        // Get all materials
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         let allMaterials = await materialRepository.fetchAll();
         if (!Array.isArray(allMaterials)) allMaterials = [];
 
         // Filter by workshop prefix
         const prefix = `VT/${workshop}/`;
         const samePrefixMaterials = allMaterials.filter(m =>
+<<<<<<< HEAD
             m.id && m.id.startsWith(prefix)
+=======
+            m.id.startsWith(prefix) && m.workshop === workshop
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         );
 
         // Find max number
         let maxNum = 0;
         for (const material of samePrefixMaterials) {
             const parts = material.id.split('/');
+<<<<<<< HEAD
             if (parts.length >= 3) {
                 const num = parseInt(parts[2], 10);
                 if (!isNaN(num) && num > maxNum) {
                     maxNum = num;
                 }
+=======
+            const num = parseInt(parts[2], 10);
+            if (!isNaN(num) && num > maxNum) {
+                maxNum = num;
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             }
         }
 
@@ -165,7 +184,11 @@ export class MaterialService implements IMaterialService {
      */
     async deleteMaterial(materialId: string): Promise<void> {
         // Delegate to backend which has proper transaction checks
+<<<<<<< HEAD
         await apiService.delete(`/api/materials/${encodeURIComponent(materialId)}`);
+=======
+        await apiService.delete(`/api/materials/${materialId}`);
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -247,7 +270,14 @@ export class MaterialService implements IMaterialService {
             );
         }
 
+<<<<<<< HEAD
         // 7. **CREATE NEW MATERIAL**
+=======
+<<<<<<< HEAD
+=======
+        // 7. **CREATE NEW MATERIAL**
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         const newMaterial = await this.createMaterial({
             name: targetData.name,
             classification: targetData.classification,
@@ -257,6 +287,16 @@ export class MaterialService implements IMaterialService {
             note: targetData.note || `Merged from ${sourceMaterialIds.length} materials`,
         });
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+        // 7. **UPDATE ALL TRANSACTIONS** to point to new material
+        // This is the DESTRUCTIVE part
+        for (const sourceId of sourceMaterialIds) {
+            const transactions = inventoryService.getStockHistory(sourceId);
+
+=======
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         console.log('Created new merged material:', newMaterial.id);
 
         // 7. **UPDATE ALL TRANSACTIONS** to point to new material
@@ -268,6 +308,10 @@ export class MaterialService implements IMaterialService {
 
             console.log(`Updating ${transactions.length} transactions for material ${sourceId}`);
 
+<<<<<<< HEAD
+=======
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             for (const tx of transactions) {
                 // Update transaction to point to new material
                 await transactionRepository.update(tx.id, {
@@ -275,6 +319,17 @@ export class MaterialService implements IMaterialService {
                     materialId: newMaterial.id,
                     materialName: newMaterial.name,
                 });
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+            }
+        }
+
+        // 8. **DELETE SOURCE MATERIALS**
+        for (const sourceId of sourceMaterialIds) {
+            await materialRepository.delete(sourceId);
+=======
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
                 updatedTransactionCount++;
             }
         }
@@ -285,13 +340,25 @@ export class MaterialService implements IMaterialService {
         for (const sourceId of sourceMaterialIds) {
             await materialRepository.delete(sourceId);
             console.log(`Deleted source material: ${sourceId}`);
+<<<<<<< HEAD
+=======
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         }
 
         // 9. Invalidate inventory cache
         inventoryService.clearCache();
 
+<<<<<<< HEAD
         console.log('Merge completed successfully');
 
+=======
+<<<<<<< HEAD
+=======
+        console.log('Merge completed successfully');
+
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         return newMaterial;
     }
 

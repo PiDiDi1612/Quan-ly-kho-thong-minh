@@ -56,14 +56,28 @@ let socket: any;
 
 const App: React.FC = () => {
   const toast = useToast();
+<<<<<<< HEAD
   // --- CONNECTION CONFIG ---
+=======
+<<<<<<< HEAD
+=======
+  // --- CONNECTION CONFIG ---
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   const [connectionConfig, setConnectionConfig] = useState<{ mode: 'SERVER' | 'CLIENT' | null, serverIp: string }>(() => {
     const saved = localStorage.getItem('connection_config');
     if (saved) return JSON.parse(saved);
     return { mode: null, serverIp: '' };
   });
 
+<<<<<<< HEAD
   // --- AUTH STATE ---
+=======
+<<<<<<< HEAD
+=======
+  // --- AUTH STATE ---
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('GUEST');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -107,7 +121,14 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [serverSummary, setServerSummary] = useState<any>(null);
 
+<<<<<<< HEAD
   // --- UI STATE ---
+=======
+<<<<<<< HEAD
+=======
+  // --- UI STATE ---
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   const [currentTime, setCurrentTime] = useState(new Date());
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
@@ -156,13 +177,32 @@ const App: React.FC = () => {
     if (isSyncing && !isBackground) return;
     if (!isBackground) setIsSyncing(true);
     try {
+<<<<<<< HEAD
       const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
+=======
+<<<<<<< HEAD
+      const [matRes, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
+        apiService.get<Material[]>('/api/materials/all').catch(() => []),
+        apiService.get<Project[]>('/api/projects?limit=200').then((r: any) => r?.data || r).catch(() => []),
+        apiService.get<OrderBudget[]>('/api/budgets/all').catch(() => []),
+        apiService.get<any[]>('/api/suppliers?limit=200').then((r: any) => r?.data || r).catch(() => []),
+        currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
+        currentUser?.role === 'ADMIN' ? apiService.get<any>('/api/activity_logs?limit=50').then((r: any) => r?.data || r).catch(() => []) : Promise.resolve([]),
+        apiService.get<any>('/api/dashboard/summary').catch(() => null),
+        apiService.get<Transaction[]>('/api/transactions/planning').catch(() => [])
+      ]);
+
+      setMaterials(Array.isArray(matRes) ? matRes : []);
+=======
+      const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData] = await Promise.all([
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         materialService.listMaterials({}),
         transactionService.listTransactions({}),
         apiService.get<Project[]>('/api/projects').catch(() => []),
         apiService.get<OrderBudget[]>('/api/budgets').catch(() => []),
         supplierService.listSuppliers().catch(() => []),
         currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
+<<<<<<< HEAD
         currentUser?.role === 'ADMIN' ? apiService.get<ActivityLog[]>('/api/activity_logs?limit=50').catch(() => []) : Promise.resolve([]),
         apiService.get<any>('/api/dashboard/summary').catch(() => null),
         apiService.get<Transaction[]>('/api/transactions/planning').catch(() => [])
@@ -175,14 +215,34 @@ const App: React.FC = () => {
 
       setMaterials(Array.isArray(matRes) ? matRes : []);
       setTransactions(allTransactions);
+=======
+        currentUser?.role === 'ADMIN' ? apiService.get<ActivityLog[]>('/api/activity_logs').catch(() => []) : Promise.resolve([]),
+        apiService.get<any>('/api/dashboard/summary').catch(() => null)
+      ]);
+
+      setMaterials(Array.isArray(matRes) ? matRes : []);
+      setTransactions(Array.isArray(txData) ? txData : []);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
       setProjects(Array.isArray(projData) ? projData : []);
       setBudgets(Array.isArray(budData) ? budData : []);
       setSuppliers(Array.isArray(suppData) ? suppData : []);
       setServerSummary(summaryData);
+<<<<<<< HEAD
 
       (inventoryService as any).allTransactions = allTransactions;
       (inventoryService as any).lastFetchTime = Date.now();
       (inventoryService as any).stockCache.clear();
+=======
+<<<<<<< HEAD
+      setTransactions(Array.isArray(planningTxData) ? planningTxData : []);
+=======
+
+      (inventoryService as any).allTransactions = Array.isArray(txData) ? txData : [];
+      (inventoryService as any).lastFetchTime = Date.now();
+      (inventoryService as any).stockCache.clear();
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 
       if (currentUser?.role === 'ADMIN') {
         const safeUsers = Array.isArray(usersData) ? usersData : [];
@@ -219,7 +279,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     apiService.initSocket(debouncedLoadData);
+<<<<<<< HEAD
     const interval = setInterval(() => loadData(true), 10000);
+=======
+<<<<<<< HEAD
+    const interval = setInterval(() => loadData(true), 60000);
+=======
+    const interval = setInterval(() => loadData(true), 10000);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     return () => {
       clearInterval(interval);
       debouncedLoadData.cancel();
@@ -337,6 +405,7 @@ const App: React.FC = () => {
 
   const summary = useMemo(() => {
     const safeMaterials = Array.isArray(materials) ? materials : [];
+<<<<<<< HEAD
     const safeTransactions = Array.isArray(transactions) ? transactions : [];
     const lowStockMaterials = safeMaterials.filter(m => (parseNumber(m.quantity ?? 0)) <= (parseNumber(m.minThreshold ?? 0)));
 
@@ -345,25 +414,78 @@ const App: React.FC = () => {
         totalItems: serverSummary.totalItems ?? safeMaterials.length,
         lowStockCount: serverSummary.lowStockCount ?? lowStockMaterials.length,
         lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : lowStockMaterials.slice(0, 5),
+=======
+<<<<<<< HEAD
+
+    // Use serverSummary (optimized single-query response) as primary source
+    if (serverSummary) {
+      return {
+        totalItems: serverSummary.totalItems ?? safeMaterials.length,
+        lowStockCount: serverSummary.lowStockCount ?? 0,
+        lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : [],
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         todayIn: serverSummary.todayIn ?? 0,
         todayOut: serverSummary.todayOut ?? 0,
         workshopData: serverSummary.workshopData ?? [],
         activityData: serverSummary.activityData ?? [],
+<<<<<<< HEAD
         txCount: safeTransactions.length,
+=======
+        txCount: 0,
+=======
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+    // Always calculate local fallback even if serverSummary exists, to ensure properties like lowStockItems are present
+    const lowStockMaterials = safeMaterials.filter(m => (parseNumber(m.quantity ?? 0)) <= (parseNumber(m.minThreshold ?? 0)));
+    const today = new Date().toISOString().split('T')[0];
+    const todayTxs = safeTransactions.filter(t => t.date === today);
+
+    const baseSummary = {
+      totalItems: safeMaterials.length,
+      lowStockCount: lowStockMaterials.length,
+      lowStockItems: lowStockMaterials.slice(0, 5),
+      todayIn: todayTxs.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + (t.quantity || 0), 0),
+      todayOut: todayTxs.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + (t.quantity || 0), 0),
+    };
+
+    if (serverSummary) {
+      return {
+        ...baseSummary,
+        ...serverSummary,
+        // Ensure lowStockItems from server is an array, otherwise fallback to local
+        lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : baseSummary.lowStockItems,
+        txCount: safeTransactions.length,
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
       };
     }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    // Fallback when serverSummary is not yet loaded
+    const lowStockMaterials = safeMaterials.filter(m => (m.quantity ?? 0) <= (m.minThreshold ?? 0));
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     return {
       totalItems: safeMaterials.length,
       lowStockCount: lowStockMaterials.length,
       lowStockItems: lowStockMaterials.slice(0, 5),
       todayIn: 0,
       todayOut: 0,
+<<<<<<< HEAD
       txCount: safeTransactions.length,
       mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
     };
   }, [materials, transactions, serverSummary]);
+=======
+    };
+  }, [materials, serverSummary]);
+=======
+    return baseSummary;
+  }, [materials, transactions, serverSummary]);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 
   const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
     setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
@@ -666,11 +788,25 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'planning_projects' && (
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             <PlanningProjects projects={projects} currentUser={currentUser} onUpdate={loadData} />
           )}
 
           {activeTab === 'planning_estimates' && (
             <PlanningEstimates budgets={budgets} projects={projects} materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} />
+<<<<<<< HEAD
+=======
+=======
+            <PlanningProjects currentUser={currentUser} onUpdate={loadData} />
+          )}
+
+          {activeTab === 'planning_estimates' && (
+            <PlanningEstimates budgets={budgets} projects={projects} currentUser={currentUser} onUpdate={loadData} />
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
           )}
 
           {activeTab === 'users' && hasPermission('MANAGE_USERS') && (

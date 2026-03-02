@@ -6,7 +6,11 @@ import * as React from "react"
 import type {
   ToastActionElement,
   ToastProps,
+<<<<<<< HEAD
 } from "@/components/ui/Toast"
+=======
+} from "@/components/ui/toast"
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000

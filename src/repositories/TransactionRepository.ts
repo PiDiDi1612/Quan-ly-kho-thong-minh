@@ -11,7 +11,11 @@ export class TransactionRepository implements ITransactionRepository {
      * Fetch all transactions from server
      */
     async fetchAll(): Promise<Transaction[]> {
+<<<<<<< HEAD
         return apiService.get<Transaction[]>('/api/transactions/all');
+=======
+        return apiService.get<Transaction[]>('/api/transactions');
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -95,6 +99,7 @@ export class TransactionRepository implements ITransactionRepository {
             ? `/api/transactions?${queryString}`
             : '/api/transactions';
 
+<<<<<<< HEAD
         const data = await apiService.get<any>(endpoint);
 
         // Handle both paginated object and flat array
@@ -103,6 +108,9 @@ export class TransactionRepository implements ITransactionRepository {
         }
 
         return Array.isArray(data) ? data : [];
+=======
+        return apiService.get<Transaction[]>(endpoint);
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 }
 

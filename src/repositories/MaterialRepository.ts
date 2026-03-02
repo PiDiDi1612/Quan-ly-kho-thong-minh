@@ -8,6 +8,7 @@ import { apiService } from '@/services/api';
  */
 export class MaterialRepository implements IMaterialRepository {
     /**
+<<<<<<< HEAD
      * Fetch all materials from server (unpaginated list for internal logic)
      */
     async fetchAll(): Promise<Material[]> {
@@ -25,6 +26,16 @@ export class MaterialRepository implements IMaterialRepository {
             }
         });
         return apiService.get<any>(`/api/materials?${query.toString()}`);
+=======
+     * Fetch all materials from server
+     */
+    async fetchAll(): Promise<Material[]> {
+<<<<<<< HEAD
+        return apiService.get<Material[]>('/api/materials/all');
+=======
+        return apiService.get<Material[]>('/api/materials');
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
+>>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
