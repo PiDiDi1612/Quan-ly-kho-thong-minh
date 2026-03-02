@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+=======
+import React, { useState, useMemo } from 'react';
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
 import { Package, Search, Download, Plus, Moon, Sun, RefreshCcw, LayoutDashboard, AlertTriangle, ShoppingCart, Edit2, Trash2, Eye, X, Filter, History, BarChart2, Check, Settings, Info, Calendar, Users, RotateCcw, Clock, Tag, Hash, ArrowDownLeft, ArrowUpRight, Layers, User as UserIcon, Ruler, Printer } from 'lucide-react';
 import { Transaction, TransactionType, User } from '../../types';
 import { Modal } from '../../components/ui/modal';
@@ -8,9 +12,13 @@ import { ConfirmModal } from '../../components/ui/confirm-modal';
 import { useToast } from '../../hooks/useToast';
 import { useDebounce } from '../../hooks/useDebounce';
 import { transactionService } from '../../domain';
+<<<<<<< HEAD
 import { apiService } from '@/services/api';
 import * as XLSX from 'xlsx-js-style';
 import { Pagination } from '@/components/ui/pagination';
+=======
+import * as XLSX from 'xlsx-js-style';
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
 
 interface TransactionHistoryProps {
     transactions: Transaction[];
@@ -35,7 +43,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
 
     const [searchTerm, setSearchTerm] = useState('');
+<<<<<<< HEAD
     const debouncedSearch = useDebounce(searchTerm, 500);
+=======
+    const debouncedSearch = useDebounce(searchTerm, 300);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
     const [typeFilter, setTypeFilter] = useState<TransactionType | 'ALL'>('ALL');
 
     // Edit Transaction State
@@ -86,6 +98,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
         return material || { name: 'N/A', unit: 'N/A' };
     };
 
+<<<<<<< HEAD
     // ===== SERVER-SIDE PAGINATION =====
     const [receiptData, setReceiptData] = useState<any[]>([]);
     const [txPage, setTxPage] = useState(1);
@@ -131,6 +144,48 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
     // Alias for rendering
     const paginatedReceipts = receiptData;
+=======
+    const filteredTransactions = useMemo(() => {
+        const term = debouncedSearch.toLowerCase();
+        const safeTxs = Array.isArray(transactions) ? transactions : [];
+        return safeTxs.filter(t => {
+            const matchesSearch =
+                (t.materialId || '').toLowerCase().includes(term) ||
+                (t.user || '').toLowerCase().includes(term) ||
+                (t.customerName || '').toLowerCase().includes(term); // Search by customer
+            const matchesType = typeFilter === 'ALL' || t.type === typeFilter;
+            return matchesSearch && matchesType;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [transactions, debouncedSearch, typeFilter]);
+
+    // Group transactions by receiptId for better organization
+    const groupedTransactions = useMemo(() => {
+        const groups: { [key: string]: Transaction[] } = {};
+        filteredTransactions.forEach(t => {
+            const key = t.receiptId || `single-${t.id}`; // Use receiptId or unique key
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(t);
+        });
+        return groups;
+    }, [filteredTransactions]);
+
+    // Convert groups to array for rendering, sorted by date
+    const receiptSummaries = useMemo(() => {
+        return Object.entries(groupedTransactions).map(([receiptId, transactions]: [string, Transaction[]]) => {
+            const firstTx = transactions[0];
+            const totalQty = transactions.reduce((sum, t) => sum + t.quantity, 0);
+            return {
+                receiptId,
+                transactions,
+                date: firstTx.date,
+                type: firstTx.type,
+                user: firstTx.user,
+                itemCount: transactions.length,
+                totalQuantity: totalQty
+            };
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [groupedTransactions]);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
 
 
 
@@ -144,10 +199,18 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
         if (!editingTransaction) return;
 
         try {
+<<<<<<< HEAD
             await transactionService.updateTransactionQuantity(editingTransaction.id, editQuantity);
             toast.success('Cập nhật giao dịch thành công');
             setIsEditModalOpen(false);
             loadReceipts();
+=======
+            // NEW SERVICE LOGIC
+            await transactionService.updateTransactionQuantity(editingTransaction.id, editQuantity);
+
+            toast.success('Cập nhật giao dịch thành công');
+            setIsEditModalOpen(false);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
             onRefresh();
         } catch (error: any) {
             console.error(error);
@@ -163,9 +226,15 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
             type: 'danger',
             onConfirm: async () => {
                 try {
+<<<<<<< HEAD
                     await transactionService.deleteTransaction(transaction.id, currentUser?.id || 'SYSTEM');
                     toast.success('Đã xóa giao dịch và hoàn trả tồn kho');
                     loadReceipts();
+=======
+                    // NEW SERVICE LOGIC
+                    await transactionService.deleteTransaction(transaction.id, currentUser?.id || 'SYSTEM');
+                    toast.success('Đã xóa giao dịch và hoàn trả tồn kho');
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                     onRefresh();
                 } catch (error: any) {
                     console.error(error);
@@ -184,11 +253,19 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
             type: 'danger',
             onConfirm: async () => {
                 try {
+<<<<<<< HEAD
+=======
+                    // NEW SERVICE LOGIC: loop delete or implementation batch delete if available
+                    // For now loop delete is safer to reuse logic
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                     for (const item of receipt.items) {
                         await transactionService.deleteTransaction(item.id, currentUser?.id || 'SYSTEM');
                     }
                     toast.success('Đã hủy phiếu thành công');
+<<<<<<< HEAD
                     loadReceipts();
+=======
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                     onRefresh();
                 } catch (error: any) {
                     console.error(error);
@@ -198,6 +275,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
         });
     }
 
+<<<<<<< HEAD
     const handleExportHistory = async () => {
         try {
             const allTx = await apiService.get<any[]>('/api/transactions/all');
@@ -219,6 +297,23 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
         } catch (error) {
             toast.error('Lỗi khi xuất Excel');
         }
+=======
+    const handleExportHistory = () => {
+        const data = filteredTransactions.map(t => ({
+            'Ngày': new Date(t.date).toLocaleDateString('en-GB') + ' ' + new Date(t.date).toLocaleTimeString('en-GB'),
+            'Mã Giao Dịch': t.id,
+            'Mã Vật tư': t.materialId,
+            'Loại': t.type === 'IN' ? 'Nhập' : 'Xuất',
+            'Số lượng': t.quantity,
+            'Người thực hiện': t.user,
+            'Khách hàng': t.customerName || '',
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Lịch sử Giao dịch");
+        XLSX.writeFile(wb, `Lich_Su_Giao_Dich_${new Date().toISOString().split('T')[0]}.xlsx`);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
     };
 
     return (
@@ -292,9 +387,15 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                                     <input
                                         type="checkbox"
                                         className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+<<<<<<< HEAD
                                         checked={selectedReceiptIds.length === paginatedReceipts.length && paginatedReceipts.length > 0}
                                         onChange={(e) => {
                                             if (e.target.checked) setSelectedReceiptIds(paginatedReceipts.map(r => r.receiptId));
+=======
+                                        checked={selectedReceiptIds.length === receiptSummaries.length && receiptSummaries.length > 0}
+                                        onChange={(e) => {
+                                            if (e.target.checked) setSelectedReceiptIds(receiptSummaries.map(r => r.receiptId));
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                                             else setSelectedReceiptIds([]);
                                         }}
                                     />
@@ -310,7 +411,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+<<<<<<< HEAD
                         {paginatedReceipts.map((receipt) => (
+=======
+                        {receiptSummaries.map((receipt) => (
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                             <tr key={receipt.receiptId} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer ${selectedReceiptIds.includes(receipt.receiptId) ? 'bg-sky-50/50 dark:bg-sky-900/20' : ''}`} onClick={() => toggleSelectReceipt(receipt.receiptId)}>
                                 <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex justify-center">
@@ -379,6 +484,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                         ))}
                     </tbody>
                 </table>
+<<<<<<< HEAD
                 {/* Pagination controls */}
                 <Pagination
                     currentPage={txPage}
@@ -389,6 +495,8 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
                     onLimitChange={(newLimit) => { setTxLimit(newLimit); setTxPage(1); }}
                     className="px-4 border-t border-slate-200 dark:border-slate-700"
                 />
+=======
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
             </div>
 
 
@@ -591,7 +699,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transact
 
             {/* Hidden Printable Area for Batch Print */}
             <div className="hidden print:block space-y-20 p-4">
+<<<<<<< HEAD
                 {paginatedReceipts.filter(r => selectedReceiptIds.includes(r.receiptId)).map((r, pIdx) => (
+=======
+                {receiptSummaries.filter(r => selectedReceiptIds.includes(r.receiptId)).map((r, pIdx) => (
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
                     <div key={r.receiptId} className="page-break-after-always">
                         <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
                             <h1 className="text-2xl font-bold uppercase tracking-widest">

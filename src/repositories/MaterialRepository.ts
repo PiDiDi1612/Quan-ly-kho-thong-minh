@@ -11,7 +11,11 @@ export class MaterialRepository implements IMaterialRepository {
      * Fetch all materials from server
      */
     async fetchAll(): Promise<Material[]> {
+<<<<<<< HEAD
         return apiService.get<Material[]>('/api/materials/all');
+=======
+        return apiService.get<Material[]>('/api/materials');
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
     }
 
     /**

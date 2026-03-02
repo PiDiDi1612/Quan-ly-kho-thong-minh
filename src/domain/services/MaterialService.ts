@@ -239,6 +239,10 @@ export class MaterialService implements IMaterialService {
             );
         }
 
+<<<<<<< HEAD
+=======
+        // 7. **CREATE NEW MATERIAL**
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
         const newMaterial = await this.createMaterial({
             name: targetData.name,
             classification: targetData.classification,
@@ -248,11 +252,25 @@ export class MaterialService implements IMaterialService {
             note: targetData.note || `Merged from ${sourceMaterialIds.length} materials`,
         });
 
+<<<<<<< HEAD
         // 7. **UPDATE ALL TRANSACTIONS** to point to new material
         // This is the DESTRUCTIVE part
         for (const sourceId of sourceMaterialIds) {
             const transactions = inventoryService.getStockHistory(sourceId);
 
+=======
+        console.log('Created new merged material:', newMaterial.id);
+
+        // 7. **UPDATE ALL TRANSACTIONS** to point to new material
+        // This is the DESTRUCTIVE part
+        let updatedTransactionCount = 0;
+
+        for (const sourceId of sourceMaterialIds) {
+            const transactions = inventoryService.getStockHistory(sourceId);
+
+            console.log(`Updating ${transactions.length} transactions for material ${sourceId}`);
+
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
             for (const tx of transactions) {
                 // Update transaction to point to new material
                 await transactionRepository.update(tx.id, {
@@ -260,17 +278,35 @@ export class MaterialService implements IMaterialService {
                     materialId: newMaterial.id,
                     materialName: newMaterial.name,
                 });
+<<<<<<< HEAD
             }
         }
 
         // 8. **DELETE SOURCE MATERIALS**
         for (const sourceId of sourceMaterialIds) {
             await materialRepository.delete(sourceId);
+=======
+                updatedTransactionCount++;
+            }
+        }
+
+        console.log(`Updated ${updatedTransactionCount} transactions`);
+
+        // 8. **DELETE SOURCE MATERIALS**
+        for (const sourceId of sourceMaterialIds) {
+            await materialRepository.delete(sourceId);
+            console.log(`Deleted source material: ${sourceId}`);
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
         }
 
         // 9. Invalidate inventory cache
         inventoryService.clearCache();
 
+<<<<<<< HEAD
+=======
+        console.log('Merge completed successfully');
+
+>>>>>>> d05f493e79576293327e4ea22983bce155a6b685
         return newMaterial;
     }
 
