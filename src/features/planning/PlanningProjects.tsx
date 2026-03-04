@@ -202,11 +202,12 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                 <div className="flex flex-1 min-w-[300px] gap-2">
                     <div className="relative group flex-1">
                         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-sky-500 transition-colors" />
-                        <Input
+                        <input
+                            type="text"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Tìm dự án theo tên, địa chỉ..."
-                            className="pl-10 h-10 text-xs bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/20 transition-all font-bold"
+                            placeholder="TÌM DỰ ÁN THEO TÊN, ĐỊA CHỈ..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl font-black text-[10px] text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
                         />
                     </div>
                 </div>
@@ -214,20 +215,20 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                     {canModify && (
                         <>
                             <input type="file" ref={fileInputRef} onChange={handleImportExcel} hidden accept=".xlsx,.xls" />
-                            <Button
+                            <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="h-10 px-4 rounded-xl btn-gradient-info text-white font-black uppercase text-[10px] tracking-wider shadow-sm"
+                                className="h-10 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black uppercase text-[10px] tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-2"
                             >
-                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                <FileSpreadsheet size={16} />
                                 Nhập Excel
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 onClick={() => handleOpenModal()}
-                                className="h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20"
+                                className="h-10 px-5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-1"
                             >
-                                <Plus className="mr-1.5 h-4 w-4 stroke-[3]" />
+                                <Plus size={16} className="stroke-[3]" />
                                 Thêm Dự Án
-                            </Button>
+                            </button>
                         </>
                     )}
                 </div>
@@ -306,61 +307,66 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                             <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"><X size={20} /></button>
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-5">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mã dự án / Mã CT <span className="text-red-500">*</span></label>
-                                <Input
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã dự án / Mã CT <span className="text-red-500 font-bold">*</span></label>
+                                <input
+                                    type="text"
                                     value={formData.code}
                                     onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                    placeholder="Ví dụ: LuxD-GD2"
-                                    className="h-11 font-bold"
+                                    placeholder="VÍ DỤ: LUXD-GD2"
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Tên dự án <span className="text-red-500">*</span></label>
-                                <Input
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên dự án <span className="text-red-500 font-bold">*</span></label>
+                                <input
+                                    type="text"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Ví dụ: LuxD giai đoạn 2"
-                                    className="h-11 font-bold"
+                                    placeholder="VÍ DỤ: LUXD GIAI ĐOẠN 2"
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Số điện thoại</label>
-                                <Input
-                                    value={formData.phone}
-                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    placeholder="Ví dụ: 0988xxxxxx"
-                                    className="h-11"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Số điện thoại</label>
+                                    <input
+                                        type="text"
+                                        value={formData.phone}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                        placeholder="VÍ DỤ: 0988XXXXXX"
+                                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Địa chỉ</label>
+                                    <input
+                                        type="text"
+                                        value={formData.address}
+                                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                        placeholder="VÍ DỤ: HƯNG NGUYÊN, NGHỆ AN"
+                                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Địa chỉ</label>
-                                <Input
-                                    value={formData.address}
-                                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                                    placeholder="Ví dụ: Hưng Nguyên, Nghệ An"
-                                    className="h-11"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Mô tả / Ghi chú</label>
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mô tả / Ghi chú</label>
                                 <textarea
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:border-sky-500 text-xs transition-all"
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all resize-none min-h-[100px]"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="Thông tin thêm về dự án..."
+                                    placeholder="THÔNG TIN THÊM VỀ DỰ ÁN..."
                                     rows={3}
                                 />
                             </div>
                         </div>
 
-                        <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex gap-3">
-                            <Button variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 font-bold uppercase tracking-wide">Hủy</Button>
-                            <Button onClick={handleSave} className="flex-1 h-12 font-bold uppercase tracking-wide shadow-lg shadow-sky-500/20">
-                                <Save className="mr-2 h-4 w-4" />
-                                Lưu dự án
-                            </Button>
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-black text-xs uppercase text-slate-400 hover:text-rose-500 transition-all">Hủy</button>
+                            <button onClick={handleSave} className="px-10 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 active:scale-95 transition-all uppercase text-xs tracking-widest flex items-center gap-2">
+                                <Save size={16} /> Lưu dự án
+                            </button>
                         </div>
                     </div>
                 </div>

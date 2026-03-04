@@ -25,35 +25,43 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Hủy'
 }) => {
   const Icon = type === 'danger' ? AlertCircle : type === 'warning' ? AlertTriangle : Info;
-  const iconColor = type === 'danger' ? 'text-red-500 dark:text-red-300' : type === 'warning' ? 'text-amber-500 dark:text-amber-300' : 'text-emerald-500 dark:text-emerald-300';
-  const bgColor = type === 'danger' ? 'bg-red-50/90 dark:bg-red-900/25' : type === 'warning' ? 'bg-amber-50/90 dark:bg-amber-900/25' : 'bg-emerald-50/90 dark:bg-emerald-900/25';
+
+  // High contrast colors for buttons
+  const confirmBtnClasses = type === 'danger'
+    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/30 font-black'
+    : type === 'warning'
+      ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30 font-black'
+      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30 font-black';
+
+  const iconBg = type === 'danger' ? 'bg-rose-50 dark:bg-rose-900/30' : type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30';
+  const iconColor = type === 'danger' ? 'text-rose-600' : type === 'warning' ? 'text-amber-600' : 'text-emerald-600';
+
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={null} maxWidth="max-w-md">
-      <div className="flex flex-col items-center text-center p-2">
-        <div className={`p-4 rounded-2xl ${bgColor} mb-4`}>
-          <Icon size={32} className={iconColor} />
+      <div className="flex flex-col items-center text-center p-4">
+        <div className={`p-5 rounded-3xl ${iconBg} mb-6 border border-white/50 dark:border-slate-700/50 shadow-inner`}>
+          <Icon size={40} className={iconColor} />
         </div>
 
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
+        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-3">
           {title}
         </h3>
 
-        <p className="text-sm text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-10 leading-relaxed px-4">
           {message}
         </p>
 
-        <div className="flex gap-3 w-full">
+        <div className="flex gap-4 w-full">
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={onClose}
-            className="flex-1 font-bold py-3"
+            className="flex-1 h-14 rounded-2xl font-black text-xs uppercase border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
           >
             {cancelText}
           </Button>
           <Button
-            variant={type === 'danger' ? 'danger' : 'primary'}
             isLoading={isSubmitting}
             onClick={async () => {
               if (isSubmitting) return;
@@ -65,7 +73,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 setIsSubmitting(false);
               }
             }}
-            className="flex-1 font-bold py-3"
+            className={`flex-1 h-14 rounded-2xl text-xs uppercase transition-all active:scale-95 ${confirmBtnClasses}`}
           >
             {confirmText}
           </Button>

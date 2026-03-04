@@ -79,12 +79,12 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã đơn hàng</label>
-                                <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm" placeholder="VD: MDH001" value={transferForm.orderCode} onChange={e => setTransferForm({ ...transferForm, orderCode: e.target.value })} />
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã đơn hàng</label>
+                                <input type="text" className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm" placeholder="VD: MDH001" value={transferForm.orderCode} onChange={e => setTransferForm({ ...transferForm, orderCode: e.target.value })} />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã phiếu</label>
-                                <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm" placeholder="Tự động" value={transferForm.receiptId} onChange={e => setTransferForm({ ...transferForm, receiptId: e.target.value })} />
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã phiếu</label>
+                                <input type="text" className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm" placeholder="Tự động" value={transferForm.receiptId} onChange={e => setTransferForm({ ...transferForm, receiptId: e.target.value })} />
                             </div>
                         </div>
                     </div>
@@ -155,7 +155,7 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                     <button
                         onClick={handleTransfer}
                         disabled={transferForm.items.length === 0}
-                        className="btn-gradient-primary w-full py-4 text-white rounded-xl font-extrabold hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                         <Check size={18} /> Xác nhận điều chuyển
                     </button>

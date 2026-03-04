@@ -199,15 +199,7 @@ const requirePermission = (permission) => (req, res, next) => {
 db.exec(`
   CREATE TABLE IF NOT EXISTS materials (
     id TEXT PRIMARY KEY, name TEXT, classification TEXT, unit TEXT, quantity REAL, minThreshold REAL, 
-<<<<<<< HEAD
     lastUpdated TEXT, workshop TEXT, origin TEXT, note TEXT, image TEXT, customerCode TEXT
-=======
-<<<<<<< HEAD
-    lastUpdated TEXT, workshop TEXT, origin TEXT, note TEXT, image TEXT, customerCode TEXT
-=======
-    lastUpdated TEXT, workshop TEXT, origin TEXT, note TEXT, image TEXT
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   );
   CREATE TABLE IF NOT EXISTS transactions (
     id TEXT PRIMARY KEY, receiptId TEXT, materialId TEXT, materialName TEXT, type TEXT, 
@@ -250,10 +242,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tx_date              ON transactions(date);
   CREATE INDEX IF NOT EXISTS idx_tx_receiptId         ON transactions(receiptId);
   CREATE INDEX IF NOT EXISTS idx_tx_workshop          ON transactions(workshop);
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   CREATE INDEX IF NOT EXISTS idx_tx_type              ON transactions(type);
   CREATE INDEX IF NOT EXISTS idx_mat_workshop         ON materials(workshop);
   CREATE INDEX IF NOT EXISTS idx_mat_name             ON materials(name);
@@ -262,27 +250,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_budget_lastUpdated   ON budgets(lastUpdated DESC);
   CREATE INDEX IF NOT EXISTS idx_proj_createdAt       ON projects(createdAt DESC);
   CREATE INDEX IF NOT EXISTS idx_supp_createdAt       ON suppliers(createdAt DESC);
-<<<<<<< HEAD
-=======
-=======
-  CREATE INDEX IF NOT EXISTS idx_mat_workshop         ON materials(workshop);
-  CREATE INDEX IF NOT EXISTS idx_log_timestamp        ON activity_logs(timestamp DESC);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   
   -- Composite Indexes for Performance Optimization
   CREATE INDEX IF NOT EXISTS idx_tx_mat_date_type     ON transactions(materialId, date, type, quantity);
   CREATE INDEX IF NOT EXISTS idx_tx_date_time         ON transactions(date DESC, transactionTime DESC);
-<<<<<<< HEAD
   CREATE INDEX IF NOT EXISTS idx_tx_receipt_date      ON transactions(receiptId, date DESC);
   CREATE INDEX IF NOT EXISTS idx_mat_ws_name          ON materials(workshop, name);
-=======
-<<<<<<< HEAD
-  CREATE INDEX IF NOT EXISTS idx_tx_receipt_date      ON transactions(receiptId, date DESC);
-  CREATE INDEX IF NOT EXISTS idx_mat_ws_name          ON materials(workshop, name);
-=======
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 `);
 
 // Migration: Ensure 'image' column exists in 'materials'
@@ -452,15 +425,10 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.use('/api', authMiddleware);
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 // ===== PAGINATION HELPER =====
 const parsePagination = (query) => {
     const page = Math.max(1, parseInt(query.page) || 1);
-    const limit = Math.min(200, Math.max(1, parseInt(query.limit) || 50));
+    const limit = Math.min(200, Math.max(1, parseInt(query.limit) || 20));
     const offset = (page - 1) * limit;
     const search = (query.search || '').trim();
     return { page, limit, offset, search };
@@ -570,63 +538,11 @@ app.get('/api/materials', (req, res) => {
 
         const data = db.prepare(sql).all(...sqlParams);
         res.json(paginatedResponse(data, total, page, limit));
-<<<<<<< HEAD
-=======
-=======
-// API Endpoints
-app.get('/api/materials', (req, res) => {
-    const { startDate, endDate } = req.query;
-
-    if (!startDate || !endDate) {
-        return res.json(db.prepare('SELECT * FROM materials').all());
-    }
-
-    const sql = `
-        WITH 
-          ts AS (
-            SELECT 
-              m_id,
-              SUM(CASE WHEN date > @endDate THEN qty ELSE 0 END) as net_after,
-              SUM(CASE WHEN date >= @startDate THEN qty ELSE 0 END) as net_from_start,
-              SUM(CASE WHEN date BETWEEN @startDate AND @endDate AND is_in = 1 THEN quantity ELSE 0 END) as p_in,
-              SUM(CASE WHEN date BETWEEN @startDate AND @endDate AND is_in = 0 THEN quantity ELSE 0 END) as p_out
-            FROM (
-              -- Outgoing/Normal In
-              SELECT materialId as m_id, date, quantity, 
-                     CASE WHEN type='IN' THEN quantity WHEN type='OUT' THEN -quantity WHEN type='TRANSFER' THEN -quantity ELSE 0 END as qty,
-                     (CASE WHEN type='IN' THEN 1 ELSE 0 END) as is_in
-              FROM transactions
-              UNION ALL
-              -- Incoming transfers (targetMaterialId)
-              SELECT targetMaterialId as m_id, date, quantity, quantity as qty, 1 as is_in
-              FROM transactions WHERE type='TRANSFER' AND targetMaterialId IS NOT NULL
-            )
-            GROUP BY m_id
-          )
-        SELECT m.*, 
-               (m.quantity - COALESCE(ts.net_after, 0)) as closingStock,
-               (m.quantity - COALESCE(ts.net_from_start, 0)) as openingStock,
-               COALESCE(ts.p_in, 0) as periodIn,
-               COALESCE(ts.p_out, 0) as periodOut
-        FROM materials m
-        LEFT JOIN ts ON m.id = ts.m_id;
-    `;
-
-    try {
-        const materials = db.prepare(sql).all({ startDate, endDate });
-        res.json(materials);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     } catch (error) {
         console.error("Error calculating stock:", error);
         res.status(500).json({ error: error.message });
     }
 });
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 // Legacy endpoint: returns ALL materials (for dropdowns, receipts, etc.)
 app.get('/api/transactions/planning', (req, res) => {
     try {
@@ -679,37 +595,10 @@ app.get('/api/dashboard/summary', (req, res) => {
 
         // Fill 7-day array (ensuring all days present even if no transactions)
         const activityData = [];
-<<<<<<< HEAD
-=======
-=======
-app.get('/api/dashboard/summary', (req, res) => {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-
-        const summary = {
-            totalItems: db.prepare('SELECT COUNT(*) as c FROM materials').get().c,
-            lowStockCount: db.prepare('SELECT COUNT(*) as c FROM materials WHERE quantity <= minThreshold').get().c,
-            lowStockItems: db.prepare('SELECT * FROM materials WHERE quantity <= minThreshold ORDER BY quantity ASC LIMIT 10').all(),
-            todayIn: db.prepare("SELECT SUM(quantity) as s FROM transactions WHERE date = ? AND (type = 'IN' OR (type = 'TRANSFER' AND targetMaterialId IS NOT NULL))").get(today)?.s || 0,
-            todayOut: db.prepare("SELECT SUM(quantity) as s FROM transactions WHERE date = ? AND (type = 'OUT' OR type = 'TRANSFER')").get(today)?.s || 0,
-            workshopData: db.prepare(`
-                SELECT workshop as name, COUNT(*) as total, SUM(quantity) as quantity 
-                FROM materials GROUP BY workshop
-            `).all(),
-            activityData: []
-        };
-
-        // Activity for 7 days
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         for (let i = 0; i < 7; i++) {
             const d = new Date();
             d.setDate(d.getDate() - (6 - i));
             const dateStr = d.toISOString().split('T')[0];
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             const entry = activityMap.get(dateStr) || { inCount: 0, outCount: 0 };
             activityData.push({
                 name: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
@@ -719,30 +608,11 @@ app.get('/api/dashboard/summary', (req, res) => {
         }
 
         res.json({ totalItems, lowStockCount, lowStockItems, todayIn, todayOut, workshopData, activityData });
-<<<<<<< HEAD
-=======
-=======
-            const txs = db.prepare("SELECT type, SUM(quantity) as qty FROM transactions WHERE date = ? GROUP BY type").all(dateStr);
-            summary.activityData.push({
-                name: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                inCount: txs.filter(t => t.type === 'IN').reduce((acc, t) => acc + t.qty, 0),
-                outCount: txs.filter(t => t.type === 'OUT' || t.type === 'TRANSFER').reduce((acc, t) => acc + t.qty, 0)
-            });
-        }
-
-        res.json(summary);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     } catch (error) {
         console.error("Dashboard error:", error);
         res.status(500).json({ error: error.message });
     }
 });
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-
 // Transactions endpoint - supports pagination, search, and type filter
 app.get('/api/transactions', (req, res) => {
     const { type } = req.query;
@@ -978,31 +848,11 @@ app.post('/api/materials/save', verifyToken, (req, res) => {
             workshop=excluded.workshop, origin=excluded.origin, note=excluded.note, image=excluded.image, 
             customerCode=excluded.customerCode
     `).run(material);
-<<<<<<< HEAD
-=======
-=======
-app.get('/api/transactions', (req, res) => res.json(db.prepare('SELECT * FROM transactions ORDER BY date DESC, transactionTime DESC LIMIT 1000').all()));
-app.get('/api/users', requirePermission('MANAGE_USERS'), (req, res) => res.json(db.prepare('SELECT * FROM users').all().map(sanitizeUser)));
-app.get('/api/budgets', (req, res) => res.json(db.prepare('SELECT * FROM budgets').all().map(b => ({ ...b, items: parseJsonSafe(b.items, []) }))));
-app.get('/api/activity_logs', requirePermission('VIEW_ACTIVITY_LOG'), (req, res) => res.json(db.prepare('SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT 500').all()));
-app.get('/api/projects', (req, res) => res.json(db.prepare('SELECT * FROM projects ORDER BY createdAt DESC').all()));
-app.get('/api/suppliers', (req, res) => res.json(db.prepare('SELECT * FROM suppliers ORDER BY createdAt DESC').all()));
-
-
-app.post('/api/materials/save', verifyToken, (req, res) => {
-    const material = { note: '', image: '', ...req.body };
-    db.prepare(`INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image) VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image) ON CONFLICT(id) DO UPDATE SET name=excluded.name, classification=excluded.classification, unit=excluded.unit, quantity=excluded.quantity, minThreshold=excluded.minThreshold, lastUpdated=excluded.lastUpdated, workshop=excluded.workshop, origin=excluded.origin, note=excluded.note, image=excluded.image`).run(material);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     notifyUpdate();
     res.json({ success: true });
 });
 
-<<<<<<< HEAD
 app.delete('/api/materials/:id(*)', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
-=======
-app.delete('/api/materials/:id', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     const { id } = req.params;
 
     // Check if material has transactions
@@ -1072,18 +922,8 @@ app.post('/api/transactions/commit', (req, res) => {
         const txRows = [];
         const updateMaterialQty = db.prepare("UPDATE materials SET quantity = ?, lastUpdated = ? WHERE id = ?");
         const insertMaterial = db.prepare(`
-<<<<<<< HEAD
             INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image, customerCode)
             VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode)
-=======
-<<<<<<< HEAD
-            INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image, customerCode)
-            VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode)
-=======
-            INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image)
-            VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image)
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         `);
         const insertTx = db.prepare(`
             INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note)
@@ -1167,18 +1007,8 @@ app.post('/api/transactions/commit', (req, res) => {
 
         const updateMaterialQty = db.prepare("UPDATE materials SET quantity = ?, lastUpdated = ? WHERE id = ?");
         const insertMaterial = db.prepare(`
-<<<<<<< HEAD
             INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image, customerCode)
             VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode)
-=======
-<<<<<<< HEAD
-            INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image, customerCode)
-            VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode)
-=======
-            INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image)
-            VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image)
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         `);
         const insertTx = db.prepare(`
             INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note)
@@ -1695,13 +1525,6 @@ app.post('/api/projects/delete', verifyToken, (req, res) => {
     notifyUpdate();
     res.json({ success: true });
 });
-
-
-
-// ============================================
-// CUSTOMER CODES API
-// ============================================
-
 // Get all customer codes
 app.get('/api/customer-codes', verifyToken, (req, res) => {
     try {
@@ -1928,8 +1751,6 @@ app.post('/api/backup', requirePermission('EXPORT_DATA'), (req, res) => {
 
         const dbPath = path.join(dataDir, 'data.db');
         if (fs.existsSync(dbPath)) {
-            // Close DB properly before copy? 
-            // Better-sqlite3 has a .backup() method which is safer while the DB is open
             db.backup(backupPath)
                 .then(() => {
                     res.json({ success: true, path: backupPath });
@@ -1940,6 +1761,18 @@ app.post('/api/backup', requirePermission('EXPORT_DATA'), (req, res) => {
         } else {
             res.status(404).json({ success: false, error: 'Database file not found' });
         }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/download-db', requirePermission('EXPORT_DATA'), async (req, res) => {
+    try {
+        const tempPath = path.join(dataDir, `backup_temp_${Date.now()}.db`);
+        await db.backup(tempPath);
+        res.download(tempPath, 'SmartStock_Data.db', (err) => {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -2115,8 +1948,6 @@ async function populateReceiptWorksheet(worksheet, receiptsId, transactions, db)
         worksheet.getCell(`J${rowIdx}`).value = tx.note || "";
     });
 }
-
-
 
 function startServer(port = 3000) {
     server.once('error', (err) => {

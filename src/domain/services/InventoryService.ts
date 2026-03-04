@@ -37,12 +37,9 @@ export class InventoryService implements IInventoryService {
         if (this.transactionsByMaterial.has(materialId)) {
             relevantTransactions = this.transactionsByMaterial.get(materialId) || [];
         } else if (this.allTransactions && this.allTransactions.length > 0) {
-            // Fallback to filtering raw list (but only once per material load ideally)
             relevantTransactions = this.allTransactions.filter(tx => tx.materialId === materialId);
-            // Cache for next time
             this.transactionsByMaterial.set(materialId, relevantTransactions);
         } else {
-            // No transactions or not loaded
             if (cached) return cached.quantity;
             return 0;
         }
@@ -90,9 +87,6 @@ export class InventoryService implements IInventoryService {
         const stockMap = new Map<string, number>();
 
         for (const tx of transactions) {
-            // Filter by workshop if specified
-            // For IN/OUT, must match workshop
-            // For TRANSFER, must match EITHER source OR destination
             if (workshop) {
                 const isRelevant =
                     tx.workshop === workshop ||
@@ -100,7 +94,6 @@ export class InventoryService implements IInventoryService {
                 if (!isRelevant) continue;
             }
 
-            // Helper to update stock for a specific key
             const updateStock = (key: string, change: number) => {
                 const current = stockMap.get(key) || 0;
                 stockMap.set(key, current + change);
@@ -122,13 +115,11 @@ export class InventoryService implements IInventoryService {
                     break;
 
                 case 'TRANSFER':
-                    // Handle Source (Outgoing)
                     if (!workshop || tx.workshop === workshop) {
                         const srcKey = workshop ? tx.materialId : `${tx.materialId}:${tx.workshop}`;
                         updateStock(srcKey, -tx.quantity);
                     }
 
-                    // Handle Destination (Incoming)
                     if (tx.targetWorkshop && tx.targetMaterialId) {
                         if (!workshop || tx.targetWorkshop === workshop) {
                             const destKey = workshop
@@ -156,12 +147,9 @@ export class InventoryService implements IInventoryService {
         const currentStock = this.calculateStock(materialId, workshop);
 
         if (currentStock < requestedQty) {
-            throw new Error(
-                `Insufficient stock: Available=${currentStock}, Requested=${requestedQty}`
-            );
+            throw new Error(`Insufficient stock: Available=${currentStock}, Requested=${requestedQty}`);
         }
 
-        // Additional validation: prevent negative stock
         if (currentStock - requestedQty < 0) {
             throw new Error('Operation would result in negative stock');
         }
@@ -171,10 +159,6 @@ export class InventoryService implements IInventoryService {
      * Get materials below minimum threshold
      */
     getLowStockMaterials(workshop?: WorkshopCode): Material[] {
-        // This requires materials data which we don't have in this service
-        // This should be moved to a higher-level service or kept in UI layer
-        // For now, return empty array
-        // TODO: Inject MaterialRepository to fetch materials
         return [];
     }
 
@@ -182,8 +166,6 @@ export class InventoryService implements IInventoryService {
      * Update minimum threshold for a material
      */
     async updateMinThreshold(materialId: string, newThreshold: number): Promise<void> {
-        // This should delegate to MaterialRepository
-        // TODO: Inject MaterialRepository
         throw new Error('Not implemented - should use MaterialService');
     }
 
@@ -221,7 +203,6 @@ export class InventoryService implements IInventoryService {
 
     /**
      * Invalidate cache on transaction changes
-     * Call this after creating/updating/deleting transactions
      */
     invalidateCache(): void {
         this.clearCache();
@@ -229,42 +210,19 @@ export class InventoryService implements IInventoryService {
 
     /**
      * Get all transactions (with caching)
-     * This is a synchronous wrapper for now
      */
     private getTransactionsSync(): Transaction[] {
-<<<<<<< HEAD
-        const result = Array.isArray(this.allTransactions) ? this.allTransactions : [];
-        console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${Array.isArray(this.allTransactions) ? 'loaded' : 'null/invalid'}`);
-        return result;
-=======
-<<<<<<< HEAD
         return Array.isArray(this.allTransactions) ? this.allTransactions : [];
-=======
-        const result = Array.isArray(this.allTransactions) ? this.allTransactions : [];
-        console.log(`[InventoryService] getTransactionsSync: returning ${result.length} transactions, allTransactions is ${Array.isArray(this.allTransactions) ? 'loaded' : 'null/invalid'}`);
-        return result;
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
      * Load transactions from repository
-     * Call this once on app startup or when needed
      */
     async loadTransactions(): Promise<void> {
-<<<<<<< HEAD
-        console.log('[InventoryService] loadTransactions: fetching from repository...');
-=======
-<<<<<<< HEAD
-=======
-        console.log('[InventoryService] loadTransactions: fetching from repository...');
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         const fetched = await transactionRepository.fetchAll();
         this.allTransactions = Array.isArray(fetched) ? fetched : [];
-        this.transactionsByMaterial.clear(); // Clear index on fresh load
+        this.transactionsByMaterial.clear();
 
-        // Rebuild index
         if (this.allTransactions) {
             for (const tx of this.allTransactions) {
                 if (!this.transactionsByMaterial.has(tx.materialId)) {
@@ -272,7 +230,6 @@ export class InventoryService implements IInventoryService {
                 }
                 this.transactionsByMaterial.get(tx.materialId)!.push(tx);
 
-                // For transfers, also index by target material
                 if (tx.type === 'TRANSFER' && tx.targetMaterialId) {
                     if (!this.transactionsByMaterial.has(tx.targetMaterialId)) {
                         this.transactionsByMaterial.set(tx.targetMaterialId, []);

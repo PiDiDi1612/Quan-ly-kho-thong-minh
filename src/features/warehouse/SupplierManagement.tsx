@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileSpreadsheet, Download, Upload, X, Hash, Building2, FileText, Calendar, Settings, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileSpreadsheet, Download, Upload, X, Hash, Building2, FileText, Calendar, Settings, Search, ArrowRight } from 'lucide-react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -258,131 +258,132 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             {/* Action Bar & Search */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div className="relative w-full md:w-96 flex-1">
-                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-start md:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm">
+                <div className="relative w-full md:w-96 flex-1 group">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                     <input
                         type="text"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="Tìm kiếm theo mã, tên NCC, mô tả..."
-                        className="w-full pl-10 pr-4 h-10 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 transition-all placeholder:text-slate-400"
+                        className="w-full pl-12 pr-10 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all placeholder:text-slate-400"
                     />
                     {searchTerm && (
                         <button
                             onClick={() => setSearchTerm('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"
                         >
-                            <X size={14} />
+                            <X size={14} className="stroke-[3]" />
                         </button>
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto ml-auto">
-                    <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm" onClick={handleExportExcel}>
-                        <Download className="mr-2 h-4 w-4 text-emerald-600" />
+                <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
+                    <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:border-emerald-200 dark:hover:text-emerald-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={handleExportExcel}>
+                        <Download size={16} className="text-emerald-500 group-hover:scale-110 transition-transform stroke-[3]" />
                         <span className="hidden sm:inline">Xuất Excel</span>
-                    </Button>
-                    <Button variant="outline" className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm" onClick={handleImportExcel}>
-                        <FileSpreadsheet className="mr-2 h-4 w-4 text-sky-600" />
+                    </button>
+                    <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:border-sky-200 dark:hover:text-sky-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={handleImportExcel}>
+                        <FileSpreadsheet size={16} className="text-sky-500 group-hover:scale-110 transition-transform stroke-[3]" />
                         <span className="hidden sm:inline">Nhập Excel</span>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="h-10 bg-white dark:bg-[#1E293B] border-slate-200/60 dark:border-white/5 transition-colors text-xs font-semibold shadow-sm"
+                    </button>
+                    <button
+                        className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:border-purple-200 dark:hover:text-purple-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm"
                         onClick={handleOpenMergeModal}
                     >
-                        <Settings className="mr-2 h-4 w-4 text-purple-600" />
-                        <span className="hidden sm:inline">Hợp nhất NCC</span>
-                    </Button>
-                    <Button className="h-10 px-5 bg-sky-600 hover:bg-sky-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20 ml-1" onClick={() => handleOpenModal()}>
-                        <Plus size={14} className="mr-1.5 stroke-[3]" />
+                        <Settings size={16} className="text-purple-500 group-hover:rotate-90 transition-transform stroke-[3]" />
+                        <span className="hidden sm:inline">Hợp nhất</span>
+                    </button>
+                    <button className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 ml-1" onClick={() => handleOpenModal()}>
+                        <Plus size={18} className="stroke-[3]" />
                         Thêm Mới
-                    </Button>
+                    </button>
                 </div>
             </div>
-            <div className="bg-transparent">
-                <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
-                    <thead>
-                        <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider w-12">
-                                <input
-                                    type="checkbox"
-                                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
-                                    checked={selectedSuppliers.length === filteredSuppliers.length && filteredSuppliers.length > 0}
-                                    onChange={(e) => {
-                                        if (e.target.checked) {
-                                            setSelectedSuppliers(suppliers.map(s => s.id));
-                                        } else {
-                                            setSelectedSuppliers([]);
-                                        }
-                                    }}
-                                />
-                            </th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Mã NCC</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Building2 size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Tên NCC</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><FileText size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Mô tả</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Ngày tạo</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredSuppliers.map((supplier) => (
-                            <tr
-                                key={supplier.id}
-                                onClick={() => toggleSelectSupplier(supplier.id)}
-                                className={`bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 group cursor-pointer ${selectedSuppliers.includes(supplier.id) ? 'bg-sky-50/80 dark:bg-sky-900/30 ring-1 ring-sky-200 dark:ring-sky-800' : ''}`}
-                            >
-                                <td className="px-6 py-5 rounded-l-2xl border-y border-l border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                                <th className="px-6 py-5 w-12">
                                     <input
                                         type="checkbox"
-                                        className="w-5 h-5 rounded-md border-slate-300 dark:border-slate-600 text-sky-600 focus:ring-sky-500 transition-all cursor-pointer pointer-events-none"
-                                        checked={selectedSuppliers.includes(supplier.id)}
-                                        readOnly
+                                        className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-sky-500/20 cursor-pointer transition-all"
+                                        checked={selectedSuppliers.length === filteredSuppliers.length && filteredSuppliers.length > 0}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedSuppliers(suppliers.map(s => s.id));
+                                            } else {
+                                                setSelectedSuppliers([]);
+                                            }
+                                        }}
                                     />
-                                </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className="font-bold text-sky-600 dark:text-sky-400">{supplier.code}</span>
-                                </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className="font-medium text-slate-800 dark:text-slate-200">{supplier.name}</span>
-                                </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className="text-slate-600 dark:text-slate-400 text-xs">{supplier.description || '-'}</span>
-                                </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className="text-slate-500 text-xs">{new Date(supplier.createdAt).toLocaleDateString('vi-VN')}</span>
-                                </td>
-                                <td className="px-6 py-5 rounded-r-2xl border-y border-r border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50 text-right">
-                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(supplier); }}
-                                            className="!p-2 hover:bg-sky-50 dark:hover:bg-sky-900/30 text-slate-400 hover:text-sky-600"
-                                        >
-                                            <Edit2 size={18} />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(supplier.id); }}
-                                            className="!p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500"
-                                        >
-                                            <Trash2 size={18} />
-                                        </Button>
-                                    </div>
-                                </td>
+                                </th>
+                                <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Mã NCC</th>
+                                <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Building2 size={12} className="inline mr-1 text-indigo-500 -mt-0.5 stroke-[3]" />Tên NCC</th>
+                                <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><FileText size={12} className="inline mr-1 text-amber-500 -mt-0.5 stroke-[3]" />Mô tả</th>
+                                <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />Ngày tạo</th>
+                                <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />Thao tác</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                            {filteredSuppliers.map((supplier) => (
+                                <tr
+                                    key={supplier.id}
+                                    onClick={() => toggleSelectSupplier(supplier.id)}
+                                    className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer ${selectedSuppliers.includes(supplier.id) ? 'bg-sky-50/30 dark:bg-sky-900/10' : ''}`}
+                                >
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-sky-500/20 cursor-pointer transition-all pointer-events-none"
+                                            checked={selectedSuppliers.includes(supplier.id)}
+                                            readOnly
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest text-[11px] px-2.5 py-1 bg-sky-50 dark:bg-sky-900/20 rounded-xl">{supplier.code}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight text-sm">{supplier.name}</span>
+                                    </td>
+                                    <td className="px-6 py-4 max-w-xs truncate">
+                                        <span className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed">{supplier.description || '-'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-slate-400 text-[11px] font-black tracking-widest bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl">{new Date(supplier.createdAt).toLocaleDateString('en-GB')}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleOpenModal(supplier); }}
+                                                className="p-2.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-xl transition-all"
+                                            >
+                                                <Edit2 size={18} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(supplier.id); }}
+                                                className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-all"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
                 {suppliers.length === 0 && (
-                    <div className="text-center py-12 text-slate-400">
-                        <FileSpreadsheet size={48} className="mx-auto mb-3 opacity-50" />
-                        <p className="font-medium">Chưa có NCC nào</p>
-                        <p className="text-xs mt-1">Nhấn "Thêm NCC" hoặc "Nhập Excel" để bắt đầu</p>
+                    <div className="text-center py-24 text-slate-400 dark:text-slate-500 flex flex-col items-center gap-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="w-16 h-16 rounded-3xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
+                            <FileSpreadsheet size={32} className="opacity-50" />
+                        </div>
+                        <div>
+                            <p className="font-black uppercase tracking-widest text-xs text-slate-500">Chưa có NCC nào</p>
+                            <p className="text-[11px] mt-1.5 font-bold tracking-wider opacity-75">Nhấn "Thêm Mới" hoặc "Nhập Excel" để bắt đầu</p>
+                        </div>
                     </div>
                 )}
             </div>
@@ -392,36 +393,44 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                 onClose={() => setIsModalOpen(false)}
                 title={editingSupplier ? "Chỉnh sửa NCC" : "Thêm NCC mới"}
             >
-                <div className="space-y-4">
-                    <Input
-                        label="Mã NCC"
-                        value={formData.code}
-                        onChange={e => setFormData({ ...formData, code: e.target.value })}
-                        placeholder="VD: NCC001"
-                        required
-                        disabled={!editingSupplier} // Chỉ cho phép sửa khi edit
-                    />
-                    <Input
-                        label="Tên NCC"
-                        value={formData.name}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="VD: Công ty ABC"
-                        required
-                    />
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mô tả (tùy chọn)</label>
+                <div className="space-y-5">
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã nhà cung cấp</label>
+                        <input
+                            type="text"
+                            value={formData.code}
+                            onChange={e => setFormData({ ...formData, code: e.target.value })}
+                            placeholder="VD: NCC001"
+                            disabled={!editingSupplier}
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all disabled:opacity-50"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên nhà cung cấp</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="VD: CÔNG TY ABC"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mô tả (tùy chọn)</label>
                         <textarea
                             value={formData.description || ''}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Ghi chú về khách hàng..."
-                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                            placeholder="Ghi chú về nhà cung cấp..."
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all resize-none min-h-[100px]"
                             rows={3}
                         />
                     </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
-                        <Button onClick={handleSave}>Lưu thông tin</Button>
+                    <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800 mt-2">
+                        <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-all rounded-2xl hover:bg-rose-50 dark:hover:bg-slate-800">Hủy bỏ</button>
+                        <button onClick={handleSave} className="px-8 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-sky-500/25 transition-all active:scale-95 uppercase text-[11px] tracking-widest flex items-center gap-2">
+                            <Settings size={16} className="stroke-[3]" /> Lưu thông tin
+                        </button>
                     </div>
                 </div>
             </Modal>
@@ -433,38 +442,37 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                 title="Hợp nhất NCC"
                 maxWidth="max-w-2xl"
             >
-                <div className="space-y-4">
-                    <div className="p-4 bg-sky-50 dark:bg-sky-900/20 rounded-lg border border-sky-100 dark:border-sky-800">
-                        <p className="text-sm font-medium text-sky-800 dark:text-sky-300">
-                            Bạn đang hợp nhất <span className="font-bold">{selectedSuppliers.length} NCC</span> thành 1 NCC duy nhất.
+                <div className="space-y-6">
+                    <div className="p-5 bg-sky-50 dark:bg-sky-900/20 rounded-2xl border border-sky-100 dark:border-sky-800 shadow-inner">
+                        <p className="text-sm font-medium text-sky-800 dark:text-sky-300 leading-relaxed">
+                            Bạn đang hợp nhất <span className="font-black text-sky-600 dark:text-sky-400 px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900 rounded-lg">{selectedSuppliers.length} NCC</span> thành 1 nhà cung cấp duy nhất.
                         </p>
-                        <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">
-                            Tất cả phiếu nhập cũ sẽ được cập nhật sang NCC mới.
+                        <p className="text-[11px] font-black text-sky-600/70 dark:text-sky-400/70 mt-2 uppercase tracking-wide flex items-center gap-1.5">
+                            <ArrowRight size={14} className="stroke-[3]" /> Tất cả phiếu nhập cũ sẽ được cập nhật sang NCC mới.
                         </p>
                     </div>
 
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Danh sách NCC được chọn:</h4>
-                        <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <div className="space-y-4">
+                        <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Danh sách NCC được chọn</h4>
+                        <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 custom-scrollbar">
                             {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
-                                <div key={s.id} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600">
-                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-sm">{s.code}</span>
-                                    <span className="text-slate-600 dark:text-slate-300 text-sm">-</span>
-                                    <span className="text-slate-800 dark:text-slate-200 text-sm">{s.name}</span>
+                                <div key={s.id} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                    <span className="font-black text-sky-600 dark:text-sky-400 text-xs px-2 py-1 bg-sky-50 dark:bg-sky-900/30 rounded-lg tracking-widest uppercase">{s.code}</span>
+                                    <span className="text-slate-800 dark:text-slate-200 text-sm font-bold">{s.name}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">Chọn thông tin NCC chính:</h4>
+                    <div className="space-y-5 pt-4">
+                        <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Chọn thông tin NCC chính</h4>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mã NCC chính</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã NCC chính</label>
                             <select
                                 value={mergeFormData.primaryCode}
                                 onChange={e => setMergeFormData({ ...mergeFormData, primaryCode: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 shadow-sm transition-all uppercase tracking-widest"
                             >
                                 {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
                                     <option key={s.id} value={s.code}>{s.code}</option>
@@ -472,12 +480,12 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                             </select>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tên NCC chính</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên NCC chính</label>
                             <select
                                 value={mergeFormData.primaryName}
                                 onChange={e => setMergeFormData({ ...mergeFormData, primaryName: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 shadow-sm transition-all uppercase"
                             >
                                 {suppliers.filter(s => selectedSuppliers.includes(s.id)).map(s => (
                                     <option key={s.id} value={s.name}>{s.name}</option>
@@ -485,21 +493,23 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                             </select>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Mô tả</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mô tả</label>
                             <textarea
                                 value={mergeFormData.description}
                                 onChange={e => setMergeFormData({ ...mergeFormData, description: e.target.value })}
                                 placeholder="Nhập mô tả mới hoặc để trống..."
-                                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-medium text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 shadow-sm transition-all resize-none min-h-[100px]"
                                 rows={3}
                             />
                         </div>
                     </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <Button variant="secondary" onClick={() => setIsMergeModalOpen(false)}>Hủy bỏ</Button>
-                        <Button onClick={handleMergeSuppliers} className="bg-purple-600 hover:bg-purple-700">Xác nhận hợp nhất</Button>
+                    <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800 mt-2">
+                        <button onClick={() => setIsMergeModalOpen(false)} className="px-6 py-3 font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-all rounded-2xl hover:bg-rose-50 dark:hover:bg-slate-800">Hủy bỏ</button>
+                        <button onClick={handleMergeSuppliers} className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-purple-500/25 transition-all active:scale-95 uppercase text-[11px] tracking-widest flex items-center gap-2">
+                            <Settings size={16} className="stroke-[3]" /> Xác nhận hợp nhất
+                        </button>
                     </div>
                 </div>
             </Modal>

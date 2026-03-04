@@ -25,20 +25,13 @@ export class MaterialService implements IMaterialService {
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
 
-        // Use apiService for consistent base URL handling and authentication
-<<<<<<< HEAD
         const response = await apiService.get<any>(`/api/materials?${params.toString()}`);
 
-        // Extract data array from paginated response
         if (response && response.data && Array.isArray(response.data)) {
             return response.data;
         }
 
         return Array.isArray(response) ? response : [];
-=======
-        const data = await apiService.get<Material[]>(`/api/materials?${params.toString()}`);
-        return data;
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -46,43 +39,25 @@ export class MaterialService implements IMaterialService {
      * Format: VT/OG/00001
      */
     async generateMaterialId(workshop: WorkshopCode): Promise<string> {
-<<<<<<< HEAD
-        // MUST fetch ALL materials (not paginated) to find the true maximum ID
-=======
-        // Get all materials
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         let allMaterials = await materialRepository.fetchAll();
         if (!Array.isArray(allMaterials)) allMaterials = [];
 
-        // Filter by workshop prefix
         const prefix = `VT/${workshop}/`;
         const samePrefixMaterials = allMaterials.filter(m =>
-<<<<<<< HEAD
             m.id && m.id.startsWith(prefix)
-=======
-            m.id.startsWith(prefix) && m.workshop === workshop
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         );
 
-        // Find max number
         let maxNum = 0;
         for (const material of samePrefixMaterials) {
             const parts = material.id.split('/');
-<<<<<<< HEAD
             if (parts.length >= 3) {
                 const num = parseInt(parts[2], 10);
                 if (!isNaN(num) && num > maxNum) {
                     maxNum = num;
                 }
-=======
-            const num = parseInt(parts[2], 10);
-            if (!isNaN(num) && num > maxNum) {
-                maxNum = num;
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             }
         }
 
-        // Generate next number with padding
         const nextNum = maxNum + 1;
         const paddedNum = nextNum.toString().padStart(5, '0');
 
@@ -93,17 +68,14 @@ export class MaterialService implements IMaterialService {
      * Create new material with duplicate check
      */
     async createMaterial(data: CreateMaterialData & { id?: string }): Promise<Material> {
-        // 1. Validation
         if (!data.name || !data.classification || !data.unit || !data.workshop) {
             throw new Error('Missing required fields');
         }
 
-        // 2. Check duplicate name in same workshop
         let allMaterials = await materialRepository.fetchAll();
         if (!Array.isArray(allMaterials)) allMaterials = [];
-        const existing = allMaterials.filter(m => m.workshop === data.workshop);
 
-        const duplicate = existing.find(m =>
+        const duplicate = allMaterials.find(m =>
             m.name.toLowerCase().trim() === data.name.toLowerCase().trim() &&
             m.workshop === data.workshop
         );
@@ -112,10 +84,8 @@ export class MaterialService implements IMaterialService {
             throw new Error(`Material "${data.name}" already exists in workshop ${data.workshop}`);
         }
 
-        // 3. Generate or validate material ID
         let materialId: string;
         if (data.id) {
-            // Check if custom ID already exists
             const existingId = await materialRepository.fetchById(data.id);
             if (existingId) {
                 throw new Error(`Material ID "${data.id}" already exists`);
@@ -125,41 +95,32 @@ export class MaterialService implements IMaterialService {
             materialId = await this.generateMaterialId(data.workshop);
         }
 
-        // 4. Create material object
         const newMaterial: Material = {
             id: materialId,
             name: data.name.trim(),
             classification: data.classification,
             unit: data.unit,
             workshop: data.workshop,
-            quantity: 0, // New material starts with 0 stock
+            quantity: 0,
             minThreshold: data.minThreshold || BUSINESS_CONSTANTS.DEFAULTS.MIN_THRESHOLD,
             lastUpdated: new Date().toISOString(),
             origin: data.origin || '',
             note: data.note,
         };
 
-        // 5. Save to database
         const created = await materialRepository.create(newMaterial);
-
         return created;
     }
 
-    /**
-     * Update material information
-     * Prevents changing ID and workshop
-     */
     async updateMaterial(
         materialId: string,
         updates: Partial<Material>
     ): Promise<Material> {
-        // 1. Fetch existing material
         const material = await materialRepository.fetchById(materialId);
         if (!material) {
             throw new Error('Material not found');
         }
 
-        // 2. Validate updates
         if (updates.id && updates.id !== materialId) {
             throw new Error('Cannot change material ID');
         }
@@ -168,82 +129,54 @@ export class MaterialService implements IMaterialService {
             throw new Error('Cannot change workshop - materials are workshop-specific');
         }
 
-        // 3. Apply updates
         const updatedMaterial = await materialRepository.update(materialId, {
             ...material,
             ...updates,
-            id: materialId, // Ensure ID doesn't change
-            workshop: material.workshop, // Ensure workshop doesn't change
+            id: materialId,
+            workshop: material.workshop,
         });
 
         return updatedMaterial;
     }
 
-    /**
-     * Delete material - only allowed if no transactions exist
-     */
     async deleteMaterial(materialId: string): Promise<void> {
-        // Delegate to backend which has proper transaction checks
-<<<<<<< HEAD
         await apiService.delete(`/api/materials/${encodeURIComponent(materialId)}`);
-=======
-        await apiService.delete(`/api/materials/${materialId}`);
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
-    /**
-     * Merge multiple materials into one
-     * DESTRUCTIVE OPERATION - requires admin role
-     */
     async mergeMaterials(
         sourceMaterialIds: string[],
         targetData: MergeMaterialsData,
         userId: string,
         password: string
     ): Promise<Material> {
-
-        // 1. **ADMIN VALIDATION**
-        // TODO: Implement proper admin authentication
-        // For now, we trust the client-side permission check
-
-        // 2. Basic validation
         if (sourceMaterialIds.length < 2) {
             throw new Error('Need at least 2 materials to merge');
         }
 
-        // 3. Fetch all source materials
         const sourceMaterials = await Promise.all(
             sourceMaterialIds.map(id => materialRepository.fetchById(id))
         );
 
-        // Check all exist
         const missingMaterials = sourceMaterials.filter(m => !m);
         if (missingMaterials.length > 0) {
             throw new Error('One or more source materials not found');
         }
 
-        // Filter out nulls for type safety
         const validSources = sourceMaterials.filter((m): m is Material => m !== null);
 
-        // 4. **VALIDATE COMPATIBILITY**
         const workshops = new Set(validSources.map(m => m.workshop));
         if (workshops.size > 1) {
-            throw new Error(
-                `Cannot merge materials from different workshops: ${Array.from(workshops).join(', ')}`
-            );
+            throw new Error(`Cannot merge materials from different workshops: ${Array.from(workshops).join(', ')}`);
         }
 
         const units = new Set(validSources.map(m => m.unit));
         if (units.size > 1) {
-            throw new Error(
-                `Cannot merge materials with different units: ${Array.from(units).join(', ')}`
-            );
+            throw new Error(`Cannot merge materials with different units: ${Array.from(units).join(', ')}`);
         }
 
         const workshop = validSources[0].workshop;
         const unit = validSources[0].unit;
 
-        // 5. Verify target data matches
         if (targetData.workshop !== workshop) {
             throw new Error('Target workshop must match source materials');
         }
@@ -252,32 +185,19 @@ export class MaterialService implements IMaterialService {
             throw new Error('Target unit must match source materials');
         }
 
-        // 6. **CHECK FOR DUPLICATE TARGET NAME**
-        // IMPORTANT: Exclude the source materials being merged from this check
         let allMaterials = await materialRepository.fetchAll();
         if (!Array.isArray(allMaterials)) allMaterials = [];
 
         const duplicate = allMaterials.find(m =>
             m.name.toLowerCase().trim() === targetData.name.toLowerCase().trim() &&
             m.workshop === workshop &&
-            !sourceMaterialIds.includes(m.id) // Exclude source materials being merged
+            !sourceMaterialIds.includes(m.id)
         );
 
         if (duplicate) {
-            throw new Error(
-                `Tên vật tư "${targetData.name}" đã tồn tại trong xưởng ${workshop}. ` +
-                `Vui lòng chọn tên khác cho vật tư sau khi hợp nhất.`
-            );
+            throw new Error(`Tên vật tư "${targetData.name}" đã tồn tại trong xưởng ${workshop}. Vui lòng chọn tên khác.`);
         }
 
-<<<<<<< HEAD
-        // 7. **CREATE NEW MATERIAL**
-=======
-<<<<<<< HEAD
-=======
-        // 7. **CREATE NEW MATERIAL**
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         const newMaterial = await this.createMaterial({
             name: targetData.name,
             classification: targetData.classification,
@@ -287,117 +207,54 @@ export class MaterialService implements IMaterialService {
             note: targetData.note || `Merged from ${sourceMaterialIds.length} materials`,
         });
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-        // 7. **UPDATE ALL TRANSACTIONS** to point to new material
-        // This is the DESTRUCTIVE part
-        for (const sourceId of sourceMaterialIds) {
-            const transactions = inventoryService.getStockHistory(sourceId);
-
-=======
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-        console.log('Created new merged material:', newMaterial.id);
-
-        // 7. **UPDATE ALL TRANSACTIONS** to point to new material
-        // This is the DESTRUCTIVE part
         let updatedTransactionCount = 0;
 
         for (const sourceId of sourceMaterialIds) {
             const transactions = inventoryService.getStockHistory(sourceId);
-
-            console.log(`Updating ${transactions.length} transactions for material ${sourceId}`);
-
-<<<<<<< HEAD
-=======
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             for (const tx of transactions) {
-                // Update transaction to point to new material
                 await transactionRepository.update(tx.id, {
                     ...tx,
                     materialId: newMaterial.id,
                     materialName: newMaterial.name,
                 });
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-            }
-        }
-
-        // 8. **DELETE SOURCE MATERIALS**
-        for (const sourceId of sourceMaterialIds) {
-            await materialRepository.delete(sourceId);
-=======
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
                 updatedTransactionCount++;
             }
         }
 
-        console.log(`Updated ${updatedTransactionCount} transactions`);
-
-        // 8. **DELETE SOURCE MATERIALS**
         for (const sourceId of sourceMaterialIds) {
             await materialRepository.delete(sourceId);
-            console.log(`Deleted source material: ${sourceId}`);
-<<<<<<< HEAD
-=======
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         }
 
-        // 9. Invalidate inventory cache
         inventoryService.clearCache();
-
-<<<<<<< HEAD
-        console.log('Merge completed successfully');
-
-=======
-<<<<<<< HEAD
-=======
-        console.log('Merge completed successfully');
-
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
         return newMaterial;
     }
 
-    /**
-     * Import materials from Excel
-     * Expected format: [Name, Classification, Unit, Workshop, MinThreshold, Origin, Note]
-     */
     async importFromExcel(excelData: any[][]): Promise<{
         imported: number;
         updated: number;
         errors: string[];
     }> {
-
         const results = {
             imported: 0,
             updated: 0,
             errors: [] as string[]
         };
 
-        // Skip header row (assuming first row is headers)
         const dataRows = excelData.slice(1);
+        let allMaterials = await materialRepository.fetchAll();
+        if (!Array.isArray(allMaterials)) allMaterials = [];
 
         for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
-            const rowNum = i + 2; // +2 because 1-indexed and skipped header
+            const rowNum = i + 2;
 
             try {
-                // Parse row
                 const [name, classification, unit, workshop, minThreshold, origin, note] = row;
 
-                // Validation
                 if (!name || !classification || !unit || !workshop) {
-                    results.errors.push(`Row ${rowNum}: Missing required fields (name/classification/unit/workshop)`);
+                    results.errors.push(`Row ${rowNum}: Missing required fields`);
                     continue;
                 }
-
-                // Check if material exists (same name + workshop)
-                let allMaterials = await materialRepository.fetchAll();
-                if (!Array.isArray(allMaterials)) allMaterials = [];
 
                 const existing = allMaterials.filter(m => m.workshop === workshop);
                 const duplicate = existing.find(m =>
@@ -405,7 +262,6 @@ export class MaterialService implements IMaterialService {
                 );
 
                 if (duplicate) {
-                    // UPDATE existing material
                     await this.updateMaterial(duplicate.id, {
                         classification,
                         unit,
@@ -414,14 +270,12 @@ export class MaterialService implements IMaterialService {
                         note,
                     });
                     results.updated++;
-
                 } else {
-                    // CREATE new material
                     await this.createMaterial({
                         name: String(name),
-                        classification,
+                        classification: classification as any,
                         unit,
-                        workshop,
+                        workshop: workshop as any,
                         minThreshold,
                         origin,
                         note,
@@ -437,35 +291,25 @@ export class MaterialService implements IMaterialService {
         return results;
     }
 
-    /**
-     * List materials with filters
-     * Delegates to repository
-     */
     async listMaterials(filters: {
         workshop?: WorkshopCode;
         classification?: MaterialClassification;
         searchTerm?: string;
     }): Promise<Material[]> {
-
         let materials = await materialRepository.fetchAll();
 
-        // Defensive check: Ensure materials is an array
         if (!Array.isArray(materials)) {
-            console.error('MaterialService.listMaterials: Expected an array from repository, got:', materials);
             return [];
         }
 
-        // Apply workshop filter
         if (filters.workshop) {
             materials = materials.filter(m => m.workshop === filters.workshop);
         }
 
-        // Apply classification filter
         if (filters.classification) {
             materials = materials.filter(m => m.classification === filters.classification);
         }
 
-        // Apply search term if provided
         if (filters.searchTerm) {
             const searchLower = filters.searchTerm.toLowerCase();
             materials = materials.filter(m =>
@@ -479,5 +323,4 @@ export class MaterialService implements IMaterialService {
     }
 }
 
-// Export singleton instance
 export const materialService = new MaterialService();

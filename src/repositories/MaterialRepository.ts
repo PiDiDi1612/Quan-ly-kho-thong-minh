@@ -8,7 +8,6 @@ import { apiService } from '@/services/api';
  */
 export class MaterialRepository implements IMaterialRepository {
     /**
-<<<<<<< HEAD
      * Fetch all materials from server (unpaginated list for internal logic)
      */
     async fetchAll(): Promise<Material[]> {
@@ -26,16 +25,6 @@ export class MaterialRepository implements IMaterialRepository {
             }
         });
         return apiService.get<any>(`/api/materials?${query.toString()}`);
-=======
-     * Fetch all materials from server
-     */
-    async fetchAll(): Promise<Material[]> {
-<<<<<<< HEAD
-        return apiService.get<Material[]>('/api/materials/all');
-=======
-        return apiService.get<Material[]>('/api/materials');
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     }
 
     /**
@@ -58,13 +47,6 @@ export class MaterialRepository implements IMaterialRepository {
     async create(material: Omit<Material, 'id'>): Promise<Material> {
         await apiService.post('/api/materials/save', material);
         // Server returns { success: true }, not the object.
-        // We should return the material as is, or fetch it.
-        // For now, return the input material casted (assuming success)
-        // or we can fetchById(material.id) if we had ID.
-        // If material doesn't have ID yet (Omit id), this is tricky.
-        // But MaterialService ALWAYS generates ID before calling create.
-        // So material actually HAS ID. The signature Omit<Material, 'id'> might be loose in interface
-        // but implementation sends full object.
         return material as Material;
     }
 
@@ -73,7 +55,6 @@ export class MaterialRepository implements IMaterialRepository {
      */
     async update(id: string, updates: Partial<Material>): Promise<Material> {
         await apiService.post('/api/materials/save', updates);
-        // Return updates casted to Material (imperfect but sufficient for now as Service sends full object)
         return updates as Material;
     }
 
@@ -86,7 +67,6 @@ export class MaterialRepository implements IMaterialRepository {
 
     /**
      * Merge multiple materials into one
-     * @deprecated Logic moved to MaterialService using create/delete
      */
     async merge(sourceIds: string[], targetMaterial: Material): Promise<Material> {
         throw new Error('Deprecated: Use MaterialService.mergeMaterials instead');

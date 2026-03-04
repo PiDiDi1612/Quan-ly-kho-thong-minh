@@ -2,16 +2,11 @@ import { Material } from '@/types';
 
 export interface IMaterialRepository {
     /**
-<<<<<<< HEAD
      * Fetch all materials (unpaginated)
-=======
-     * Fetch all materials
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
      */
     fetchAll(): Promise<Material[]>;
 
     /**
-<<<<<<< HEAD
      * Fetch materials with pagination and filters
      */
     fetchPaginated(params: {
@@ -31,8 +26,6 @@ export interface IMaterialRepository {
     }>;
 
     /**
-=======
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
      * Fetch material by ID
      */
     fetchById(id: string): Promise<Material | null>;

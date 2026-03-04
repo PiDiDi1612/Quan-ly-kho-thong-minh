@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield, Key, ToggleLeft, Settings } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield, Key, ToggleLeft, Settings, Save } from 'lucide-react';
 import { User, UserRole, Permission } from '../../types';
 import { ROLE_PERMISSIONS, PERMISSIONS, VISIBLE_PERMISSIONS } from '../../constants';
 import { Modal } from '../../components/ui/modal';
@@ -188,13 +188,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 <p className="text-sm text-slate-500 font-medium">
                     Tổng số người dùng: <span className="text-sky-600 font-bold">{users.length}</span>
                 </p>
-                <Button
+                <button
                     onClick={() => handleOpenModal()}
-                    className="shadow-lg shadow-sky-500/20"
+                    className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2"
                 >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus size={18} className="stroke-[3]" />
                     Thêm người dùng
-                </Button>
+                </button>
             </div>
 
             <div className="bg-transparent">
@@ -305,41 +305,63 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 title={editingUser ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
             >
                 <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Tên đăng nhập"
-                            value={formData.username}
-                            onChange={e => setFormData({ ...formData, username: e.target.value })}
-                            icon={<UserIcon size={16} />}
-                            placeholder="VD: admin"
-                            disabled={!!editingUser}
-                        />
-                        <Input
-                            label="Họ và tên"
-                            value={formData.fullName}
-                            onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-                            icon={<UserIcon size={16} />}
-                            placeholder="VD: Nguyễn Văn A"
-                        />
+                    <div className="grid grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên đăng nhập <span className="text-red-500 font-bold">*</span></label>
+                            <div className="relative group">
+                                <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                    placeholder="VD: ADMIN"
+                                    disabled={!!editingUser}
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Họ và tên <span className="text-red-500 font-bold">*</span></label>
+                            <div className="relative group">
+                                <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    value={formData.fullName}
+                                    onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                                    placeholder="VD: NGUYỄN VĂN A"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Mật khẩu"
-                            type="password"
-                            value={formData.password}
-                            onChange={e => setFormData({ ...formData, password: e.target.value })}
-                            icon={<Lock size={16} />}
-                            placeholder={editingUser ? "Để trống nếu không đổi" : "******"}
-                        />
-                        <Input
-                            label="Email"
-                            type="email"
-                            value={formData.email || ''}
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            icon={<Mail size={16} />}
-                            placeholder="VD: email@example.com"
-                        />
+                    <div className="grid grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mật khẩu {!editingUser && <span className="text-red-500 font-bold">*</span>}</label>
+                            <div className="relative group">
+                                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder={editingUser ? "ĐỂ TRỐNG NẾU KHÔNG ĐỔI" : "******"}
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Email</label>
+                            <div className="relative group">
+                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
+                                <input
+                                    type="email"
+                                    value={formData.email || ''}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="VD: EMAIL@EXAMPLE.COM"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="space-y-3">
@@ -349,19 +371,25 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                 <Shield size={14} /> Không thể thay đổi vai trò của Quản trị viên.
                             </p>
                         )}
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 p-1 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                             {(['ADMIN', 'WAREHOUSE', 'PLANNING', 'GUEST'] as UserRole[]).map(r => {
-                                const roleLabel = r === 'ADMIN' ? 'Quản trị viên' : r === 'WAREHOUSE' ? 'Quản lý kho' : r === 'PLANNING' ? 'Kế hoạch' : 'Khách';
+                                const roleLabel = r === 'ADMIN' ? 'Quản trị' : r === 'WAREHOUSE' ? 'Kho' : r === 'PLANNING' ? 'Kế hoạch' : 'Khách';
+                                const isActive = formData.role === r;
+                                const colors = r === 'ADMIN' ? 'from-rose-500 to-red-600' :
+                                    r === 'WAREHOUSE' ? 'from-sky-500 to-indigo-600' :
+                                        r === 'PLANNING' ? 'from-purple-500 to-violet-600' :
+                                            'from-slate-500 to-slate-600';
+
                                 return (
                                     <button
                                         key={r}
                                         disabled={editingUser?.role === 'ADMIN'}
                                         onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
-                                        className={`flex-1 py-3 rounded-xl border-2 font-bold text-xs uppercase tracking-wider transition-all ${formData.role === r
-                                            ? 'border-sky-600 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400'
+                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all active:scale-95 ${isActive
+                                            ? `bg-gradient-to-r ${colors} text-white shadow-lg`
                                             : editingUser?.role === 'ADMIN'
-                                                ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed'
-                                                : 'border-slate-100 dark:border-slate-700 text-slate-400 hover:border-sky-200'
+                                                ? 'bg-transparent text-slate-300 cursor-not-allowed'
+                                                : 'bg-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                                             }`}
                                     >
                                         {roleLabel}
@@ -416,9 +444,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                         </div>
                     </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Hủy bỏ</Button>
-                        <Button onClick={handleSave}>Lưu thông tin</Button>
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                        <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-black text-xs uppercase text-slate-400 hover:text-rose-500 transition-all">Hủy bỏ</button>
+                        <button onClick={handleSave} className="px-10 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 active:scale-95 transition-all uppercase text-xs tracking-widest flex items-center gap-2">
+                            <Save size={16} /> Lưu thông tin
+                        </button>
                     </div>
                 </div>
             </Modal>

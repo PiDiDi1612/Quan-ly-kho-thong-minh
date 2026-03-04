@@ -171,11 +171,11 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                     {/* FILTERS & ACTION */}
                     <div className="flex flex-wrap gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm items-center">
                         <div className="flex-1 relative min-w-[300px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input
                                 type="text"
-                                placeholder="Tìm kiếm vật tư..."
-                                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="TÌM KIẾM VẬT TƯ..."
+                                className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
@@ -184,26 +184,26 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             <select
                                 value={classificationFilter}
                                 onChange={e => setClassificationFilter(e.target.value as any)}
-                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="px-5 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-xs text-slate-600 dark:text-slate-300 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                             >
-                                <option value="ALL">Tất cả Loại</option>
-                                {CLASSIFICATIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                                <option value="ALL">TẤT CẢ LOẠI</option>
+                                {CLASSIFICATIONS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
                             </select>
                             <select
                                 value={workshopFilter}
                                 onChange={e => setWorkshopFilter(e.target.value as any)}
-                                className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                className="px-5 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-xs text-slate-600 dark:text-slate-300 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                             >
-                                <option value="ALL">Tất cả Xưởng</option>
-                                {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.code} - {w.name}</option>)}
+                                <option value="ALL">TẤT CẢ XƯỞNG</option>
+                                {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.code} - {w.name.toUpperCase()}</option>)}
                             </select>
                         </div>
 
                         {selectedIds.length >= 2 && (
-                            <div className="pl-2 border-l border-slate-200 dark:border-slate-700">
-                                <Button onClick={handleProceedToMerge} className="btn-gradient-primary text-white shadow-lg whitespace-nowrap">
-                                    Tiếp tục ({selectedIds.length}) <ArrowRight size={16} className="ml-2" />
-                                </Button>
+                            <div className="pl-4 border-l border-slate-200 dark:border-slate-700">
+                                <button onClick={handleProceedToMerge} className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-xs uppercase tracking-widest flex items-center gap-2">
+                                    Tiếp tục giao diện ({selectedIds.length}) <ArrowRight size={16} />
+                                </button>
                             </div>
                         )}
                     </div>
@@ -297,67 +297,71 @@ export const MaterialMerge: React.FC<MaterialMergeProps> = ({ onUpdate }) => {
                             Thông tin Vật tư mới
                         </h3>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tên vật tư mới</label>
-                                <Input
+                        <div className="space-y-6">
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên vật tư mới</label>
+                                <input
+                                    type="text"
                                     value={targetMaterial.name}
                                     onChange={e => setTargetMaterial({ ...targetMaterial, name: e.target.value })}
-                                    className="font-bold"
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Xưởng</label>
-                                    <div className="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed">
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Xưởng</label>
+                                    <div className="px-5 py-3 bg-slate-100 dark:bg-slate-700 rounded-2xl font-black text-slate-600 dark:text-slate-300 cursor-not-allowed border border-slate-200 dark:border-slate-600">
                                         {targetMaterial.workshop}
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Đơn vị</label>
-                                    <div className="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Đơn vị</label>
+                                    <div className="px-5 py-3 bg-slate-100 dark:bg-slate-700 rounded-2xl font-black text-slate-600 dark:text-slate-300 cursor-not-allowed border border-slate-200 dark:border-slate-600">
                                         {targetMaterial.unit}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phân loại</label>
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Phân loại</label>
                                     <select
-                                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200"
+                                        className="w-full px-5 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-700 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                         value={targetMaterial.classification}
                                         onChange={e => setTargetMaterial({ ...targetMaterial, classification: e.target.value as any })}
                                     >
-                                        {CLASSIFICATIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {CLASSIFICATIONS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Xuất xứ</label>
-                                    <Input
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Xuất xứ</label>
+                                    <input
+                                        type="text"
                                         value={targetMaterial.origin}
                                         onChange={e => setTargetMaterial({ ...targetMaterial, origin: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                     />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ghi chú</label>
-                                <Input
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Ghi chú</label>
+                                <textarea
                                     value={targetMaterial.note}
                                     onChange={e => setTargetMaterial({ ...targetMaterial, note: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all resize-none min-h-[100px]"
                                 />
                             </div>
                         </div>
 
-                        <div className="mt-8 flex gap-3">
-                            <Button variant="secondary" onClick={() => setMergeStep(1)} className="flex-1">
+                        <div className="mt-8 flex gap-4">
+                            <button onClick={() => setMergeStep(1)} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-400 font-black uppercase text-xs rounded-2xl transition-all hover:bg-slate-50">
                                 Quay lại
-                            </Button>
-                            <Button onClick={handleConfirmMerge} className="flex-1 btn-gradient-primary text-white">
-                                <Check size={18} className="mr-2" /> Xác nhận Hợp nhất
-                            </Button>
+                            </button>
+                            <button onClick={handleConfirmMerge} className="flex-[2] px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase text-xs rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                <Check size={18} /> Xác nhận Hợp nhất
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -2,7 +2,7 @@
 import * as XLSX from 'xlsx-js-style';
 import {
     FileText, Calendar, Search, Filter, Download, Trash2, Printer,
-    AlertCircle, Check, ArrowRight, Activity, Clock, User as UserIcon, ArrowRightLeft
+    AlertCircle, Check, ArrowRight, Activity, Clock, User as UserIcon, ArrowRightLeft, Package, ArrowLeft
 } from 'lucide-react';
 import { Transaction, ActivityLog, User, TransactionType, WorkshopCode, Material } from '../../types';
 import { WORKSHOPS } from '../../constants';
@@ -20,7 +20,8 @@ interface ReportViewerProps {
     materials: Material[];
     currentUser: User | null;
     onRefresh: () => void;
-    initialTab?: 'history' | 'activity';
+    onBack?: () => void;
+    initialTab?: 'history' | 'activity' | 'inventory';
 }
 
 export const ReportViewer: React.FC<ReportViewerProps> = ({
@@ -29,6 +30,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
     materials,
     currentUser,
     onRefresh,
+    onBack,
     initialTab = 'history'
 }) => {
     const toast = useToast();
@@ -49,7 +51,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         return Number.isNaN(t) ? 0 : t;
     };
 
-    const [activeTab, setActiveTab] = useState<'history' | 'activity'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'history' | 'activity' | 'inventory'>(initialTab as any);
 
     useEffect(() => {
         if (initialTab) {
@@ -121,7 +123,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            toast.error("L?i khi in hàng lo?t");
+            toast.error("Lỗi khi in hàng loạt");
         }
     };
 
@@ -148,7 +150,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             a.remove();
         } catch (error) {
             console.error(error);
-            toast.error("L?i khi in phi?u");
+            toast.error("Lỗi khi in phiếu");
         }
     };
 
@@ -160,7 +162,6 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         endDate: ''
     });
 
-    const canManage = currentUser?.permissions.includes('MANAGE_WAREHOUSE') || currentUser?.role === 'ADMIN';
     const isAdmin = currentUser?.role === 'ADMIN';
 
     // --- HISTORY LOGIC ---
@@ -187,7 +188,6 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         const wb = XLSX.utils.book_new();
         const ws_data: any[][] = [];
 
-        // Styles
         const headerStyle = {
             fill: { fgColor: { rgb: "D9EAD3" } },
             font: { bold: true, sz: 14, color: { rgb: "000000" } },
@@ -208,7 +208,6 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         ws_data.push([{ v: `Ngày xuất: ${new Date().toLocaleString('en-GB')}`, t: "s", s: { alignment: { horizontal: "center" }, font: { sz: 14 } } }]);
         ws_data.push([]);
 
-        // Group by Receipt
         const groupedByReceipt: { [key: string]: Transaction[] } = {};
         filteredTransactions.forEach(t => {
             if (!groupedByReceipt[t.receiptId]) groupedByReceipt[t.receiptId] = [];
@@ -258,10 +257,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
             type: 'danger',
             onConfirm: async () => {
                 try {
-                    // Atomic revert + delete (supports IN/OUT/TRANSFER)
                     await apiService.post('/api/transactions/delete_with_revert', { id: tx.id });
-
-                    // Refresh Data
                     onRefresh();
                 } catch (error) {
                     console.error(error);
@@ -320,129 +316,156 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-
-            {/* CONTENT */}
+            {/* HISTORY TAB */}
             {activeTab === 'history' && (
                 <div className="space-y-4">
-                    {/* FILTERS */}
-                    <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="relative col-span-1 md:col-span-2">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <Input placeholder="Tìm ki?m phi?u, v?t tu, don hàng..." className="pl-10" value={historySearchTerm} onChange={e => setHistorySearchTerm(e.target.value)} />
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                            <div className="relative col-span-1 md:col-span-2 group">
+                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                <input
+                                    placeholder="Tìm phiếu, vật tư, đơn hàng..."
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all uppercase placeholder:text-slate-400"
+                                    value={historySearchTerm}
+                                    onChange={e => setHistorySearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <select
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all uppercase text-slate-700 dark:text-slate-200"
+                                    value={historyFilter.type}
+                                    onChange={e => setHistoryFilter({ ...historyFilter, type: e.target.value })}
+                                >
+                                    <option value="ALL">Tất cả loại phiếu</option>
+                                    <option value="IN">Nhập kho</option>
+                                    <option value="OUT">Xuất kho</option>
+                                    <option value="TRANSFER">Điều chuyển</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <select
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all uppercase text-slate-700 dark:text-slate-200"
+                                    value={historyFilter.workshop}
+                                    onChange={e => setHistoryFilter({ ...historyFilter, workshop: e.target.value })}
+                                >
+                                    <option value="ALL">Tất cả xưởng</option>
+                                    {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                                </select>
+                            </div>
                         </div>
-                        <select
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm"
-                            value={historyFilter.type}
-                            onChange={e => setHistoryFilter({ ...historyFilter, type: e.target.value })}
-                        >
-                            <option value="ALL">Tất cả loại phiếu</option>
-                            <option value="IN">Nhập kho</option>
-                            <option value="OUT">Xuất kho</option>
-                            <option value="TRANSFER">Điều chuyển</option>
-                        </select>
-                        <select
-                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-sm"
-                            value={historyFilter.workshop}
-                            onChange={e => setHistoryFilter({ ...historyFilter, workshop: e.target.value })}
-                        >
-                            <option value="ALL">Tất cả xưởng</option>
-                            {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                        </select>
-                        <div className="md:col-span-4 flex gap-4 border-t pt-4 border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase text-slate-400">Từ ngày:</span>
-                                <DateInput value={historyFilter.startDate} onChange={val => setHistoryFilter({ ...historyFilter, startDate: val })} className="w-36" placeholder="dd/mm/yyyy" />
+
+                        <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Từ ngày:</span>
+                                <DateInput value={historyFilter.startDate} onChange={val => setHistoryFilter({ ...historyFilter, startDate: val })} className="w-40" />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase text-slate-400">Đến ngày:</span>
-                                <DateInput value={historyFilter.endDate} onChange={val => setHistoryFilter({ ...historyFilter, endDate: val })} className="w-36" placeholder="dd/mm/yyyy" />
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Đến ngày:</span>
+                                <DateInput value={historyFilter.endDate} onChange={val => setHistoryFilter({ ...historyFilter, endDate: val })} className="w-40" />
                             </div>
+
                             <div className="ml-auto flex gap-3">
                                 {selectedReceipts.size > 0 && (
-                                    <Button
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                                    <button
+                                        className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2"
                                         onClick={handleBulkPrint}
                                     >
-                                        <Printer className="mr-2 h-4 w-4" />
-                                        In đã chọn ({selectedReceipts.size})
-                                    </Button>
+                                        <Printer size={18} className="stroke-[3]" />
+                                        In phiếu ({selectedReceipts.size})
+                                    </button>
                                 )}
-                                <Button className="bg-green-600 hover:bg-green-700 text-white shadow-green-500/20" onClick={handleExportExcel}>
-                                    <Download className="mr-2 h-4 w-4" />
+                                <button
+                                    className="h-11 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-2"
+                                    onClick={handleExportExcel}
+                                >
+                                    <Download size={18} className="stroke-[3]" />
                                     Xuất Excel
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* TABLE */}
-                    <div className="bg-white dark:bg-[#1e293b] rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800">
-                                    <tr>
-                                        <th className="px-6 py-4 w-10">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                                        <th className="px-6 py-5 w-10">
                                             <input
                                                 type="checkbox"
-                                                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-all"
                                                 checked={selectedReceipts.size > 0 && selectedReceipts.size === new Set(filteredTransactions.map(t => t.receiptId)).size}
                                                 onChange={toggleAllSelection}
                                             />
                                         </th>
-                                        <th className="px-6 py-4 font-extrabold">Mã phiếu</th>
-                                        <th className="px-6 py-4 font-extrabold">Ngày</th>
-                                        <th className="px-6 py-4 font-extrabold">Loại</th>
-                                        <th className="px-6 py-4 font-extrabold">Vị trí</th>
-                                        <th className="px-6 py-4 font-extrabold text-center">Số lượng</th>
-                                        <th className="px-6 py-4 font-extrabold">Xưởng</th>
-                                        <th className="px-6 py-4 font-extrabold">Người thực hiện</th>
-                                        <th className="px-6 py-4 text-center">Thao tác</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Mã phiếu</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Ngày</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Loại</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Vật tư & Chi tiết</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Số lượng</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Xưởng</th>
+                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Người lập</th>
+                                        <th className="px-6 py-5 text-center font-black uppercase tracking-widest text-[10px] text-slate-400">Thao tác</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {filteredTransactions.map(tx => (
-                                        <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <tr key={tx.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all">
                                             <td className="px-6 py-4">
                                                 <input
                                                     type="checkbox"
-                                                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                    className="w-5 h-5 rounded-lg border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-all"
                                                     checked={selectedReceipts.has(tx.receiptId)}
                                                     onChange={() => toggleReceiptSelection(tx.receiptId)}
                                                 />
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">{tx.receiptId}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-500">{new Date(tx.date).toLocaleDateString('en-GB')}</td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${tx.type === 'IN' ? 'bg-green-100 text-green-700' :
-                                                    tx.type === 'OUT' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                                                <span className="font-black text-slate-700 dark:text-slate-200 uppercase tracking-tighter">{tx.receiptId}</span>
+                                            </td>
+                                            <td className="px-6 py-4 font-black text-[11px] text-slate-400 uppercase tabular-nums">
+                                                {new Date(tx.date).toLocaleDateString('en-GB')}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm border ${tx.type === 'IN' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' :
+                                                    tx.type === 'OUT' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-800' :
+                                                        'bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:border-sky-800'
                                                     }`}>
-                                                    {tx.type === 'IN' ? 'Nh?p' : tx.type === 'OUT' ? 'Xu?t' : 'Ði?u chuy?n'}
+                                                    {tx.type === 'IN' ? 'Nhập' : tx.type === 'OUT' ? 'Xuất' : 'Điều chuyển'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <p className="font-bold text-slate-700 dark:text-slate-200">{tx.materialName}</p>
-                                                {tx.orderCode && <span className="text-[10px] font-bold text-emerald-500 uppercase">{tx.orderCode}</span>}
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{tx.materialName}</span>
+                                                    {tx.orderCode && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{tx.orderCode}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center font-bold text-lg text-slate-700 dark:text-slate-200">{tx.quantity}</td>
-                                            <td className="px-6 py-4 font-medium">{tx.workshop} {tx.targetWorkshop && <span className="text-slate-400"> {tx.targetWorkshop}</span>}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-500">{tx.user}</td>
+                                            <td className="px-6 py-4 text-center font-black text-lg text-slate-800 dark:text-white tabular-nums">
+                                                {tx.quantity.toLocaleString('vi-VN')}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 rounded-lg text-[10px] font-black text-slate-500 uppercase">{tx.workshop}</span>
+                                                    {tx.targetWorkshop && (
+                                                        <>
+                                                            <ArrowRight size={12} className="text-slate-300" />
+                                                            <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-[10px] font-black text-emerald-600 uppercase">{tx.targetWorkshop}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{tx.user}</span>
+                                            </td>
                                             <td className="px-6 py-4 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => handlePrintSingle(tx.receiptId)}
-                                                        className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                                                        title="In phiếu"
-                                                    >
-                                                        <Printer size={16} />
-                                                    </button>
-                                                    {canManage && (
-                                                        <button
-                                                            onClick={() => handleDeleteTransaction(tx)}
-                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                                            title="Xóa giao dịch"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handlePrintSingle(tx.receiptId)} className="p-2.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-xl transition-all" title="In phiếu"><Printer size={18} /></button>
+                                                    {currentUser?.role === 'ADMIN' && (
+                                                        <button onClick={() => handleDeleteTransaction(tx)} className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-all" title="Xóa giao dịch"><Trash2 size={18} /></button>
                                                     )}
                                                 </div>
                                             </td>
@@ -455,61 +478,182 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                 </div>
             )}
 
+            {/* ACTIVITY TAB */}
             {activeTab === 'activity' && (
-                <div className="space-y-4">
-                    <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-wrap gap-4 items-center">
-                        <div className="flex items-center gap-2">
-                            <UserIcon size={16} className="text-slate-400" />
-                            <select className="bg-transparent font-bold text-sm outline-none" value={activityFilter.userId} onChange={e => setActivityFilter({ ...activityFilter, userId: e.target.value })}>
-                                <option value="ALL">Tất cả người dùng</option>
-                                {/* Needs Users list? Pass as prop if needed, or just unique current logs */}
-                            </select>
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                        <div className="flex items-center gap-4">
+                            {onBack && (
+                                <button onClick={onBack} className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-700 transition-all active:scale-95">
+                                    <ArrowLeft size={20} />
+                                </button>
+                            )}
+                            <div>
+                                <h3 className="text-xl font-black flex items-center gap-3 text-slate-800 dark:text-white uppercase tracking-tight">
+                                    <Activity className="text-sky-500" size={24} /> Nhật ký hoạt động
+                                </h3>
+                                <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Lịch sử thao tác thay đổi dữ liệu hệ thống.</p>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Activity size={16} className="text-slate-400" />
-                            <select className="bg-transparent font-bold text-sm outline-none" value={activityFilter.entityType} onChange={e => setActivityFilter({ ...activityFilter, entityType: e.target.value })}>
-                                <option value="ALL">Tất cả hoạt động</option>
-                                <option value="TRANSACTION">Giao dịch</option>
-                                <option value="SYSTEM">Hệ thống</option>
-                                <option value="USER">Người dùng</option>
-                                <option value="MATERIAL">Vật tư</option>
-                                <option value="BUDGET">Dự toán</option>
-                            </select>
+                        <div className="flex gap-4 items-center">
+                            {isAdmin && filteredActivityLogs.length > 0 && (
+                                <button
+                                    onClick={handleClearLogs}
+                                    className="h-11 px-6 border-2 border-rose-100 dark:border-rose-900/30 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95"
+                                >
+                                    <Trash2 size={16} className="stroke-[3]" /> Xóa tất cả
+                                </button>
+                            )}
                         </div>
-                        {isAdmin && filteredActivityLogs.length > 0 && (
-                            <Button onClick={handleClearLogs} variant="danger" className="ml-auto">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Xóa tất cả
-                            </Button>
-                        )}
                     </div>
-
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                         {filteredActivityLogs.map(log => (
-                            <div key={log.id} className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4">
-                                <div className={`p-3 rounded-xl ${log.entityType === 'TRANSACTION' ? 'bg-emerald-50 text-emerald-600' :
-                                    log.entityType === 'SYSTEM' ? 'bg-slate-100 text-slate-600' :
-                                        log.entityType === 'USER' ? 'bg-purple-50 text-purple-600' :
-                                            log.entityType === 'BUDGET' ? 'bg-orange-50 text-orange-600' :
-                                                'bg-green-50 text-green-600'
+                            <div key={log.id} className="group bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex items-start gap-5">
+                                <div className={`p-3.5 rounded-2xl shadow-inner ${log.entityType === 'TRANSACTION' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' :
+                                    log.entityType === 'SYSTEM' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                                        log.entityType === 'USER' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' :
+                                            log.entityType === 'MATERIAL' ? 'bg-sky-50 text-sky-600 dark:bg-sky-900/20 dark:text-sky-400' :
+                                                'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
                                     }`}>
-                                    {log.entityType === 'TRANSACTION' ? <ArrowRightLeft size={20} /> :
-                                        log.entityType === 'SYSTEM' ? <Clock size={20} /> :
-                                            <Activity size={20} />}
+                                    {log.entityType === 'TRANSACTION' ? <ArrowRightLeft size={20} className="stroke-[2.5]" /> :
+                                        log.entityType === 'SYSTEM' ? <Clock size={20} className="stroke-[2.5]" /> :
+                                            log.entityType === 'USER' ? <UserIcon size={20} className="stroke-[2.5]" /> :
+                                                <Activity size={20} className="stroke-[2.5]" />}
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 pt-1">
                                     <div className="flex justify-between items-start">
-                                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">{log.action}</h4>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(log.timestamp).toLocaleString('en-GB')}</span>
+                                        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{log.action}</h4>
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-lg">{new Date(log.timestamp).toLocaleString('en-GB')}</span>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1">{log.details}</p>
-                                    <p className="text-[10px] font-bold text-emerald-500 mt-2 uppercase">{log.username}</p>
+                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{log.details}</p>
+                                    <div className="flex items-center gap-1.5 mt-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{log.username}</span>
+                                    </div>
                                 </div>
                                 {isAdmin && (
-                                    <button onClick={() => handleDeleteLog(log.id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                    <button onClick={() => handleDeleteLog(log.id)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={18} /></button>
                                 )}
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* INVENTORY TAB */}
+            {activeTab === 'inventory' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+                        <div className="flex items-center gap-4">
+                            {onBack && (
+                                <button onClick={onBack} className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-700 transition-all active:scale-95">
+                                    <ArrowLeft size={20} />
+                                </button>
+                            )}
+                            <div>
+                                <h3 className="text-xl font-black flex items-center gap-3 text-slate-800 dark:text-white uppercase tracking-tight">
+                                    <Package className="text-emerald-500" size={24} /> Báo cáo tồn kho
+                                </h3>
+                                <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Tổng hợp số lượng vật tư hiện tại.</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                className="h-11 px-6 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:border-emerald-200 dark:hover:text-emerald-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900"
+                                onClick={() => {
+                                    const wb = XLSX.utils.book_new();
+                                    const data = materials.map(m => ({
+                                        'Mã VT': m.id,
+                                        'Tên vật tư': m.name,
+                                        'Phân loại': m.classification,
+                                        'ĐVT': m.unit,
+                                        'Xưởng': m.workshop,
+                                        'Tồn kho': m.quantity,
+                                        'Định mức': m.minThreshold,
+                                        'Cảnh báo': m.quantity <= m.minThreshold ? 'CẦN NHẬP' : 'ỔN ĐỊNH'
+                                    }));
+                                    const ws = XLSX.utils.json_to_sheet(data);
+                                    XLSX.utils.book_append_sheet(wb, ws, "Tồn Kho Hiện Tại");
+                                    XLSX.writeFile(wb, `BaoCao_TonKho_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                }}
+                            >
+                                <Download size={16} className="text-emerald-500 group-hover:scale-110 transition-transform stroke-[3]" /> Xuất Excel
+                            </button>
+                            <button
+                                className="h-11 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all flex items-center gap-2"
+                                onClick={() => window.print()}
+                            >
+                                <Printer size={18} className="stroke-[3]" /> In báo cáo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Vật tư & Mã</th>
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Phân loại</th>
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Kho</th>
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-right">Tồn hiện tại</th>
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-right">Định mức</th>
+                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                    {materials.length > 0 ? materials.sort((a, b) => b.quantity - a.quantity).map(m => (
+                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{m.name}</span>
+                                                    <span className="text-[10px] font-black text-sky-500 uppercase tracking-widest">{m.id}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600 dark:bg-sky-900/20 dark:text-sky-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400'}`}>
+                                                    {m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800 text-[10px] font-black text-slate-500 uppercase rounded-xl tracking-wider">{m.workshop}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex flex-col items-end leading-none gap-1">
+                                                    <span className={`text-lg font-black tabular-nums ${m.quantity <= m.minThreshold ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-white'}`}>
+                                                        {m.quantity.toLocaleString('vi-VN')}
+                                                    </span>
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{m.unit}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-black text-slate-400 tabular-nums">
+                                                {m.minThreshold.toLocaleString('vi-VN')}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {m.quantity <= m.minThreshold ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-400 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse shadow-sm">
+                                                        <AlertCircle size={12} className="stroke-[3]" /> Cần nhập ngay
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                                                        <Check size={12} className="stroke-[3]" /> Ổn định
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={6} className="py-20 text-center">
+                                                <div className="flex flex-col items-center gap-3 opacity-20">
+                                                    <Package size={48} />
+                                                    <p className="font-black uppercase tracking-widest text-xs">Không có dữ liệu tồn kho</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -525,5 +669,3 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
         </div>
     );
 };
-
-

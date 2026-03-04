@@ -82,6 +82,15 @@ export interface ITransactionService {
     }): Promise<{ success: boolean; error?: string }>;
 
     /**
+     * List all transactions without pagination
+     */
+    listAllTransactions(filters?: {
+        workshop?: WorkshopCode;
+        type?: TransactionType;
+        materialId?: string;
+    }): Promise<Transaction[]>;
+
+    /**
      * List transactions with filters
      */
     listTransactions(filters: {

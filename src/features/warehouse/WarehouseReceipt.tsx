@@ -35,7 +35,7 @@ interface WarehouseReceiptProps {
     materials: Material[];
     budgets: OrderBudget[];
     modalError: string | null;
-    suppliers: any[]; // Danh sách NCC
+    suppliers: any[];
     handleCreateReceipt: () => void;
 }
 
@@ -80,18 +80,19 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
         const num = parseFloat(clean);
         return isNaN(num) ? 0 : num;
     };
-    // Lọc danh sách đơn hàng đang thực hiện cho xưởng đang chọn
+
     const activeOrders = (Array.isArray(budgets) ? budgets : []).filter(b =>
         b.status === 'Đang thực hiện' &&
         (b.workshop === receiptWorkshop)
     );
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1e293b] rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-700 animate-in fade-in duration-300">
             <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
                 {/* CỘT TRÁI (4): THÔNG TIN PHIẾU & HÀNG CHỜ */}
                 <div className="col-span-12 xl:col-span-4 flex flex-col gap-4 overflow-hidden">
                     <div className="bg-slate-50/50 dark:bg-slate-800/20 p-5 rounded-xl border border-slate-200/60 dark:border-slate-700/50 space-y-4">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase flex items-center gap-2 mb-2">
                             <FileText size={16} className="text-sky-600" /> Thông tin phiếu
                         </h3>
 
@@ -102,29 +103,29 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                             </div>
                         )}
 
-                        <div className="flex p-1 bg-white dark:bg-[#0f172a] rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                            <button onClick={() => setReceiptType(TransactionType.IN)} className={`flex-1 py-2 rounded-lg font-bold text-xs uppercase transition-all ${receiptType === 'IN' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>Nhập kho</button>
-                            <button onClick={() => setReceiptType(TransactionType.OUT)} className={`flex-1 py-2 rounded-lg font-bold text-xs uppercase transition-all ${receiptType === 'OUT' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>Xuất kho</button>
+                        <div className="flex p-1 bg-white dark:bg-[#0f172a] rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 h-12">
+                            <button onClick={() => setReceiptType(TransactionType.IN)} className={`flex-1 py-1 rounded-lg font-black text-xs uppercase transition-all ${receiptType === 'IN' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>Nhập kho</button>
+                            <button onClick={() => setReceiptType(TransactionType.OUT)} className={`flex-1 py-1 rounded-lg font-black text-xs uppercase transition-all ${receiptType === 'OUT' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>Xuất kho</button>
                         </div>
 
                         <div className="grid grid-cols-1 gap-3">
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Xưởng thực hiện</label>
-                                <select className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-sky-500 shadow-sm transition-all" value={receiptWorkshop} onChange={e => setReceiptWorkshop(e.target.value as any)}>
+                                <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Xưởng thực hiện</label>
+                                <select className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all" value={receiptWorkshop} onChange={e => setReceiptWorkshop(e.target.value as any)}>
                                     {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã phiếu</label>
-                                    <input type="text" className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm transition-all" value={receiptId} onChange={e => setReceiptId(e.target.value.toUpperCase())} />
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã phiếu</label>
+                                    <input type="text" className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all" value={receiptId} onChange={e => setReceiptId(e.target.value.toUpperCase())} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Ngày tạo phiếu</label>
+                                    <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Ngày tạo</label>
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-sky-500 shadow-sm"
+                                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm"
                                             placeholder="dd/mm/yyyy"
                                             value={receiptTimeDisplay}
                                             onChange={e => {
@@ -161,21 +162,21 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+
+                            <div className="grid grid-cols-1 gap-3 pt-1">
                                 {receiptType === TransactionType.IN && (
-                                    <>
+                                    <div className="space-y-3">
                                         <div className="space-y-1.5">
-                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Mã NCC</label>
+                                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mã NCC</label>
                                             <input
                                                 type="text"
                                                 list="supplier-codes"
-                                                className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm transition-all"
-                                                placeholder="Gõ hoặc chọn mã NCC"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                                placeholder="Mã NCC..."
                                                 value={orderCode}
                                                 onChange={e => {
                                                     const inputCode = e.target.value.toUpperCase();
                                                     setOrderCode(inputCode);
-                                                    // Tự động điền tên NCC khi tìm thấy mã khớp
                                                     const matchedSupplier = safeSuppliers.find(s => s.code === inputCode);
                                                     if (matchedSupplier) {
                                                         setReceiptSupplier(matchedSupplier.name);
@@ -189,17 +190,16 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                             </datalist>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Tên NCC</label>
+                                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên nhà cung cấp</label>
                                             <input
                                                 type="text"
                                                 list="supplier-names"
-                                                className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-sky-500 shadow-sm transition-all"
-                                                placeholder="Gõ hoặc chọn tên NCC"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                                placeholder="Chọn nhà cung cấp..."
                                                 value={receiptSupplier}
                                                 onChange={e => {
                                                     const inputName = e.target.value;
                                                     setReceiptSupplier(inputName);
-                                                    // Tự động điền mã NCC khi tìm thấy tên khớp
                                                     const matchedSupplier = safeSuppliers.find(s => s.name === inputName);
                                                     if (matchedSupplier) {
                                                         setOrderCode(matchedSupplier.code);
@@ -212,15 +212,15 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                 ))}
                                             </datalist>
                                         </div>
-                                    </>
+                                    </div>
                                 )}
                                 {receiptType === TransactionType.OUT && (
-                                    <div className="space-y-1.5 col-span-2">
-                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Tên đơn hàng</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên đơn hàng</label>
                                         <input
                                             type="text"
                                             list="active-order-codes"
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:border-sky-500 shadow-sm transition-all"
+                                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm transition-all"
                                             placeholder="Chọn đơn hàng..."
                                             value={(Array.isArray(budgets) ? budgets : []).find(b => b.orderCode === orderCode)?.orderName || orderCode}
                                             onChange={e => {
@@ -248,11 +248,11 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                         <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/20">
                             <div className="flex items-center gap-2">
                                 <div className="p-1.5 bg-sky-100/50 dark:bg-sky-900/30 rounded-lg text-sky-600 dark:text-sky-400"><ShoppingCart size={16} /></div>
-                                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Hàng chờ</h4>
+                                <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Hàng chờ</h4>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="px-2.5 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-full text-[10px] font-bold">{selectedItems.length} Item</span>
-                                <button onClick={() => setSelectedItems([])} className="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase hover:underline">Xóa hết</button>
+                                <span className="px-2.5 py-1 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 rounded-full text-[10px] font-black">{selectedItems.length} Item</span>
+                                <button onClick={() => setSelectedItems([])} className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase transition-colors">Xóa hết</button>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
@@ -263,13 +263,13 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-[#1e293b] border border-slate-100 dark:border-slate-700 rounded-xl group hover:border-sky-200 dark:hover:border-sky-700 transition-all">
                                             <div className="flex-1 min-w-0 mr-3">
-                                                <p className="font-bold text-sm uppercase truncate text-slate-700 dark:text-slate-200 leading-tight group-hover:text-sky-700 transition-colors">{m?.name}</p>
+                                                <p className="font-black text-sm uppercase truncate text-slate-700 dark:text-slate-200 leading-tight group-hover:text-sky-700 transition-colors uppercase">{m?.name}</p>
                                                 <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5">Tồn {receiptWorkshop}: <span className="text-slate-600 dark:text-slate-400">{localFormatNumber(currentInWorkshop?.quantity || 0)}</span></p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg p-1 border border-slate-200/50 dark:border-slate-700">
-                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: Math.max(0.01, localParseNumber(x.quantity) - 1) } : x))} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-500"><Minus size={12} /></button>
-                                                    <input type="text" className="w-16 bg-transparent text-center text-sm font-bold outline-none text-slate-800 dark:text-white" value={it.quantity} onChange={e => {
+                                                    <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: Math.max(0.01, localParseNumber(x.quantity) - 1) } : x))} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus size={12} /></button>
+                                                    <input type="text" className="w-16 bg-transparent text-center text-sm font-black outline-none text-slate-800 dark:text-white" value={it.quantity} onChange={e => {
                                                         const val = e.target.value.replace(/[^0-9.,]/g, '');
                                                         const parts = val.split(/[.,]/);
                                                         if (parts.length <= 2) {
@@ -278,7 +278,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                                     }} />
                                                     <button onClick={() => setSelectedItems(selectedItems.map((x, i) => i === idx ? { ...x, quantity: localParseNumber(x.quantity) + 1 } : x))} className="w-6 h-6 flex items-center justify-center text-sky-500 hover:text-sky-700"><Plus size={12} /></button>
                                                 </div>
-                                                <button onClick={() => setSelectedItems((Array.isArray(selectedItems) ? selectedItems : []).filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"> <Trash2 size={16} /></button>
+                                                <button onClick={() => setSelectedItems((Array.isArray(selectedItems) ? selectedItems : []).filter((_, i) => i !== idx))} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"> <Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     )
@@ -286,7 +286,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-3 opacity-60">
                                     <ShoppingCart size={48} className="stroke-1" />
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-center px-8">Chưa có vật tư nào trong phiếu</p>
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-center px-8 leading-relaxed">Chưa có vật tư nào<br />trong hàng chờ</p>
                                 </div>
                             )}
                         </div>
@@ -298,21 +298,21 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                     <div className="grid grid-cols-1 gap-4 mb-4 shrink-0">
                         <div className="relative">
                             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <input type="text" placeholder="Gõ tên vật tư để tìm kiếm..." className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-sm text-slate-800 dark:text-slate-200 outline-none shadow-sm focus:border-sky-500 transition-all" value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} />
+                            <input type="text" placeholder="Gõ tên vật tư để tìm kiếm..." className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none shadow-sm focus:ring-2 focus:ring-sky-500/20 transition-all uppercase" value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} />
                         </div>
                     </div>
 
                     <div className="flex gap-2 mb-6">
-                        <button onClick={() => setReceiptSearchClass('ALL')} className={`px-6 py-2 rounded-xl text-[10px] font-extrabold uppercase transition-all border ${receiptSearchClass === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white dark:bg-[#0f172a] text-slate-400 border-slate-200 dark:border-slate-700'}`}>Tất cả Loại</button>
-                        <button onClick={() => setReceiptSearchClass('Vật tư chính')} className={`px-6 py-2 rounded-xl text-[10px] font-extrabold uppercase transition-all border ${receiptSearchClass === 'Vật tư chính' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white dark:bg-[#0f172a] text-slate-400 border-slate-200 dark:border-slate-700'}`}>Chính</button>
-                        <button onClick={() => setReceiptSearchClass('Vật tư phụ')} className={`px-6 py-2 rounded-xl text-[10px] font-extrabold uppercase transition-all border ${receiptSearchClass === 'Vật tư phụ' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white dark:bg-[#0f172a] text-slate-400 border-slate-200 dark:border-slate-700'}`}>Phụ</button>
+                        <button onClick={() => setReceiptSearchClass('ALL')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'ALL' ? 'bg-slate-800 dark:bg-slate-700 text-white border-slate-800 dark:border-slate-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Tất cả Loại</button>
+                        <button onClick={() => setReceiptSearchClass('Vật tư chính')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'Vật tư chính' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Chính</button>
+                        <button onClick={() => setReceiptSearchClass('Vật tư phụ')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'Vật tư phụ' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Phụ</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                             {(Array.isArray(materials) ? materials : []).filter(m => {
                                 const matchSearch = String(m.name || '').toLowerCase().includes(String(materialSearch || '').toLowerCase());
-                                const matchWorkshop = m.workshop === receiptWorkshop; // Auto-filter by selected receiptWorkshop
+                                const matchWorkshop = m.workshop === receiptWorkshop;
                                 const matchClass = receiptSearchClass === 'ALL' || m.classification === receiptSearchClass;
                                 return matchSearch && matchWorkshop && matchClass;
                             }).map(m => {
@@ -324,37 +324,37 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                         } else {
                                             setSelectedItems([...selectedItems, { materialId: m.id, quantity: 1 }]);
                                         }
-                                    }} className={`group relative p-4 text-left bg-white dark:bg-[#1e293b] border rounded-2xl transition-all shadow-sm active:scale-95 flex flex-col justify-between gap-3 h-full ${isInCart ? 'border-sky-500 ring-2 ring-sky-500 bg-sky-50/10 dark:bg-sky-900/10' : 'border-slate-200 dark:border-slate-700 hover:border-sky-300 hover:shadow-md'}`}>
+                                    }} className={`group relative p-4 text-left bg-white dark:bg-slate-900 border rounded-2xl transition-all shadow-sm active:scale-95 flex flex-col justify-between gap-3 h-full ${isInCart ? 'border-sky-500 ring-4 ring-sky-500/10 bg-sky-50/20 dark:bg-sky-900/10' : 'border-slate-100 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-lg'}`}>
                                         <div className="min-w-0">
-                                            <h5 className="font-extrabold text-[12px] text-slate-800 dark:text-white uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700">{m.name}</h5>
+                                            <h5 className="font-black text-[12px] text-slate-800 dark:text-white uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors">{m.name}</h5>
                                             <div className="flex flex-wrap gap-1.5">
-                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-[8px] font-extrabold text-slate-500 dark:text-slate-300 rounded-md uppercase">{m.workshop}</span>
-                                                <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400'} text-[8px] font-extrabold rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
-                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-[8px] font-extrabold text-slate-400 uppercase rounded-md">{m.unit}</span>
+                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 dark:text-slate-400 rounded-md uppercase tracking-tighter">{m.workshop}</span>
+                                                <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'} text-[8px] font-black rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
+                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-400 uppercase rounded-md tracking-tighter">{m.unit}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50 dark:border-slate-700">
+                                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-800">
                                             <div>
-                                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Số lượng tồn</p>
-                                                <p className="text-sm font-extrabold text-slate-800 dark:text-white">{localFormatNumber(m.quantity)}</p>
+                                                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tight mb-0.5">Số lượng tồn</p>
+                                                <p className="text-sm font-black text-slate-800 dark:text-white tabular-nums">{localFormatNumber(m.quantity)}</p>
                                             </div>
-                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isInCart ? 'bg-sky-600 text-white shadow-sm' : 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 group-hover:bg-sky-600 group-hover:text-white'}`}>
-                                                {isInCart ? <Check size={16} /> : <Plus size={16} />}
+                                            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all ${isInCart ? 'bg-sky-600 text-white shadow-lg' : 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 group-hover:bg-sky-600 group-hover:text-white group-hover:shadow-lg group-hover:scale-110'}`}>
+                                                {isInCart ? <Check size={18} /> : <Plus size={18} />}
                                             </div>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
-                        {materials.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-slate-600 gap-4">
-                                <Package size={64} className="opacity-20" />
-                                <p className="text-sm font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 italic">Không tìm thấy vật tư phù hợp</p>
+                        {materials.filter(m => m.workshop === receiptWorkshop).length === 0 && (
+                            <div className="h-full flex flex-col items-center justify-center py-20 text-slate-300 dark:text-slate-600 gap-4 opacity-40">
+                                <Package size={64} className="stroke-1" />
+                                <p className="text-sm font-black uppercase tracking-widest text-center px-12">Xưởng này chưa có vật tư nào<br />vui lòng thêm vật tư mới trước</p>
                             </div>
                         )}
                     </div>
 
-                    <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-slate-200/50">
+                    <div className="mt-6 flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 shrink-0">
                         <button
                             onClick={() => {
                                 if (selectedItems.length === 0) return;
@@ -363,19 +363,19 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                 }
                             }}
                             disabled={selectedItems.length === 0}
-                            className="px-6 py-3 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 rounded-xl font-extrabold uppercase text-[10px] flex items-center gap-2 shadow-sm hover:bg-slate-50 disabled:opacity-30 transition-all"
+                            className="px-8 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 shadow-sm hover:shadow-md hover:translate-y-[-1px] active:translate-y-[1px] disabled:opacity-30 transition-all"
                         >
-                            <Printer size={16} /> In phiếu tạm
+                            <Printer size={18} /> In phiếu tạm
                         </button>
                         <button
                             onClick={handleCreateReceipt}
                             disabled={selectedItems.length === 0}
-                            className={`px-10 py-3.5 rounded-xl font-extrabold shadow-lg flex items-center gap-2 uppercase text-[11px] tracking-widest active:scale-[0.98] transition-all disabled:opacity-30 ${receiptType === 'IN'
-                                ? 'bg-gradient-to-br from-green-600 via-green-600 to-emerald-600 shadow-green-500/30 text-white'
-                                : 'btn-gradient-primary shadow-indigo-500/30 text-white'
-                                } hover:shadow-[0_0_25px_rgba(0,0,0,0.15)] hover:translate-y-[-2px]`}
+                            className={`px-12 py-3.5 rounded-2xl font-black shadow-xl flex items-center gap-3 uppercase text-[11px] tracking-widest active:scale-95 transition-all disabled:opacity-30 ${receiptType === 'IN'
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-500/30 text-white'
+                                : 'bg-gradient-to-r from-rose-600 to-red-600 shadow-rose-500/40 text-white'
+                                } hover:translate-y-[-2px] hover:shadow-2xl`}
                         >
-                            Xác nhận hoàn tất <Check size={16} />
+                            {receiptType === 'IN' ? 'Hoàn tất nhập kho' : 'Hoàn tất xuất kho'} <Check size={18} />
                         </button>
                     </div>
                 </div>
@@ -383,4 +383,3 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
         </div>
     );
 };
-

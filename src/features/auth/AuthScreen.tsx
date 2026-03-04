@@ -44,9 +44,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 }) => {
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-background font-sans transition-colors duration-300 relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/10 blur-[120px] rounded-full"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/15 blur-[120px] rounded-full"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 dark:bg-emerald-500/5 blur-[120px] rounded-full animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-500/10 dark:bg-sky-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent dark:from-slate-900/40 pointer-events-none"></div>
 
       <div className="w-full max-w-md bg-card border border-border shadow-2xl shadow-emerald-600/5 rounded-[2.5rem] p-8 xl:p-12 relative overflow-hidden backdrop-blur-sm z-10">
         <button
@@ -62,25 +62,25 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <div className="inline-flex p-5 text-white bg-emerald-600 rounded-[2rem] shadow-xl shadow-emerald-500/20 mb-6 group hover:rotate-6 transition-transform duration-500">
             <Warehouse size={40} className="group-hover:scale-110 transition-transform" />
           </div>
-          <h2 className="text-3xl font-extrabold text-foreground tracking-tighter uppercase">
-            SMART<span className="text-emerald-600">STOCK</span>
+          <h2 className="text-4xl font-black text-foreground tracking-tighter uppercase drop-shadow-sm">
+            SMART<span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">STOCK</span>
           </h2>
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-3 opacity-60">
-            {isConnectionSetupOpen ? 'Thiết lập kết nối hệ thống' : 'Hệ thống quản lý kho v6.8 Professional'}
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-4 opacity-80">
+            {isConnectionSetupOpen ? 'Thiết lập kết nối hệ thống' : 'Quản lý kho thông minh v6.8 PRO'}
           </p>
         </div>
 
         {!isConnectionSetupOpen ? (
           <form onSubmit={handleLogin} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1 opacity-70">Tên đăng nhập</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest ml-1">Tài khoản</label>
               <div className="relative group/input">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within/input:text-emerald-600 transition-colors" size={18} />
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-emerald-500 transition-colors" size={20} />
                 <input
                   type="text"
                   autoComplete="username"
-                  className="w-full pl-12 pr-5 py-4 bg-muted/50 border border-border rounded-2xl font-bold focus:ring-4 focus:ring-emerald-600/10 focus:border-emerald-600/50 outline-none transition-all placeholder:text-muted-foreground/40 text-sm"
-                  placeholder="Nhập tên tài khoản..."
+                  className="w-full pl-12 pr-5 py-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl font-bold text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                  placeholder="Tên đăng nhập"
                   value={loginForm.username}
                   onChange={e => setLoginForm({ ...loginForm, username: e.target.value })}
                   required
@@ -88,15 +88,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1 opacity-70">Mật khẩu</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest ml-1">Mật khẩu</label>
               <div className="relative group/input">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within/input:text-emerald-600 transition-colors" size={18} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/input:text-emerald-500 transition-colors" size={20} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  className="w-full pl-12 pr-12 py-4 bg-muted/50 border border-border rounded-2xl font-bold focus:ring-4 focus:ring-emerald-600/10 focus:border-emerald-600/50 outline-none transition-all placeholder:text-muted-foreground/40 text-sm"
-                  placeholder="Nhập mật khẩu..."
+                  className="w-full pl-12 pr-12 py-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl font-bold text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                  placeholder="Mật khẩu"
                   value={loginForm.password}
                   onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
                   required
@@ -104,7 +104,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-emerald-600 transition-colors z-20 p-1 active:scale-90"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-500 transition-colors z-20 p-1 active:scale-90"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -138,9 +138,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <button
               type="submit"
               disabled={!loginForm.username || !loginForm.password}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs btn-hover-effect"
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-3xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-[0.2em] text-[11px] mt-2 group flex items-center justify-center gap-2"
             >
-              Đăng nhập ngay
+              Đăng nhập hệ thống <ArrowRightLeft size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
         ) : (

@@ -6,7 +6,7 @@ import {
   List, ChevronRight, Filter, ShoppingCart, HelpCircle, FileSpreadsheet,
   Download, Users, Settings, Activity, Shield, ListChecks, Save,
   AlertCircle, Info, Heart, Inbox, Moon, Sun, Eye, EyeOff,
-  ClipboardList, Clock, Globe, LogOut
+  ClipboardList, Clock, Globe, LogOut, ArrowRight
 } from 'lucide-react';
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
@@ -14,7 +14,6 @@ import { CLASSIFICATIONS, WORKSHOPS, PERMISSIONS, ROLE_PERMISSIONS } from '@/con
 import { inventoryService, transactionService, authService, userService, materialService, supplierService } from '@/domain';
 import * as XLSX from 'xlsx-js-style';
 
-import { io } from 'socket.io-client';
 import { UserManagement } from './features/admin/UserManagement';
 import { MaterialManagement } from './features/warehouse/MaterialManagement';
 import { WarehouseTransfer } from './features/warehouse/WarehouseTransfer';
@@ -39,45 +38,23 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { useToast } from './hooks/useToast';
-import { jwtDecode } from 'jwt-decode';
 import {
-  clearAuthSession,
   clearRememberedUsername,
-  getAuthToken,
-  getAuthUser,
   getRememberedUsername,
-  hasRememberedLogin,
   setAuthSession,
   setRememberedUsername
 } from './utils/authStorage';
 
-// Socket instance (initialized dynamically)
-let socket: any;
-
 const App: React.FC = () => {
   const toast = useToast();
-<<<<<<< HEAD
   // --- CONNECTION CONFIG ---
-=======
-<<<<<<< HEAD
-=======
-  // --- CONNECTION CONFIG ---
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-  const [connectionConfig, setConnectionConfig] = useState<{ mode: 'SERVER' | 'CLIENT' | null, serverIp: string }>(() => {
+  const [connectionConfig] = useState<{ mode: 'SERVER' | 'CLIENT' | null, serverIp: string }>(() => {
     const saved = localStorage.getItem('connection_config');
     if (saved) return JSON.parse(saved);
     return { mode: null, serverIp: '' };
   });
 
-<<<<<<< HEAD
   // --- AUTH STATE ---
-=======
-<<<<<<< HEAD
-=======
-  // --- AUTH STATE ---
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('GUEST');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -104,43 +81,17 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [budgets, setBudgets] = useState<OrderBudget[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [modalError, setModalError] = useState<string | null>(null);
-
-  const formatLocalDate = (dateStr?: string | number) => {
-    const d = dateStr ? new Date(dateStr) : new Date();
-    return d.toLocaleDateString('en-GB');
-  };
-
-  const formatNumber = (val: number | string | undefined): string => {
-    if (val === null || val === undefined) return '0,00';
-    const num = typeof val === 'number' ? val : parseFloat(val.toString().replace(',', '.'));
-    return isNaN(num) ? '0,00' : num.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
   const [serverSummary, setServerSummary] = useState<any>(null);
 
-<<<<<<< HEAD
   // --- UI STATE ---
-=======
-<<<<<<< HEAD
-=======
-  // --- UI STATE ---
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
     }
     return 'light';
   });
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -177,33 +128,14 @@ const App: React.FC = () => {
     if (isSyncing && !isBackground) return;
     if (!isBackground) setIsSyncing(true);
     try {
-<<<<<<< HEAD
       const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
-=======
-<<<<<<< HEAD
-      const [matRes, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
-        apiService.get<Material[]>('/api/materials/all').catch(() => []),
+        materialService.listMaterials({}),
+        transactionService.listAllTransactions({}),
         apiService.get<Project[]>('/api/projects?limit=200').then((r: any) => r?.data || r).catch(() => []),
         apiService.get<OrderBudget[]>('/api/budgets/all').catch(() => []),
-        apiService.get<any[]>('/api/suppliers?limit=200').then((r: any) => r?.data || r).catch(() => []),
-        currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
-        currentUser?.role === 'ADMIN' ? apiService.get<any>('/api/activity_logs?limit=50').then((r: any) => r?.data || r).catch(() => []) : Promise.resolve([]),
-        apiService.get<any>('/api/dashboard/summary').catch(() => null),
-        apiService.get<Transaction[]>('/api/transactions/planning').catch(() => [])
-      ]);
-
-      setMaterials(Array.isArray(matRes) ? matRes : []);
-=======
-      const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData] = await Promise.all([
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-        materialService.listMaterials({}),
-        transactionService.listTransactions({}),
-        apiService.get<Project[]>('/api/projects').catch(() => []),
-        apiService.get<OrderBudget[]>('/api/budgets').catch(() => []),
         supplierService.listSuppliers().catch(() => []),
         currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
-<<<<<<< HEAD
-        currentUser?.role === 'ADMIN' ? apiService.get<ActivityLog[]>('/api/activity_logs?limit=50').catch(() => []) : Promise.resolve([]),
+        currentUser?.role === 'ADMIN' ? apiService.get<any>('/api/activity_logs?limit=50').then((r: any) => r?.data || r).catch(() => []) : Promise.resolve([]),
         apiService.get<any>('/api/dashboard/summary').catch(() => null),
         apiService.get<Transaction[]>('/api/transactions/planning').catch(() => [])
       ]);
@@ -213,36 +145,16 @@ const App: React.FC = () => {
         ...(Array.isArray(planningTxData) ? planningTxData : [])
       ];
 
-      setMaterials(Array.isArray(matRes) ? matRes : []);
+      setMaterials(Array.isArray(matRes) ? (matRes as any).data || matRes : []);
       setTransactions(allTransactions);
-=======
-        currentUser?.role === 'ADMIN' ? apiService.get<ActivityLog[]>('/api/activity_logs').catch(() => []) : Promise.resolve([]),
-        apiService.get<any>('/api/dashboard/summary').catch(() => null)
-      ]);
-
-      setMaterials(Array.isArray(matRes) ? matRes : []);
-      setTransactions(Array.isArray(txData) ? txData : []);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
       setProjects(Array.isArray(projData) ? projData : []);
       setBudgets(Array.isArray(budData) ? budData : []);
       setSuppliers(Array.isArray(suppData) ? suppData : []);
       setServerSummary(summaryData);
-<<<<<<< HEAD
 
       (inventoryService as any).allTransactions = allTransactions;
       (inventoryService as any).lastFetchTime = Date.now();
       (inventoryService as any).stockCache.clear();
-=======
-<<<<<<< HEAD
-      setTransactions(Array.isArray(planningTxData) ? planningTxData : []);
-=======
-
-      (inventoryService as any).allTransactions = Array.isArray(txData) ? txData : [];
-      (inventoryService as any).lastFetchTime = Date.now();
-      (inventoryService as any).stockCache.clear();
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 
       if (currentUser?.role === 'ADMIN') {
         const safeUsers = Array.isArray(usersData) ? usersData : [];
@@ -251,7 +163,6 @@ const App: React.FC = () => {
         const updatedSelf = currentUser ? safeUsers.find((u: User) => u.id === currentUser.id) : null;
         if (updatedSelf) setCurrentUser(updatedSelf);
       }
-      setLastSync(new Date());
     } catch (error) {
       console.error("Failed to load data", error);
     } finally {
@@ -276,24 +187,23 @@ const App: React.FC = () => {
     loadData(true);
   }, 1000, { leading: false, trailing: true }), []);
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     apiService.initSocket(debouncedLoadData);
-<<<<<<< HEAD
     const interval = setInterval(() => loadData(true), 10000);
-=======
-<<<<<<< HEAD
-    const interval = setInterval(() => loadData(true), 60000);
-=======
-    const interval = setInterval(() => loadData(true), 10000);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
     return () => {
       clearInterval(interval);
       debouncedLoadData.cancel();
       apiService.disconnectSocket();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, debouncedLoadData]);
 
   useEffect(() => {
     if (!isAuthenticated || !authToken) return;
@@ -330,6 +240,7 @@ const App: React.FC = () => {
   const [accountForm, setAccountForm] = useState<AccountForm>({
     currentPassword: '', newPassword: '', confirmPassword: '', fullName: '', email: ''
   });
+  const [modalError, setModalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab === 'warehouse_receipt') {
@@ -351,8 +262,8 @@ const App: React.FC = () => {
     const sameTypeTxs = safeTxs.filter(t => t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`));
     let nextNum = 1;
     if (sameTypeTxs.length > 0) {
-      const nums = sameTypeTxs.map(t => parseInt(t.receiptId.split('/')[3], 10) || 0);
-      nextNum = Math.max(...nums) + 1;
+      const nums = sameTypeTxs.map(t => parseInt(t.receiptId.split('/')[3], 10) || 0).filter(n => !isNaN(n));
+      nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     }
     return `${prefix}/${workshop}/${year}/${nextNum.toString().padStart(5, '0')}`;
   };
@@ -403,39 +314,17 @@ const App: React.FC = () => {
   const hasPermission = (permission: Permission): boolean => authService.hasPermission(currentUser, permission);
   const canModify = hasPermission('MANAGE_WAREHOUSE');
 
+  const formatNumber = (val: number | string | undefined): string => {
+    if (val === null || val === undefined) return '0';
+    const num = typeof val === 'number' ? val : parseFloat(val.toString().replace(/,/g, ''));
+    return isNaN(num) ? '0' : num.toLocaleString('vi-VN');
+  };
+
   const summary = useMemo(() => {
     const safeMaterials = Array.isArray(materials) ? materials : [];
-<<<<<<< HEAD
-    const safeTransactions = Array.isArray(transactions) ? transactions : [];
-    const lowStockMaterials = safeMaterials.filter(m => (parseNumber(m.quantity ?? 0)) <= (parseNumber(m.minThreshold ?? 0)));
-
-    if (serverSummary) {
-      return {
-        totalItems: serverSummary.totalItems ?? safeMaterials.length,
-        lowStockCount: serverSummary.lowStockCount ?? lowStockMaterials.length,
-        lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : lowStockMaterials.slice(0, 5),
-=======
-<<<<<<< HEAD
-
-    // Use serverSummary (optimized single-query response) as primary source
-    if (serverSummary) {
-      return {
-        totalItems: serverSummary.totalItems ?? safeMaterials.length,
-        lowStockCount: serverSummary.lowStockCount ?? 0,
-        lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : [],
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-        todayIn: serverSummary.todayIn ?? 0,
-        todayOut: serverSummary.todayOut ?? 0,
-        workshopData: serverSummary.workshopData ?? [],
-        activityData: serverSummary.activityData ?? [],
-<<<<<<< HEAD
-        txCount: safeTransactions.length,
-=======
-        txCount: 0,
-=======
     const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
-    // Always calculate local fallback even if serverSummary exists, to ensure properties like lowStockItems are present
+    // Calculate local totals
     const lowStockMaterials = safeMaterials.filter(m => (parseNumber(m.quantity ?? 0)) <= (parseNumber(m.minThreshold ?? 0)));
     const today = new Date().toISOString().split('T')[0];
     const todayTxs = safeTransactions.filter(t => t.date === today);
@@ -446,46 +335,20 @@ const App: React.FC = () => {
       lowStockItems: lowStockMaterials.slice(0, 5),
       todayIn: todayTxs.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + (t.quantity || 0), 0),
       todayOut: todayTxs.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + (t.quantity || 0), 0),
+      txCount: safeTransactions.length,
+      mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
     };
 
     if (serverSummary) {
       return {
         ...baseSummary,
         ...serverSummary,
-        // Ensure lowStockItems from server is an array, otherwise fallback to local
         lowStockItems: Array.isArray(serverSummary.lowStockItems) ? serverSummary.lowStockItems : baseSummary.lowStockItems,
-        txCount: safeTransactions.length,
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-        mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
       };
     }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-    // Fallback when serverSummary is not yet loaded
-    const lowStockMaterials = safeMaterials.filter(m => (m.quantity ?? 0) <= (m.minThreshold ?? 0));
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
-    return {
-      totalItems: safeMaterials.length,
-      lowStockCount: lowStockMaterials.length,
-      lowStockItems: lowStockMaterials.slice(0, 5),
-      todayIn: 0,
-      todayOut: 0,
-<<<<<<< HEAD
-      txCount: safeTransactions.length,
-      mainItems: safeMaterials.filter(m => m.classification === 'Vật tư chính').length
-    };
-  }, [materials, transactions, serverSummary]);
-=======
-    };
-  }, [materials, serverSummary]);
-=======
     return baseSummary;
   }, [materials, transactions, serverSummary]);
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
 
   const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
     setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
@@ -496,6 +359,7 @@ const App: React.FC = () => {
     setReceiptWorkshop(material.workshop);
     setSelectedItems([{ materialId: material.id, quantity: material.minThreshold * 2 }]);
     setIsReceiptModalOpen(true);
+    setActiveTab('warehouse_receipt');
   };
 
   const handleCreateReceipt = () => {
@@ -542,11 +406,28 @@ const App: React.FC = () => {
 
   const handleBackup = async () => {
     try {
-      const data = await apiService.post<{ path: string }>('/api/backup', {});
-      toast.success(`Đã sao lưu dữ liệu thành công ra Desktop!\nFile: ${data.path}`);
+      const url = `${apiService.getBaseUrl()}/api/download-db`;
+      const token = localStorage.getItem('auth_token');
+
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `SmartStock_Backup_${new Date().toISOString().split('T')[0]}.db`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success('Đã tải xuống bản sao lưu dữ liệu (.db)');
     } catch (e) {
       console.error(e);
-      toast.error('Lỗi khi sao lưu dữ liệu.');
+      toast.error('Lỗi khi tải bản sao lưu dữ liệu.');
     }
   };
 
@@ -578,16 +459,28 @@ const App: React.FC = () => {
             <h2 className="text-lg font-extrabold text-foreground tracking-tight whitespace-nowrap">
               {activeTab === 'dashboard' ? '📊 Dashboard' :
                 activeTab === 'warehouse_inventory' ? 'Kho Vật Tư' :
-                  activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
-                    activeTab === 'warehouse_transfer' ? 'Điều Chuyển' :
-                      activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
-                        activeTab === 'planning_projects' ? 'Dự Án' :
-                          activeTab === 'planning_estimates' ? 'Dự Toán' :
-                            activeTab === 'users' ? 'Người Dùng' : 'SmartStock'}
+                  activeTab === 'warehouse_history' ? 'Lịch Sử Giao Dịch' :
+                    activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
+                      activeTab === 'warehouse_transfer' ? 'Điều Chuyển' :
+                        activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
+                          activeTab === 'planning_projects' ? 'Dự Án' :
+                            activeTab === 'planning_estimates' ? 'Dự Toán' :
+                              activeTab === 'users' ? 'Người Dùng' : 'SmartStock'}
             </h2>
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="hidden lg:flex flex-col items-end leading-none mr-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic flex items-center gap-1 mb-1">
+                <Clock size={10} /> {currentTime.toLocaleDateString('vi-VN')}
+              </span>
+              <span className="text-2xl font-black text-emerald-600 tabular-nums tracking-tighter shadow-emerald-500/10 transition-all">
+                {currentTime.toLocaleTimeString('vi-VN', { hour12: false })}
+              </span>
+            </div>
+
+            <div className="h-8 w-px bg-border mx-1 hidden lg:block"></div>
+
             <div className="hidden lg:flex flex-col items-end leading-none mr-2">
               <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Server IP</span>
               <span className="text-xs font-bold text-foreground tabular-nums">{serverIp || 'Local'}</span>
@@ -749,8 +642,16 @@ const App: React.FC = () => {
             <TransactionHistory transactions={transactions} materials={materials} currentUser={currentUser} onRefresh={loadData} />
           )}
 
-          {(activeTab === 'reports_history' || activeTab === 'reports_activity') && (
-            <ReportViewer transactions={transactions} activityLogs={activityLogs} materials={materials} currentUser={currentUser} onRefresh={loadData} initialTab={activeTab === 'reports_history' ? 'history' : 'activity'} />
+          {(activeTab === 'reports_history' || activeTab === 'reports_activity' || activeTab === 'reports_inventory') && (
+            <ReportViewer
+              transactions={transactions}
+              activityLogs={activityLogs}
+              materials={materials}
+              currentUser={currentUser}
+              onRefresh={loadData}
+              onBack={() => setActiveTab('settings')}
+              initialTab={activeTab === 'reports_history' ? 'history' : activeTab === 'reports_activity' ? 'activity' : 'inventory'}
+            />
           )}
 
           {activeTab === 'warehouse_receipt' && (
@@ -788,25 +689,11 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'planning_projects' && (
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
             <PlanningProjects projects={projects} currentUser={currentUser} onUpdate={loadData} />
           )}
 
           {activeTab === 'planning_estimates' && (
             <PlanningEstimates budgets={budgets} projects={projects} materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} />
-<<<<<<< HEAD
-=======
-=======
-            <PlanningProjects currentUser={currentUser} onUpdate={loadData} />
-          )}
-
-          {activeTab === 'planning_estimates' && (
-            <PlanningEstimates budgets={budgets} projects={projects} currentUser={currentUser} onUpdate={loadData} />
->>>>>>> d05f493e79576293327e4ea22983bce155a6b685
->>>>>>> aa6ebc5d00f0116ac8e241ae94857c8ef4ff16c8
           )}
 
           {activeTab === 'users' && hasPermission('MANAGE_USERS') && (
@@ -817,13 +704,74 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <Card className="p-8 border-dashed border-2 flex flex-col items-center justify-center text-center">
-                <Settings size={48} className="text-muted-foreground/30 mb-4" />
-                <h3 className="text-xl font-bold">Cài đặt hệ thống</h3>
-                <p className="text-muted-foreground mb-6">Đang phát triển các tùy chỉnh bổ sung cho Expert WMS.</p>
-                <Button variant="outline" onClick={handleBackup}>Sao lưu dữ liệu ngay</Button>
-              </Card>
+            <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Backup Card */}
+                <Card className="shadow-lg border-none bg-card/50 backdrop-blur-xl overflow-hidden group">
+                  <div className="h-2 bg-emerald-600 w-full" />
+                  <CardHeader className="p-8">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 shadow-inner group-hover:rotate-12 transition-transform">
+                        <Save size={24} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-black">Sao lưu dữ liệu</CardTitle>
+                        <CardDescription>Bảo vệ dữ liệu kho hàng của bạn</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-8 pb-8 space-y-6">
+                    <div className="p-4 rounded-2xl bg-muted/50 border border-border text-xs font-medium leading-relaxed">
+                      Dữ liệu sẽ được xuất ra file data (.db) chứa toàn bộ danh sách vật tư, xưởng, nhà cung cấp và lịch sử giao dịch. File sẽ được lưu mặc định tại Desktop của máy chạy Server.
+                    </div>
+                    <Button
+                      className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-500/20 font-black text-sm uppercase flex items-center justify-center gap-3 btn-hover-effect"
+                      onClick={handleBackup}
+                    >
+                      <Download size={20} /> Thực hiện sao lưu ngay
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* System Info Card */}
+                <Card className="shadow-lg border-none bg-card/50 backdrop-blur-xl overflow-hidden group">
+                  <div className="h-2 bg-sky-600 w-full" />
+                  <CardHeader className="p-8">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-950 flex items-center justify-center text-sky-600 shadow-inner group-hover:rotate-12 transition-transform">
+                        <Activity size={24} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-black">Nhật ký hoạt động</CardTitle>
+                        <CardDescription>Theo dõi các thao tác gần đây</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-8 pb-8 space-y-4">
+                    <div className="space-y-3">
+                      {(Array.isArray(activityLogs) ? activityLogs : []).slice(0, 5).map(log => (
+                        <div key={log.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/50 text-[11px]">
+                          <div className="w-2 h-2 rounded-full bg-sky-500 mt-1.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-foreground truncate">{log.details}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{log.username} · {new Date(log.timestamp).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {(!activityLogs || activityLogs.length === 0) && (
+                        <p className="text-xs text-center py-8 text-muted-foreground italic">Chưa có nhật ký hoạt động nào.</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 rounded-xl font-bold text-xs uppercase border-sky-200 text-sky-600 hover:bg-sky-50"
+                      onClick={() => setActiveTab('reports_activity')}
+                    >
+                      Xem tất cả nhật ký <ArrowRight size={16} className="ml-2" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </main>
@@ -840,6 +788,7 @@ const App: React.FC = () => {
         title={confirmDialog.title} message={confirmDialog.message}
         onConfirm={confirmDialog.onConfirm} type={confirmDialog.type}
       />
+      <Toaster />
     </div>
   );
 };
