@@ -1,251 +1,370 @@
-/**
- * MANUAL TEST for TransactionService
- * 
- * Run this test to verify TransactionService functionality
- * 
- * HOW TO RUN:
- * 1. Import this in your dev environment
- * 2. Call testTransactionService() from browser console
- * 3. Check console output for results
- */
-
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transactionService } from '../TransactionService';
 import { TransactionType, WorkshopCode } from '@/types';
+import { inventoryService } from '../InventoryService';
+import { transactionRepository } from '@/repositories';
 
-export async function testTransactionService() {
-    console.log('🧪 Starting TransactionService Manual Tests...\n');
-
-    const results = {
-        passed: 0,
-        failed: 0,
-        errors: [] as string[]
-    };
-
-    // ========================================
-    // TEST 1: Generate Receipt ID
-    // ========================================
-    try {
-        console.log('📋 TEST 1: Generate Receipt ID');
-
-        const receiptId1 = await transactionService.generateReceiptId(
-            TransactionType.IN,
-            'OG' as WorkshopCode // Ống Gió
-        );
-
-        console.log('  Generated ID:', receiptId1);
-
-        // Verify format: PNK/OG/24/00001
-        const pattern = /^PNK\/OG\/\d{2}\/\d{5}$/;
-        if (pattern.test(receiptId1)) {
-            console.log('  ✅ Format correct');
-            results.passed++;
-        } else {
-            console.error('  ❌ Format incorrect');
-            results.failed++;
-            results.errors.push('Receipt ID format mismatch');
-        }
-
-        // Generate another to verify increment
-        const receiptId2 = await transactionService.generateReceiptId(
-            TransactionType.IN,
-            'OG' as WorkshopCode
-        );
-        console.log('  Generated ID 2:', receiptId2);
-
-        if (receiptId2 > receiptId1) {
-            console.log('  ✅ ID increments correctly\n');
-            results.passed++;
-        } else {
-            console.error('  ❌ ID does not increment\n');
-            results.failed++;
-            results.errors.push('Receipt ID not incrementing');
-        }
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 1 FAILED:', error.message, '\n');
-        results.failed += 2;
-        results.errors.push(`TEST 1: ${error.message}`);
+// Mock các dependencies
+vi.mock('@/repositories', () => ({
+    transactionRepository: {
+        create: vi.fn().mockImplementation((tx: any) => Promise.resolve(tx)),
+        list: vi.fn().mockResolvedValue([]),
+        fetchAll: vi.fn().mockResolvedValue([]),
+        fetchById: vi.fn().mockResolvedValue(null),
+        update: vi.fn().mockImplementation((_id: any, tx: any) => Promise.resolve(tx)),
+        delete: vi.fn().mockResolvedValue(undefined),
+        commit: vi.fn().mockResolvedValue({ success: true }),
     }
+}));
 
-    // ========================================
-    // TEST 2: Create Inbound Receipt
-    // ========================================
-    try {
-        console.log('📥 TEST 2: Create Inbound Receipt');
+vi.mock('../InventoryService', () => ({
+    inventoryService: {
+        validateStockAvailability: vi.fn(),
+        loadTransactions: vi.fn().mockResolvedValue(undefined),
+        invalidateCache: vi.fn(),
+        calculateStock: vi.fn().mockReturnValue(100),
+    }
+}));
 
-        const inboundData = {
-            materialId: 'test-material-001',
-            quantity: 100,
-            workshop: 'OG' as WorkshopCode,
-            supplier: 'Test Supplier',
-            orderCode: 'ORDER-001',
-            note: 'Test inbound receipt'
-        };
+describe('TransactionService', () => {
 
-        const inboundReceipt = await transactionService.createInboundReceipt(inboundData);
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
-        console.log('  Created Receipt:', {
-            id: inboundReceipt.id,
-            receiptId: inboundReceipt.receiptId,
-            type: inboundReceipt.type,
-            quantity: inboundReceipt.quantity
+    // =============================================
+    // NHẬP KHO (Inbound)
+    // =============================================
+    describe('Nhập kho (createInboundReceipt)', () => {
+        it('Tạo phiếu nhập kho thành công', async () => {
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 100,
+                workshop: 'OG' as WorkshopCode,
+                supplier: 'NCC001',
+                orderCode: 'DH-001',
+                note: 'Nhập kho test'
+            };
+
+            const result = await transactionService.createInboundReceipt(data);
+            expect(result).toBeDefined();
+            expect(result.type).toBe(TransactionType.IN);
+            expect(result.quantity).toBe(100);
+            expect(inventoryService.invalidateCache).toHaveBeenCalled();
         });
 
-        if (inboundReceipt.type === TransactionType.IN &&
-            inboundReceipt.quantity === 100) {
-            console.log('  ✅ Inbound receipt created successfully\n');
-            results.passed++;
-        } else {
-            console.error('  ❌ Inbound receipt data incorrect\n');
-            results.failed++;
-            results.errors.push('Inbound receipt data mismatch');
-        }
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 2 FAILED:', error.message, '\n');
-        results.failed++;
-        results.errors.push(`TEST 2: ${error.message}`);
-    }
-
-    // ========================================
-    // TEST 3: Create Outbound Receipt (Should Fail - No Stock)
-    // ========================================
-    try {
-        console.log('📤 TEST 3: Create Outbound Receipt (Expect FAIL)');
-
-        const outboundData = {
-            materialId: 'nonexistent-material',
-            quantity: 50,
-            workshop: 'OG' as WorkshopCode,
-            orderCode: 'ORDER-002',
-            note: 'Test outbound - should fail'
-        };
-
-        try {
-            await transactionService.createOutboundReceipt(outboundData);
-            console.error('  ❌ Should have thrown error (insufficient stock)\n');
-            results.failed++;
-            results.errors.push('Outbound did not validate stock');
-        } catch (validationError: any) {
-            console.log('  ✅ Correctly blocked (insufficient stock)');
-            console.log('  Error:', validationError.message, '\n');
-            results.passed++;
-        }
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 3 UNEXPECTED ERROR:', error.message, '\n');
-        results.failed++;
-        results.errors.push(`TEST 3: ${error.message}`);
-    }
-
-    // ========================================
-    // TEST 4: Create Outbound Receipt (With Stock)
-    // ========================================
-    try {
-        console.log('📤 TEST 4: Create Outbound Receipt (With Stock)');
-        console.log('  Note: This test requires existing inventory');
-        console.log('  Skipping automated test - manual verification needed\n');
-        // Skip this test as it requires pre-existing stock
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 4 FAILED:', error.message, '\n');
-    }
-
-    // ========================================
-    // TEST 5: Create Transfer Receipt (Should Fail - No Stock)
-    // ========================================
-    try {
-        console.log('🔄 TEST 5: Create Transfer Receipt (Expect FAIL)');
-
-        const transferData = {
-            materialId: 'nonexistent-material',
-            quantity: 30,
-            fromWorkshop: 'OG' as WorkshopCode,
-            toWorkshop: 'CT' as WorkshopCode,
-            note: 'Test transfer - should fail'
-        };
-
-        try {
-            await transactionService.createTransferReceipt(transferData);
-            console.error('  ❌ Should have thrown error (insufficient stock)\n');
-            results.failed++;
-            results.errors.push('Transfer did not validate stock');
-        } catch (validationError: any) {
-            console.log('  ✅ Correctly blocked (insufficient stock)');
-            console.log('  Error:', validationError.message, '\n');
-            results.passed++;
-        }
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 5 UNEXPECTED ERROR:', error.message, '\n');
-        results.failed++;
-        results.errors.push(`TEST 5: ${error.message}`);
-    }
-
-    // ========================================
-    // TEST 6: Validate Same Workshop Transfer
-    // ========================================
-    try {
-        console.log('🔄 TEST 6: Transfer to Same Workshop (Expect FAIL)');
-
-        const sameWorkshopData = {
-            materialId: 'test-material-001',
-            quantity: 10,
-            fromWorkshop: 'OG' as WorkshopCode,
-            toWorkshop: 'OG' as WorkshopCode, // Same!
-            note: 'Invalid transfer'
-        };
-
-        try {
-            await transactionService.createTransferReceipt(sameWorkshopData);
-            console.error('  ❌ Should have thrown error (same workshop)\n');
-            results.failed++;
-            results.errors.push('Transfer allowed same workshop');
-        } catch (validationError: any) {
-            console.log('  ✅ Correctly blocked (same workshop)');
-            console.log('  Error:', validationError.message, '\n');
-            results.passed++;
-        }
-
-    } catch (error: any) {
-        console.error('  ❌ TEST 6 UNEXPECTED ERROR:', error.message, '\n');
-        results.failed++;
-        results.errors.push(`TEST 6: ${error.message}`);
-    }
-
-    // ========================================
-    // SUMMARY
-    // ========================================
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 TEST SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`✅ Passed: ${results.passed}`);
-    console.log(`❌ Failed: ${results.failed}`);
-
-    if (results.errors.length > 0) {
-        console.log('\n❌ Errors:');
-        results.errors.forEach((err, i) => {
-            console.log(`  ${i + 1}. ${err}`);
+        it('Ném lỗi nếu materialId rỗng', async () => {
+            const data = {
+                materialId: '',
+                quantity: 100,
+                workshop: 'OG' as WorkshopCode,
+                supplier: 'NCC001',
+            };
+            await expect(transactionService.createInboundReceipt(data)).rejects.toThrow(/Invalid material or quantity/);
         });
-    }
 
-    if (results.failed === 0) {
-        console.log('\n🎉 ALL TESTS PASSED!');
-    } else {
-        console.log('\n⚠️  SOME TESTS FAILED - Review errors above');
-    }
+        it('Ném lỗi nếu số lượng <= 0', async () => {
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 0,
+                workshop: 'OG' as WorkshopCode,
+                supplier: 'NCC001',
+            };
+            await expect(transactionService.createInboundReceipt(data)).rejects.toThrow(/Invalid material or quantity/);
+        });
 
-    return results;
-}
+        it('Ném lỗi nếu số lượng âm', async () => {
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: -5,
+                workshop: 'OG' as WorkshopCode,
+                supplier: 'NCC001',
+            };
+            await expect(transactionService.createInboundReceipt(data)).rejects.toThrow(/Invalid material or quantity/);
+        });
+    });
 
-// Instructions for running
-console.log(`
-📖 HOW TO RUN TESTS:
+    // =============================================
+    // XUẤT KHO (Outbound)
+    // =============================================
+    describe('Xuất kho (createOutboundReceipt)', () => {
+        it('Tạo phiếu xuất kho thành công khi đủ tồn kho', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementation(() => { });
 
-1. In browser console, import this file
-2. Run: testTransactionService()
-3. Check console output
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 50,
+                workshop: 'OG' as WorkshopCode,
+                orderCode: 'DH-002',
+            };
 
-Note: Some tests require existing inventory data to pass.
-Tests 1, 3, 5, 6 should pass without any data.
-`);
+            const result = await transactionService.createOutboundReceipt(data);
+            expect(result.type).toBe(TransactionType.OUT);
+            expect(result.quantity).toBe(50);
+        });
+
+        it('Ném lỗi khi không đủ tồn kho cho xuất', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementationOnce(() => {
+                throw new Error('Insufficient stock');
+            });
+
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 9999,
+                workshop: 'OG' as WorkshopCode,
+            };
+
+            await expect(transactionService.createOutboundReceipt(data)).rejects.toThrow(/Insufficient stock/);
+        });
+
+        it('Ném lỗi khi materialId rỗng cho xuất kho', async () => {
+            await expect(
+                transactionService.createOutboundReceipt({
+                    materialId: '',
+                    quantity: 10,
+                    workshop: 'OG' as WorkshopCode,
+                })
+            ).rejects.toThrow(/Invalid material or quantity/);
+        });
+    });
+
+    // =============================================
+    // ĐIỀU CHUYỂN KHO (Transfer)
+    // =============================================
+    describe('Điều chuyển kho (createTransferReceipt)', () => {
+        it('Điều chuyển thành công giữa 2 xưởng khác nhau', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementation(() => { });
+
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 20,
+                fromWorkshop: 'OG' as WorkshopCode,
+                toWorkshop: 'CT' as WorkshopCode,
+                note: 'Chuyển test',
+            };
+
+            const [outTx, inTx] = await transactionService.createTransferReceipt(data);
+            expect(outTx.type).toBe(TransactionType.TRANSFER);
+            expect(inTx.type).toBe(TransactionType.TRANSFER);
+            expect(outTx.workshop).toBe('OG');
+            expect(inTx.workshop).toBe('CT');
+        });
+
+        it('Ném lỗi khi điều chuyển cùng xưởng', async () => {
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 10,
+                fromWorkshop: 'OG' as WorkshopCode,
+                toWorkshop: 'OG' as WorkshopCode,
+            };
+            await expect(transactionService.createTransferReceipt(data)).rejects.toThrow(/Cannot transfer to the same workshop/);
+        });
+
+        it('Ném lỗi khi không đủ tồn kho để điều chuyển', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementationOnce(() => {
+                throw new Error('Insufficient stock');
+            });
+
+            const data = {
+                materialId: 'VT/OG/00001',
+                quantity: 9999,
+                fromWorkshop: 'OG' as WorkshopCode,
+                toWorkshop: 'CT' as WorkshopCode,
+            };
+
+            await expect(transactionService.createTransferReceipt(data)).rejects.toThrow(/Insufficient stock/);
+        });
+
+        it('Ném lỗi khi materialId rỗng cho điều chuyển', async () => {
+            await expect(
+                transactionService.createTransferReceipt({
+                    materialId: '',
+                    quantity: 10,
+                    fromWorkshop: 'OG' as WorkshopCode,
+                    toWorkshop: 'CT' as WorkshopCode,
+                })
+            ).rejects.toThrow(/Invalid material or quantity/);
+        });
+    });
+
+    // =============================================
+    // SINH MÃ PHIẾU (Generate Receipt ID)
+    // =============================================
+    describe('Sinh mã phiếu (generateReceiptId)', () => {
+        it('Sinh mã phiếu nhập PNK/OG/xx/00001', async () => {
+            const id = await transactionService.generateReceiptId(TransactionType.IN, 'OG' as WorkshopCode);
+            expect(id).toMatch(/^PNK\/OG\/\d{2}\/\d{5}$/);
+        });
+
+        it('Sinh mã phiếu xuất PXK/OG/xx/00001', async () => {
+            const id = await transactionService.generateReceiptId(TransactionType.OUT, 'OG' as WorkshopCode);
+            expect(id).toMatch(/^PXK\/OG\/\d{2}\/\d{5}$/);
+        });
+
+        it('Sinh mã phiếu điều chuyển PCK/OG/xx/00001', async () => {
+            const id = await transactionService.generateReceiptId(TransactionType.TRANSFER, 'OG' as WorkshopCode);
+            expect(id).toMatch(/^PCK\/OG\/\d{2}\/\d{5}$/);
+        });
+
+        it('Sinh mã kế tiếp khi đã có giao dịch trước đó', async () => {
+            const year = new Date().getFullYear().toString().slice(-2);
+            vi.mocked(transactionRepository.list).mockResolvedValueOnce([
+                { receiptId: `PNK/OG/${year}/00003` } as any,
+                { receiptId: `PNK/OG/${year}/00001` } as any,
+            ]);
+
+            const id = await transactionService.generateReceiptId(TransactionType.IN, 'OG' as WorkshopCode);
+            expect(id).toBe(`PNK/OG/${year}/00004`);
+        });
+    });
+
+    // =============================================
+    // CẬP NHẬT SỐ LƯỢNG GIAO DỊCH (Update Transaction Quantity)
+    // =============================================
+    describe('Cập nhật số lượng GD (updateTransactionQuantity)', () => {
+        it('Ném lỗi nếu số lượng mới <= 0', async () => {
+            await expect(
+                transactionService.updateTransactionQuantity('TX001', 0)
+            ).rejects.toThrow(/Invalid quantity/);
+        });
+
+        it('Ném lỗi nếu giao dịch không tồn tại', async () => {
+            vi.mocked(transactionRepository.fetchById).mockResolvedValueOnce(null);
+            await expect(
+                transactionService.updateTransactionQuantity('TX-NOT-EXIST', 50)
+            ).rejects.toThrow(/Transaction not found/);
+        });
+
+        it('Cập nhật thành công khi điều kiện hợp lệ (phiếu nhập)', async () => {
+            vi.mocked(transactionRepository.fetchById).mockResolvedValueOnce({
+                id: 'TX001', type: TransactionType.IN, materialId: 'MAT001',
+                workshop: 'OG', quantity: 50,
+            } as any);
+
+            const result = await transactionService.updateTransactionQuantity('TX001', 80);
+            expect(result.quantity).toBe(80);
+            expect(inventoryService.invalidateCache).toHaveBeenCalled();
+        });
+    });
+
+    // =============================================
+    // NHẬP HÀNG LOẠT (Batch Receipt)
+    // =============================================
+    describe('Nhập hàng loạt (createBatchReceipt)', () => {
+        it('Tạo batch nhập kho thành công', async () => {
+            const data = {
+                receiptId: 'PNK/OG/26/00001',
+                receiptType: TransactionType.IN,
+                receiptWorkshop: 'OG' as WorkshopCode,
+                receiptTime: new Date().toISOString(),
+                user: 'admin',
+                items: [
+                    { materialId: 'MAT001', quantity: 100 },
+                    { materialId: 'MAT002', quantity: 200 },
+                ],
+            };
+
+            const result = await transactionService.createBatchReceipt(data);
+            expect(result.success).toBe(true);
+        });
+
+        it('Validate tồn kho trước khi batch xuất kho', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementation(() => { });
+
+            const data = {
+                receiptId: 'PXK/OG/26/00001',
+                receiptType: TransactionType.OUT,
+                receiptWorkshop: 'OG' as WorkshopCode,
+                receiptTime: new Date().toISOString(),
+                user: 'admin',
+                items: [{ materialId: 'MAT001', quantity: 50 }],
+            };
+
+            await transactionService.createBatchReceipt(data);
+            expect(inventoryService.validateStockAvailability).toHaveBeenCalled();
+        });
+    });
+
+    // =============================================
+    // ĐIỀU CHUYỂN HÀNG LOẠT (Batch Transfer)
+    // =============================================
+    describe('Điều chuyển hàng loạt (createBatchTransfer)', () => {
+        it('Tạo batch điều chuyển thành công', async () => {
+            vi.mocked(inventoryService.validateStockAvailability).mockImplementation(() => { });
+
+            const data = {
+                receiptId: 'PCK/OG/26/00001',
+                fromWorkshop: 'OG' as WorkshopCode,
+                toWorkshop: 'CT' as WorkshopCode,
+                user: 'admin',
+                items: [
+                    { materialId: 'MAT001', quantity: 30 },
+                ],
+            };
+
+            const result = await transactionService.createBatchTransfer(data);
+            expect(result.success).toBe(true);
+            expect(inventoryService.validateStockAvailability).toHaveBeenCalled();
+        });
+    });
+
+    // =============================================
+    // TÌM KIẾM / LỌC GIAO DỊCH (Filter Transactions)
+    // =============================================
+    describe('Tìm kiếm Giao dịch (listAllTransactions)', () => {
+        it('Lọc giao dịch theo xưởng', async () => {
+            vi.mocked(transactionRepository.fetchAll).mockResolvedValueOnce([
+                { id: '1', workshop: 'OG', type: 'IN', materialId: 'M1' } as any,
+                { id: '2', workshop: 'CT', type: 'IN', materialId: 'M2' } as any,
+                { id: '3', workshop: 'OG', type: 'OUT', materialId: 'M3' } as any,
+            ]);
+
+            const result = await transactionService.listAllTransactions({ workshop: 'OG' as WorkshopCode });
+            expect(result).toHaveLength(2);
+            expect(result.every(t => t.workshop === 'OG')).toBe(true);
+        });
+
+        it('Lọc giao dịch theo loại (IN, OUT, TRANSFER)', async () => {
+            vi.mocked(transactionRepository.fetchAll).mockResolvedValueOnce([
+                { id: '1', workshop: 'OG', type: 'IN', materialId: 'M1' } as any,
+                { id: '2', workshop: 'OG', type: 'OUT', materialId: 'M2' } as any,
+            ]);
+
+            const result = await transactionService.listAllTransactions({ type: TransactionType.OUT });
+            expect(result).toHaveLength(1);
+            expect(result[0].type).toBe('OUT');
+        });
+
+        it('Lọc giao dịch theo mã vật tư', async () => {
+            vi.mocked(transactionRepository.fetchAll).mockResolvedValueOnce([
+                { id: '1', workshop: 'OG', type: 'IN', materialId: 'MAT001' } as any,
+                { id: '2', workshop: 'OG', type: 'IN', materialId: 'MAT002' } as any,
+            ]);
+
+            const result = await transactionService.listAllTransactions({ materialId: 'MAT001' });
+            expect(result).toHaveLength(1);
+            expect(result[0].materialId).toBe('MAT001');
+        });
+
+        it('Trả về toàn bộ khi không có filter', async () => {
+            vi.mocked(transactionRepository.fetchAll).mockResolvedValueOnce([
+                { id: '1' } as any,
+                { id: '2' } as any,
+            ]);
+
+            const result = await transactionService.listAllTransactions();
+            expect(result).toHaveLength(2);
+        });
+    });
+
+    // =============================================
+    // XÓA GIAO DỊCH (Delete Transaction)
+    // =============================================
+    describe('Xóa giao dịch (deleteTransaction)', () => {
+        it('Xóa giao dịch và invalidate cache', async () => {
+            await transactionService.deleteTransaction('TX001', 'admin');
+            expect(transactionRepository.delete).toHaveBeenCalledWith('TX001');
+            expect(inventoryService.invalidateCache).toHaveBeenCalled();
+        });
+    });
+});

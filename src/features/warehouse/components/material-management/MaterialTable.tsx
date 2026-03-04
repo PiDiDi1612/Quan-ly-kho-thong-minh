@@ -86,7 +86,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center"><span className={`inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600'}`}>{m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</span></TableCell>
+                  <TableCell className="text-center"><span className={`inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600 dark:bg-sky-900/20 dark:text-sky-400' : 'bg-rose-50 text-rose-500 dark:bg-rose-900/20 dark:text-rose-400'}`}>{m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</span></TableCell>
                   <TableCell className="text-center font-black text-[10px] text-slate-400">{m.workshop}</TableCell>
                   <TableCell className="text-right text-xs font-bold text-slate-400 tabular-nums">{formatNumber(m.openingStock ?? 0)}</TableCell>
                   <TableCell className="text-right text-xs font-black text-emerald-600 tabular-nums">{formatNumber(m.periodIn ?? 0)}</TableCell>
@@ -102,7 +102,7 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
                       <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-sky-600 hover:bg-sky-50" onClick={() => onView(m)}><Eye size={16} /></Button>
                       {canManage && (
                         <>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-amber-600 hover:bg-amber-50" onClick={() => onEdit(m)}><Edit2 size={16} /></Button>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => onEdit(m)}><Edit2 size={16} /></Button>
                           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-rose-600 hover:bg-rose-50" onClick={() => onDelete(m.id)}><Trash2 size={16} /></Button>
                         </>
                       )}

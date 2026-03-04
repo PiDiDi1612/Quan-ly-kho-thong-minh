@@ -192,7 +192,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                         <button onClick={() => setViewingBudget(b)} className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-xl transition-all"><ExternalLink size={16} /></button>
                                         {canModify && (
                                             <>
-                                                <button onClick={() => handleOpenModal(b)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
+                                                <button onClick={() => handleOpenModal(b)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
                                                 <button onClick={() => requestDelete(b.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
                                             </>
                                         )}
@@ -327,7 +327,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                         <div className="flex flex-col gap-0.5">
                                             <p className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase truncate">{it.materialName}</p>
                                             <div className="flex items-center gap-1.5">
-                                                <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${it.classification === 'Vật tư chính' ? 'bg-sky-100 text-sky-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${it.classification === 'Vật tư chính' ? 'bg-sky-100 text-sky-600' : 'bg-rose-100 text-rose-500'}`}>
                                                     {it.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}
                                                 </span>
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{it.unit}</span>
@@ -395,7 +395,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                             <p className="font-extrabold text-[12px] uppercase text-slate-800 leading-tight group-hover:text-sky-700 transition-colors line-clamp-2">{m.name}</p>
                                             <div className="flex flex-wrap gap-1 mt-1.5">
                                                 <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-[8.5px] font-bold text-slate-500 rounded-md uppercase tracking-tighter">{m.workshop}</span>
-                                                <span className={`px-1.5 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600' : 'bg-orange-50 text-orange-600'} text-[8.5px] font-bold rounded-md uppercase tracking-tighter`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
+                                                <span className={`px-1.5 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-500'} text-[8.5px] font-bold rounded-md uppercase tracking-tighter`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
                                             </div>
                                         </div>
 

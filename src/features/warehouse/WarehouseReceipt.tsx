@@ -305,7 +305,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                     <div className="flex gap-2 mb-6">
                         <button onClick={() => setReceiptSearchClass('ALL')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'ALL' ? 'bg-slate-800 dark:bg-slate-700 text-white border-slate-800 dark:border-slate-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Tất cả Loại</button>
                         <button onClick={() => setReceiptSearchClass('Vật tư chính')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'Vật tư chính' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Chính</button>
-                        <button onClick={() => setReceiptSearchClass('Vật tư phụ')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'Vật tư phụ' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Phụ</button>
+                        <button onClick={() => setReceiptSearchClass('Vật tư phụ')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${receiptSearchClass === 'Vật tư phụ' ? 'bg-rose-500 text-white border-rose-500' : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-800'}`}>Phụ</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
@@ -329,7 +329,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                                             <h5 className="font-black text-[12px] text-slate-800 dark:text-white uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors">{m.name}</h5>
                                             <div className="flex flex-wrap gap-1.5">
                                                 <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 dark:text-slate-400 rounded-md uppercase tracking-tighter">{m.workshop}</span>
-                                                <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'} text-[8px] font-black rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
+                                                <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400'} text-[8px] font-black rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
                                                 <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-400 uppercase rounded-md tracking-tighter">{m.unit}</span>
                                             </div>
                                         </div>

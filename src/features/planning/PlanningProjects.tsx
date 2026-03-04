@@ -273,7 +273,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                     <div className="flex justify-end gap-2">
                                         {canModify && (
                                             <>
-                                                <button onClick={() => handleOpenModal(pj)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
+                                                <button onClick={() => handleOpenModal(pj)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-all"><Edit2 size={16} /></button>
                                                 <button onClick={() => requestDelete(pj.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"><Trash2 size={16} /></button>
                                             </>
                                         )}
