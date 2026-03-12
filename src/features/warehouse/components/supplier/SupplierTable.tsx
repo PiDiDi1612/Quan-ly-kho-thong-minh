@@ -3,6 +3,7 @@ import { Supplier } from '@/types';
 import { Edit2, Trash2, Hash, Building2, FileText, Calendar, Settings } from 'lucide-react';
 import { EmptyState } from '@/components/business';
 import { FileSpreadsheet } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SupplierTableProps {
     filteredSuppliers: Supplier[];
@@ -52,7 +53,7 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                             <tr
                                 key={supplier.id}
                                 onClick={() => toggleSelectSupplier(supplier.id)}
-                                className={`group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all cursor-pointer ${selectedSuppliers.includes(supplier.id) ? 'bg-sky-50/30 dark:bg-sky-900/10' : ''}`}
+                                className={`group hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${selectedSuppliers.includes(supplier.id) ? 'bg-sky-50/30 dark:bg-sky-900/10' : ''}`}
                             >
                                 <td className="px-6 py-4">
                                     <input
@@ -76,18 +77,30 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(supplier); }}
-                                            className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDelete(supplier.id); }}
-                                            className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-xl transition-all"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        <TooltipProvider delayDuration={200}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenModal(supplier); }}
+                                                        className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Chỉnh sửa</TooltipContent>
+                                            </Tooltip>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(supplier.id); }}
+                                                        className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Xóa</TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </td>
                             </tr>

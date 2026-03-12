@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Activity, Package, Plus, ArrowRightLeft, History, ShoppingCart,
   MapPin, ClipboardList, Database, FileText, Settings, Users,
-  ChevronLeft, ChevronRight, LogOut, LayoutDashboard, BarChart2, Info
+  ChevronLeft, ChevronRight, LogOut, LayoutDashboard, BarChart, Info, ListChecks,
+  Map, FileSpreadsheet
 } from 'lucide-react';
 import { User, UserRole, Permission } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,8 @@ import { Badge } from '@/components/ui/badge';
 
 export type AppTab =
   | 'dashboard'
-  | 'warehouse_inventory' | 'warehouse_receipt' | 'warehouse_transfer' | 'warehouse_history'
+  | 'warehouse_inventory' | 'warehouse_receipt' | 'warehouse_transfer' | 'warehouse_inventory_check' | 'warehouse_history'
+  | 'warehouse_approval'
   | 'supplier_management' | 'warehouse_merge'
   | 'planning_projects' | 'planning_estimates'
   | 'reports_inventory' | 'reports_history' | 'reports_activity'
@@ -26,17 +28,19 @@ interface AppSidebarProps {
   userRole: UserRole;
   onLogout: () => void;
   onOpenAccount: () => void;
+  pendingApprovalCount?: number;
 }
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Quản trị',
+  MANAGER: 'Quản lý',
   WAREHOUSE: 'Thủ kho',
-  PLANNING: 'Kế hoạch',
+  STAFF: 'Nhân viên',
   GUEST: 'Khách',
 };
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
-  activeTab, setActiveTab, hasPermission, currentUser, userRole, onLogout, onOpenAccount
+  activeTab, setActiveTab, hasPermission, currentUser, userRole, onLogout, onOpenAccount, pendingApprovalCount = 0
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -47,24 +51,27 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard, permission: null },
         { id: 'warehouse_inventory', label: 'Danh Sách Vật Tư', icon: Package, permission: 'VIEW_MATERIAL' },
         { id: 'warehouse_receipt', label: 'Lập Phiếu (Nhập/Xuất)', icon: Plus, permission: 'MANAGE_WAREHOUSE' },
+        { id: 'warehouse_approval', label: 'Duyệt Phiếu', icon: ListChecks, permission: 'MANAGE_ROLES', badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
         { id: 'warehouse_transfer', label: 'Chuyển Kho', icon: ArrowRightLeft, permission: 'MANAGE_WAREHOUSE' },
+        { id: 'warehouse_inventory_check', label: 'Kiểm Kê Kho', icon: ClipboardList, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_history', label: 'Lịch Sử Giao Dịch', icon: History, permission: 'VIEW_TRANSACTION' },
         { id: 'supplier_management', label: 'Quản Lý NCC', icon: ShoppingCart, permission: 'MANAGE_SUPPLIERS' },
         { id: 'warehouse_merge', label: 'Hợp nhất vật tư', icon: Database, permission: 'MANAGE_WAREHOUSE' },
       ]
     },
+
     {
       title: 'KẾ HOẠCH',
       items: [
-        { id: 'planning_projects', label: 'Cấu Hình Dự Án', icon: MapPin, permission: 'PLANNING_PROJECTS' },
+        { id: 'planning_projects', label: 'Cấu Hình Dự Án', icon: Map, permission: 'PLANNING_PROJECTS' },
         { id: 'planning_estimates', label: 'Dự Toán Đơn Hàng', icon: ClipboardList, permission: 'PLANNING_ESTIMATES' },
       ]
     },
     {
       title: 'BÁO CÁO',
       items: [
-        { id: 'reports_history', label: 'Lịch Sử Giao Dịch', icon: BarChart2, permission: 'VIEW_REPORT' },
-        { id: 'reports_inventory', label: 'Báo Cáo Tồn Kho', icon: FileText, permission: 'VIEW_REPORT' },
+        { id: 'reports_history', label: 'Lịch Sử Giao Dịch', icon: BarChart, permission: 'VIEW_REPORT' },
+        { id: 'reports_inventory', label: 'Báo Cáo Tồn Kho', icon: FileSpreadsheet, permission: 'VIEW_REPORT' },
       ]
     },
     {
@@ -117,7 +124,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             return (
               <div key={idx} className="mb-4">
                 {!isCollapsed && (
-                  <p className="px-6 py-2 text-[10px] font-black text-muted-foreground tracking-[0.2em] uppercase opacity-70">
+                  <p className="px-6 pt-8 pb-3 text-[12px] font-extrabold text-emerald-800 dark:text-emerald-400 tracking-[0.25em] uppercase flex items-center gap-2 border-b border-emerald-100/50 dark:border-emerald-900/30 mx-4 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 shadow-sm" />
                     {group.title}
                   </p>
                 )}
@@ -133,16 +141,27 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id as AppTab)}
-                        className={`w-full flex items-center gap-3 rounded-xl text-sm transition-all duration-200 group
+                        className={`w-full flex items-center gap-3 rounded-xl text-sm transition-all duration-200 group relative
                           ${isCollapsed ? 'justify-center px-0 h-12' : 'px-4 h-11'}
                           ${isActive
                             ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-l-[4px] border-emerald-600 rounded-l-none font-bold shadow-sm'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground border-l-[4px] border-transparent rounded-l-none font-medium'
                           }`}
                       >
-                        <Icon size={20} className={`shrink-0 ${isActive ? 'text-emerald-600' : 'text-muted-foreground group-hover:text-foreground'} transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                        {!isCollapsed && <span className="truncate">{item.label}</span>}
+                        <div className={`shrink-0 flex items-center justify-center w-5 h-5`}>
+                          <Icon size={20} className={`${isActive ? 'text-emerald-600' : 'text-muted-foreground group-hover:text-foreground'} transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        </div>
+                        {!isCollapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
+                        {!isCollapsed && (item as any).badge !== undefined && (
+                          <Badge className="bg-rose-500 text-white border-none h-5 min-w-[20px] px-1 flex items-center justify-center text-[10px] font-bold animate-pulse">
+                            {(item as any).badge}
+                          </Badge>
+                        )}
+                        {isCollapsed && (item as any).badge !== undefined && (
+                          <div className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-card animate-pulse" />
+                        )}
                       </button>
+
                     );
 
                     return isCollapsed ? (

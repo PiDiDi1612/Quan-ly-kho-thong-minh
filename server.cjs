@@ -18,6 +18,9 @@ const io = new Server(server, {
     cors: { origin: "*" }
 });
 
+// Expose io globally for Electron main process to read client count
+global.io = io;
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -49,8 +52,23 @@ const HASH_PREFIX = 'pbkdf2$';
 const HASH_ITERATIONS = 120000;
 const HASH_KEYLEN = 64;
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'smartstock-secret-key-2026';
+// JWT Configuration — NEVER hardcode in production
+const getOrCreateJwtSecret = () => {
+    // 1. Use env var if set
+    if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+    // 2. Read from persisted file (auto-generated on first run)
+    const secretPath = path.join(dataDir, '.jwt-secret');
+    try {
+        const existing = fs.readFileSync(secretPath, 'utf-8').trim();
+        if (existing.length >= 32) return existing;
+    } catch { /* file doesn't exist yet */ }
+    // 3. Generate and persist a strong random secret
+    const generated = crypto.randomBytes(48).toString('hex');
+    fs.writeFileSync(secretPath, generated, 'utf-8');
+    console.log('[SmartStock] Generated new JWT secret (persisted to data/.jwt-secret)');
+    return generated;
+};
+const JWT_SECRET = getOrCreateJwtSecret();
 const TOKEN_EXPIRY = '4h'; // Token expires after 4 hours
 
 const hashPassword = (plain) => {
@@ -233,6 +251,16 @@ db.exec(`
     createdBy TEXT,
     updatedAt TEXT
   );
+  CREATE TABLE IF NOT EXISTS inventory_checks (
+    id TEXT PRIMARY KEY,
+    warehouse TEXT,
+    checkDate TEXT,
+    checkedBy TEXT,
+    items TEXT, 
+    status TEXT, 
+    note TEXT,
+    createdAt TEXT
+  );
 `);
 
 // Performance indexes — created only if they don't already exist
@@ -311,6 +339,23 @@ const materialColumns = db.prepare("PRAGMA table_info(materials)").all().map(c =
 if (!materialColumns.includes('customerCode')) {
     console.log("[SmartStock] Migrating database: Adding 'customerCode' column to 'materials' table...");
     db.exec("ALTER TABLE materials ADD COLUMN customerCode TEXT");
+}
+
+// Migration: Approval Workflow columns for transactions
+const txColsForApproval = db.prepare("PRAGMA table_info(transactions)").all().map(c => c.name);
+if (!txColsForApproval.includes('status')) {
+    console.log("[SmartStock] Migrating database: Adding 'status' column to 'transactions' table...");
+    db.exec("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT 'approved'");
+    // Backfill: all existing transactions are already approved
+    db.exec("UPDATE transactions SET status = 'approved' WHERE status IS NULL");
+}
+if (!txColsForApproval.includes('approvedBy')) {
+    console.log("[SmartStock] Migrating database: Adding 'approvedBy' column to 'transactions' table...");
+    db.exec("ALTER TABLE transactions ADD COLUMN approvedBy TEXT");
+}
+if (!txColsForApproval.includes('rejectedReason')) {
+    console.log("[SmartStock] Migrating database: Adding 'rejectedReason' column to 'transactions' table...");
+    db.exec("ALTER TABLE transactions ADD COLUMN rejectedReason TEXT");
 }
 
 const roundQty = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -425,6 +470,63 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.use('/api', authMiddleware);
+
+// ===== AUTO BACKUP SYSTEM API (Placed before catch-all and static) =====
+// Manual backup trigger
+app.post('/api/backups/trigger', requirePermission('MANAGE_SETTINGS'), (req, res) => {
+    try {
+        performBackup();
+        res.json({ success: true, message: 'Backup đã được khởi chạy.' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// List recent backups
+app.get('/api/backups/recent', (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        if (!fs.existsSync(backupDir)) {
+            return res.json({ success: true, backups: [] });
+        }
+        const files = fs.readdirSync(backupDir)
+            .filter(f => f.startsWith('smartstock_backup_') && f.endsWith('.db'))
+            .map(f => {
+                const stats = fs.statSync(path.join(backupDir, f));
+                return { filename: f, sizeBytes: stats.size, createdAt: stats.mtime.toISOString() };
+            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, limit);
+        res.json({ success: true, backups: files });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Restore from backup file
+app.post('/api/backups/restore', requirePermission('MANAGE_SETTINGS'), (req, res) => {
+    const { filename } = req.body;
+    if (!filename || !filename.endsWith('.db')) {
+        return res.status(400).json({ success: false, error: 'Tên file backup không hợp lệ.' });
+    }
+
+    const backupPath = path.join(backupDir, filename);
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ success: false, error: 'File backup không tồn tại.' });
+    }
+
+    try {
+        const destPath = path.join(dataDir, 'data.db'); // Fixed: use dataDir instead of dataPath
+        // Close current db, copy backup, then the app needs restart
+        db.close();
+        fs.copyFileSync(backupPath, destPath);
+        res.json({ success: true, message: 'Khôi phục thành công. Server sẽ tự khởi động lại.' });
+        // Force restart after 1 second
+        setTimeout(() => process.exit(0), 1000);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 // ===== PAGINATION HELPER =====
 const parsePagination = (query) => {
     const page = Math.max(1, parseInt(query.page) || 1);
@@ -904,7 +1006,7 @@ app.post('/api/transactions/commit', (req, res) => {
         return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
-    const commitReceipt = db.transaction((payload) => {
+    const commitReceipt = db.transaction((payload, userRole) => {
         const {
             receiptType,
             receiptWorkshop,
@@ -919,6 +1021,12 @@ app.post('/api/transactions/commit', (req, res) => {
         if (!Array.isArray(items) || items.length === 0) throw new Error('Danh sách vật tư trống.');
         if (!receiptWorkshop || !receiptType) throw new Error('Thiếu thông tin phiếu.');
 
+        // Approval logic: OUT transactions from non-admin/manager => pending
+        const isPrivileged = ['ADMIN', 'MANAGER'].includes(userRole);
+        const needsApproval = receiptType === 'OUT' && !isPrivileged;
+        const txStatus = needsApproval ? 'pending' : 'approved';
+        const approvedBy = !needsApproval && receiptType === 'OUT' ? user : null;
+
         const txRows = [];
         const updateMaterialQty = db.prepare("UPDATE materials SET quantity = ?, lastUpdated = ? WHERE id = ?");
         const insertMaterial = db.prepare(`
@@ -926,8 +1034,8 @@ app.post('/api/transactions/commit', (req, res) => {
             VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode)
         `);
         const insertTx = db.prepare(`
-            INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note)
-            VALUES (@id, @receiptId, @materialId, @materialName, @type, @quantity, @date, @transactionTime, @user, @workshop, @targetWorkshop, @targetMaterialId, @orderCode, @note)
+            INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, targetWorkshop, targetMaterialId, orderCode, note, status, approvedBy)
+            VALUES (@id, @receiptId, @materialId, @materialName, @type, @quantity, @date, @transactionTime, @user, @workshop, @targetWorkshop, @targetMaterialId, @orderCode, @note, @status, @approvedBy)
         `);
 
         for (const item of items) {
@@ -953,29 +1061,30 @@ app.post('/api/transactions/commit', (req, res) => {
 
             if (!targetMat) throw new Error(`Vật tư ${baseMat.name} chưa có tại xưởng ${receiptWorkshop}.`);
 
-            // CRITICAL FIX: Use atomic UPDATE with WHERE clause to prevent race conditions
-            const change = receiptType === 'IN' ? qty : -qty;
-            const nextQty = roundQty(Number(targetMat.quantity) + change);
+            // Only modify stock if transaction is approved (not pending)
+            if (txStatus === 'approved') {
+                if (receiptType === 'OUT') {
+                    // Atomic UPDATE: only succeeds if quantity >= qty
+                    const result = db.prepare(
+                        "UPDATE materials SET quantity = quantity - ?, lastUpdated = ? WHERE id = ? AND quantity >= ?"
+                    ).run(qty, todayISO(), targetMat.id, qty);
 
-            if (receiptType === 'OUT') {
-                // Atomic UPDATE: only succeeds if quantity >= qty
-                const result = db.prepare(
-                    "UPDATE materials SET quantity = quantity - ?, lastUpdated = ? WHERE id = ? AND quantity >= ?"
-                ).run(qty, todayISO(), targetMat.id, qty);
-
-                if (result.changes === 0) {
-                    // Failed: either material not found or insufficient stock
-                    const currentMat = db.prepare("SELECT quantity FROM materials WHERE id = ?").get(targetMat.id);
-                    throw new Error(
-                        `Không đủ tồn kho cho ${targetMat.name}. ` +
-                        `Hiện có: ${currentMat ? roundQty(currentMat.quantity) : 0} ${baseMat.unit}, ` +
-                        `yêu cầu: ${qty} ${baseMat.unit}`
-                    );
+                    if (result.changes === 0) {
+                        const currentMat = db.prepare("SELECT quantity FROM materials WHERE id = ?").get(targetMat.id);
+                        throw new Error(
+                            `Không đủ tồn kho cho ${targetMat.name}. ` +
+                            `Hiện có: ${currentMat ? roundQty(currentMat.quantity) : 0} ${baseMat.unit}, ` +
+                            `yêu cầu: ${qty} ${baseMat.unit}`
+                        );
+                    }
+                } else {
+                    // IN transaction: simple addition
+                    const change = qty;
+                    const nextQty = roundQty(Number(targetMat.quantity) + change);
+                    updateMaterialQty.run(nextQty, todayISO(), targetMat.id);
                 }
-            } else {
-                // IN transaction: simple addition (no race condition risk)
-                updateMaterialQty.run(nextQty, todayISO(), targetMat.id);
             }
+            // If pending: stock is NOT modified — will be modified when approved
 
             txRows.push({
                 id: txId('tx'),
@@ -991,13 +1100,15 @@ app.post('/api/transactions/commit', (req, res) => {
                 targetWorkshop: null,
                 targetMaterialId: null,
                 orderCode: orderCode || null,
-                note: receiptType === 'IN' ? (receiptSupplier || null) : null
+                note: receiptType === 'IN' ? (receiptSupplier || null) : null,
+                status: txStatus,
+                approvedBy: approvedBy
             });
         }
 
         if (txRows.length === 0) throw new Error('Không có vật tư hợp lệ để tạo phiếu.');
         for (const row of txRows) insertTx.run(row);
-        return { affected: txRows.length };
+        return { affected: txRows.length, status: txStatus };
     });
 
     const commitTransfer = db.transaction((payload) => {
@@ -1085,11 +1196,145 @@ app.post('/api/transactions/commit', (req, res) => {
     try {
         const result = mode === 'TRANSFER'
             ? commitTransfer(req.body.payload || {})
-            : commitReceipt(req.body.payload || {});
+            : commitReceipt(req.body.payload || {}, req.auth?.user?.role || req.user?.role || 'STAFF');
         notifyUpdate();
         return res.json({ success: true, ...result });
     } catch (error) {
         return res.status(400).json({ success: false, error: error.message || 'Commit transaction failed' });
+    }
+});
+
+// ===== APPROVAL WORKFLOW APIs =====
+
+// Get pending OUT transactions (grouped by receiptId)
+app.get('/api/approval/pending', (req, res) => {
+    try {
+        const user = req.auth?.user;
+        if (!user || !['ADMIN', 'MANAGER'].includes(user.role)) {
+            return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền xem phiếu chờ duyệt.' });
+        }
+
+        const rows = db.prepare(`
+            SELECT t.*, m.unit as materialUnit
+            FROM transactions t
+            LEFT JOIN materials m ON t.materialId = m.id
+            WHERE t.status = 'pending' AND t.type = 'OUT'
+            ORDER BY t.date DESC, t.transactionTime DESC
+        `).all();
+
+        // Group by receiptId
+        const groupMap = new Map();
+        for (const row of rows) {
+            const key = row.receiptId || row.id;
+            if (!groupMap.has(key)) {
+                groupMap.set(key, {
+                    receiptId: key,
+                    date: row.date,
+                    transactionTime: row.transactionTime,
+                    user: row.user,
+                    workshop: row.workshop,
+                    orderCode: row.orderCode,
+                    items: []
+                });
+            }
+            groupMap.get(key).items.push({
+                id: row.id,
+                materialId: row.materialId,
+                materialName: row.materialName,
+                quantity: row.quantity,
+                unit: row.materialUnit || '',
+                note: row.note
+            });
+        }
+
+        res.json({ success: true, pending: Array.from(groupMap.values()) });
+    } catch (error) {
+        console.error('Approval pending error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get count of pending approvals (for badge in sidebar)
+app.get('/api/approval/count', (req, res) => {
+    try {
+        const count = db.prepare("SELECT COUNT(DISTINCT COALESCE(receiptId, id)) as c FROM transactions WHERE status = 'pending' AND type = 'OUT'").get().c;
+        res.json({ success: true, count });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Approve a pending receipt
+app.post('/api/approval/approve', (req, res) => {
+    const user = req.auth?.user;
+    if (!user || !['ADMIN', 'MANAGER'].includes(user.role)) {
+        return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền duyệt phiếu.' });
+    }
+
+    const { receiptId } = req.body;
+    if (!receiptId) return res.status(400).json({ success: false, error: 'Thiếu receiptId.' });
+
+    const approveReceipt = db.transaction(() => {
+        const pendingTxs = db.prepare("SELECT * FROM transactions WHERE (receiptId = ? OR id = ?) AND status = 'pending'").all(receiptId, receiptId);
+        if (pendingTxs.length === 0) throw new Error('Không tìm thấy phiếu chờ duyệt.');
+
+        for (const tx of pendingTxs) {
+            const qty = roundQty(tx.quantity);
+            // Deduct stock atomically
+            const result = db.prepare(
+                "UPDATE materials SET quantity = quantity - ?, lastUpdated = ? WHERE id = ? AND quantity >= ?"
+            ).run(qty, todayISO(), tx.materialId, qty);
+
+            if (result.changes === 0) {
+                const currentMat = db.prepare("SELECT quantity, name FROM materials WHERE id = ?").get(tx.materialId);
+                throw new Error(
+                    `Không đủ tồn kho cho ${currentMat?.name || tx.materialName}. ` +
+                    `Hiện có: ${currentMat ? roundQty(currentMat.quantity) : 0}, yêu cầu: ${qty}`
+                );
+            }
+
+            // Update status
+            db.prepare("UPDATE transactions SET status = 'approved', approvedBy = ? WHERE id = ?")
+                .run(user.fullName || user.username, tx.id);
+        }
+
+        return { affected: pendingTxs.length };
+    });
+
+    try {
+        const result = approveReceipt();
+        notifyUpdate();
+        io.emit('approval_updated', { receiptId, action: 'approved', by: user.fullName || user.username });
+        return res.json({ success: true, ...result });
+    } catch (error) {
+        return res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Reject a pending receipt
+app.post('/api/approval/reject', (req, res) => {
+    const user = req.auth?.user;
+    if (!user || !['ADMIN', 'MANAGER'].includes(user.role)) {
+        return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền từ chối phiếu.' });
+    }
+
+    const { receiptId, reason } = req.body;
+    if (!receiptId) return res.status(400).json({ success: false, error: 'Thiếu receiptId.' });
+    if (!reason || !reason.trim()) return res.status(400).json({ success: false, error: 'Vui lòng nhập lý do từ chối.' });
+
+    try {
+        const result = db.prepare("UPDATE transactions SET status = 'rejected', rejectedReason = ?, approvedBy = ? WHERE (receiptId = ? OR id = ?) AND status = 'pending'")
+            .run(reason.trim(), user.fullName || user.username, receiptId, receiptId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ success: false, error: 'Không tìm thấy phiếu chờ duyệt.' });
+        }
+
+        notifyUpdate();
+        io.emit('approval_updated', { receiptId, action: 'rejected', by: user.fullName || user.username, reason: reason.trim() });
+        return res.json({ success: true, affected: result.changes });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -1891,6 +2136,82 @@ app.post('/api/export/receipts/bulk', verifyToken, async (req, res) => {
     }
 });
 
+// Inventory Checks API
+app.get('/api/inventory-checks', authMiddleware, (req, res) => {
+    try {
+        const checks = db.prepare("SELECT * FROM inventory_checks ORDER BY createdAt DESC").all();
+        res.json({
+            success: true,
+            data: checks.map(c => ({
+                ...c,
+                items: parseJsonSafe(c.items, [])
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/inventory-checks/save', authMiddleware, (req, res) => {
+    const { id, warehouse, items, note, status } = req.body;
+    const user = req.auth.user;
+
+    try {
+        const checkDate = new Date().toISOString();
+        const createdAt = new Date().toISOString();
+        
+        // Save inventory check record
+        db.prepare(`
+            INSERT INTO inventory_checks (id, warehouse, checkDate, checkedBy, items, status, note, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, warehouse, JSON.stringify(items), user.fullName, status, note || "", createdAt);
+
+        // If status is COMPLETED, create adjustment transactions
+        if (status === 'COMPLETED') {
+            const receiptId = `ADJ-${Date.now()}`;
+            const insertTx = db.prepare(`
+                INSERT INTO transactions (id, receiptId, materialId, materialName, type, quantity, date, transactionTime, user, workshop, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+            const updateMat = db.prepare("UPDATE materials SET quantity = ?, lastUpdated = ? WHERE id = ?");
+
+            items.forEach(item => {
+                const diff = item.actualQty - item.systemQty;
+                if (diff !== 0) {
+                    const txId = `TX-ADJ-${crypto.randomBytes(4).toString('hex')}`;
+                    const type = diff > 0 ? 'IN' : 'OUT';
+                    const qty = Math.abs(diff);
+                    
+                    insertTx.run(
+                        txId, 
+                        receiptId, 
+                        item.materialId, 
+                        item.materialName, 
+                        type, 
+                        qty, 
+                        checkDate.split('T')[0], 
+                        checkDate, 
+                        user.fullName, 
+                        warehouse, 
+                        `Điều chỉnh kiểm kê - ${id}`
+                    );
+
+                    // Update material quantity
+                    updateMat.run(item.actualQty, checkDate, item.materialId);
+                }
+            });
+        }
+
+        notifyUpdate();
+        res.json({ success: true, message: 'Đã lưu phiếu kiểm kê' });
+    } catch (error) {
+        console.error('Inventory Check Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
 // Serve static
 app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
@@ -1948,6 +2269,74 @@ async function populateReceiptWorksheet(worksheet, receiptsId, transactions, db)
         worksheet.getCell(`J${rowIdx}`).value = tx.note || "";
     });
 }
+
+// ===== AUTO BACKUP SYSTEM =====
+const cron = require('node-cron');
+
+const backupDir = process.env.BACKUP_DIR || path.join(dataDir, '..', 'backup');
+const BACKUP_MAX_COUNT = parseInt(process.env.BACKUP_MAX_COUNT) || 30;
+
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+}
+
+const performBackup = () => {
+    try {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[T:]/g, '-').replace(/\..+/, '').replace(/-/g, (m, i) => i < 10 ? '-' : i === 10 ? '_' : '-');
+        const filename = `smartstock_backup_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.db`;
+        const destPath = path.join(backupDir, filename);
+        const srcPath = path.join(dataDir, 'data.db');
+
+        // Use SQLite backup API via better-sqlite3
+        db.backup(destPath).then(() => {
+            const stats = fs.statSync(destPath);
+            console.log(`[SmartStock] Auto backup completed: ${filename} (${(stats.size / 1024).toFixed(1)} KB)`);
+
+            // Emit socket event
+            io.emit('backup:completed', {
+                success: true,
+                filename,
+                timestamp: now.toISOString(),
+                sizeBytes: stats.size
+            });
+
+            // Rotation: keep only BACKUP_MAX_COUNT most recent
+            rotateBackups();
+        }).catch(err => {
+            console.error('[SmartStock] Backup failed:', err.message);
+            io.emit('backup:completed', { success: false, error: err.message });
+        });
+    } catch (err) {
+        console.error('[SmartStock] Backup error:', err.message);
+    }
+};
+
+const rotateBackups = () => {
+    try {
+        const files = fs.readdirSync(backupDir)
+            .filter(f => f.startsWith('smartstock_backup_') && f.endsWith('.db'))
+            .map(f => ({ name: f, time: fs.statSync(path.join(backupDir, f)).mtimeMs }))
+            .sort((a, b) => b.time - a.time); // newest first
+
+        if (files.length > BACKUP_MAX_COUNT) {
+            const toDelete = files.slice(BACKUP_MAX_COUNT);
+            for (const file of toDelete) {
+                fs.unlinkSync(path.join(backupDir, file.name));
+                console.log(`[SmartStock] Deleted old backup: ${file.name}`);
+            }
+        }
+    } catch (err) {
+        console.error('[SmartStock] Backup rotation error:', err.message);
+    }
+};
+
+// Schedule: 23:30 every night
+cron.schedule('30 23 * * *', () => {
+    console.log('[SmartStock] Running scheduled backup...');
+    performBackup();
+});
+
 
 function startServer(port = 3000) {
     server.once('error', (err) => {

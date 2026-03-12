@@ -69,6 +69,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ material
             <TransactionFilters
                 searchTerm={state.searchTerm} setSearchTerm={actions.setSearchTerm}
                 typeFilter={state.typeFilter} setTypeFilter={actions.setTypeFilter}
+                dateRange={state.dateRange} setDateRange={actions.setDateRange}
                 handleExportHistory={actions.handleExportHistory}
                 selectedReceiptIds={state.selectedReceiptIds} setSelectedReceiptIds={actions.setSelectedReceiptIds}
                 handleBatchPrint={actions.handleBatchPrint}
@@ -81,6 +82,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ material
                 setViewingReceipt={actions.setViewingReceipt} setIsViewModalOpen={actions.setIsViewModalOpen}
                 canManage={state.canManage} handleDeleteReceipt={actions.handleDeleteReceipt}
                 formatNumber={formatNumber}
+                materials={materials}
                 txPage={state.txPage} txLimit={state.txLimit} txTotal={state.txTotal} txTotalPages={state.txTotalPages}
                 setTxPage={actions.setTxPage} setTxLimit={actions.setTxLimit}
             />

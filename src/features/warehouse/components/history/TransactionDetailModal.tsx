@@ -55,6 +55,25 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         <label className="text-[10px] font-black uppercase text-slate-500 block mb-1 tracking-widest">Người thực hiện</label>
                         <p className="text-sm font-black text-sky-600 dark:text-sky-400 uppercase tracking-tight">{viewingReceipt.user}</p>
                     </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase text-slate-500 block mb-1 tracking-widest">Trạng thái</label>
+                        <div className="flex flex-col gap-1">
+                            <span className={`w-fit px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                viewingReceipt.transactions[0]?.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                viewingReceipt.transactions[0]?.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                'bg-red-100 text-red-700'
+                            }`}>
+                                {viewingReceipt.transactions[0]?.status === 'pending' ? 'Đang chờ duyệt' :
+                                 viewingReceipt.transactions[0]?.status === 'approved' ? 'Đã phê duyệt' : 'Đã từ chối'}
+                            </span>
+                            {viewingReceipt.transactions[0]?.approvedBy && (
+                                <p className="text-[9px] text-muted-foreground italic">Duyệt bởi: {viewingReceipt.transactions[0].approvedBy}</p>
+                            )}
+                            {viewingReceipt.transactions[0]?.status === 'rejected' && viewingReceipt.transactions[0]?.rejectedReason && (
+                                <p className="text-[9px] text-red-500 font-bold italic">Lý do: {viewingReceipt.transactions[0].rejectedReason}</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

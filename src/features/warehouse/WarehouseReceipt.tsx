@@ -61,6 +61,7 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                         modalError={modalError}
                     />
                     <ReceiptCart
+                        receiptType={state.receiptType}
                         selectedItems={state.selectedItems}
                         materials={materials}
                         handleQuantityChange={actions.handleQuantityChange}

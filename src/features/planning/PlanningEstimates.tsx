@@ -164,7 +164,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                        {filteredBudgets.map(b => (
+                        {Array.isArray(filteredBudgets) && filteredBudgets.map(b => (
                             <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
@@ -432,7 +432,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {viewingBudget.items.map((it, idx) => {
+                                    {Array.isArray(viewingBudget.items) && viewingBudget.items.map((it, idx) => {
                                         const issued = getIssuedQuantity(viewingBudget.orderCode, it.materialId, it.materialName);
                                         const remaining = it.estimatedQty - issued;
                                         return (

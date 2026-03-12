@@ -42,14 +42,17 @@ export const MaterialToolbar: React.FC<MaterialToolbarProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={onSearchChange}
-          placeholder="Tìm kiếm vật tư theo mã, tên..."
-        />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Nhóm Tìm kiếm & Bộ lọc chính */}
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+          <SearchInput
+            value={searchTerm}
+            onChange={onSearchChange}
+            placeholder="Tìm kiếm vật tư theo mã, tên..."
+            className="pl-12 h-12 bg-white dark:bg-slate-900 border-slate-200 rounded-xl focus-visible:ring-emerald-600/20 font-bold shadow-sm w-full min-w-[350px]"
+          />
 
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl h-12 border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
             <button onClick={() => onWorkshopFilterChange('ALL')} className={`px-4 rounded-lg text-[10px] font-black tracking-widest transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>TẤT CẢ</button>
             {WORKSHOPS.map((w) => (
@@ -63,7 +66,10 @@ export const MaterialToolbar: React.FC<MaterialToolbarProps> = ({
               <button key={c} onClick={() => onClassFilterChange(c as MaterialClassification)} className={`px-4 rounded-lg text-[10px] font-black transition-all ${classFilter === c ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{c === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</button>
             ))}
           </div>
+        </div>
 
+        {/* Nhóm Ngày tháng & Actions */}
+        <div className="flex items-center gap-3 shrink-0">
           <DateRangeFilter
             startDate={startDate}
             endDate={endDate}
@@ -71,18 +77,23 @@ export const MaterialToolbar: React.FC<MaterialToolbarProps> = ({
             onEndDateChange={onEndDateChange}
           />
 
-          <div className="flex gap-2 border-l pl-4 border-slate-200 dark:border-slate-700">
-            {canManage && (
-              <>
-                <ExcelActions onExport={onExportExcel} onImport={onImportExcel} />
-                <Button className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 font-black btn-hover-effect px-6 flex items-center gap-2" onClick={onCreate}>
-                  <Plus size={20} /> <span className="text-[11px] tracking-wider">THÊM MỚI</span>
-                </Button>
-              </>
-            )}
-          </div>
+          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1" />
+
+          {canManage && (
+            <div className="flex items-center gap-3">
+              <ExcelActions onExport={onExportExcel} onImport={onImportExcel} />
+              <Button
+                className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 font-black btn-hover-effect px-6 flex items-center gap-2 whitespace-nowrap"
+                onClick={onCreate}
+              >
+                <Plus size={20} />
+                <span className="text-[11px] tracking-wider">THÊM MỚI</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+    </div>
     </div>
   );
 };

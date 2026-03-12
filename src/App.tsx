@@ -6,13 +6,14 @@ import {
   List, ChevronRight, Filter, ShoppingCart, HelpCircle, FileSpreadsheet,
   Download, Users, Settings, Activity, Shield, ListChecks, Save,
   AlertCircle, Info, Heart, Inbox, Moon, Sun, Eye, EyeOff,
-  ClipboardList, Clock, Globe, LogOut, ArrowRight
+  ClipboardList, Clock, Globe, LogOut, ArrowRight, RotateCcw, Database
 } from 'lucide-react';
 
 import { Material, Transaction, TransactionType, WorkshopCode, OrderBudget, BudgetItem, UserRole, User, Permission, ActivityLog, Project } from '@/types';
 import { CLASSIFICATIONS, WORKSHOPS, PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
 import { inventoryService, transactionService, authService, userService, materialService, supplierService } from '@/domain';
 import * as XLSX from 'xlsx-js-style';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 import { UserManagement } from './features/admin/UserManagement';
 import { MaterialManagement } from './features/warehouse/MaterialManagement';
@@ -30,6 +31,10 @@ import { AuthScreen } from './features/auth/AuthScreen';
 import { AccountModal, type AccountForm } from './features/account/AccountModal';
 import { AppSidebar, type AppTab } from './features/layout/AppSidebar';
 import { AboutPage } from './features/about/AboutPage';
+import { InventoryCheck } from './features/inventory/InventoryCheck';
+import { InventoryHistory } from './features/inventory/InventoryHistory';
+import { ApprovalQueue } from './features/approval/ApprovalQueue';
+import { RequireRole } from './components/RequireRole';
 import { apiService } from './services/api';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
@@ -85,6 +90,7 @@ const App: React.FC = () => {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [serverSummary, setServerSummary] = useState<any>(null);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
 
   // --- UI STATE ---
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -93,6 +99,10 @@ const App: React.FC = () => {
     }
     return 'light';
   });
+
+  // --- BACKUP STATE ---
+  const [backups, setBackups] = useState<any[]>([]);
+  const [isBackingUp, setIsBackingUp] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -114,6 +124,7 @@ const App: React.FC = () => {
   }, []);
 
   const [serverIp, setServerIp] = useState<string>('');
+  const [showInventoryHistory, setShowInventoryHistory] = useState(false);
 
   useEffect(() => {
     const fetchIp = async () => {
@@ -164,11 +175,75 @@ const App: React.FC = () => {
         const updatedSelf = currentUser ? safeUsers.find((u: User) => u.id === currentUser.id) : null;
         if (updatedSelf) setCurrentUser(updatedSelf);
       }
+
+      // Fetch pending approval count for admin/manager
+      if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER')) {
+        apiService.get<{ count: number }>('/api/approval/count').then(res => {
+          if (res && typeof res.count === 'number') setPendingApprovalCount(res.count);
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error("Failed to load data", error);
     } finally {
       if (!isBackground) setIsSyncing(false);
     }
+  };
+
+  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
+
+  const fetchBackups = async () => {
+    try {
+      const data: any = await apiService.getRecentBackups();
+      setBackups(Array.isArray(data) ? data : (data?.backups || []));
+    } catch (error) {
+      console.error("Failed to fetch backups", error);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings' && isAuthenticated) {
+      fetchBackups();
+    }
+  }, [activeTab, isAuthenticated]);
+
+  const handleTriggerServerBackup = async () => {
+    setIsBackingUp(true);
+    try {
+      const result = await apiService.triggerBackup();
+      if (result.success) {
+        toast.success('Đã tạo bản sao lưu trên server: ' + result.filename);
+        fetchBackups();
+      } else {
+        toast.error('Lỗi khi tạo bản sao lưu: ' + result.message);
+      }
+    } catch (error: any) {
+      toast.error('Lỗi kết nối server: ' + error.message);
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreBackup = async (filename: string) => {
+    requestConfirm(
+      'XÁC NHẬN KHÔI PHỤC DỮ LIỆU',
+      `CẢNH BÁO: Toàn bộ dữ liệu hiện tại sẽ bị thay thế bởi bản sao lưu "${filename}". Hệ thống sẽ tự động khởi động lại sau khi khôi phục. Bạn có chắc chắn muốn thực hiện?`,
+      async () => {
+        try {
+          const result = await apiService.restoreBackup(filename);
+          if (result.success) {
+            toast.success('Khôi phục thành công! Hệ thống đang khởi động lại...');
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          } else {
+            toast.error('Lỗi khi khôi phục: ' + result.message);
+          }
+        } catch (error: any) {
+          toast.error('Lỗi kết nối server: ' + error.message);
+        }
+      },
+      'danger'
+    );
   };
 
   const parseNumber = (val: string | number | undefined): number => {
@@ -222,7 +297,6 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated, authToken, toast]);
 
-  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -351,6 +425,23 @@ const App: React.FC = () => {
     return baseSummary;
   }, [materials, transactions, serverSummary]);
 
+  const last7DaysData = useMemo(() => {
+    const data = [];
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayTxs = safeTransactions.filter(t => t.date === dateStr);
+      data.push({
+        date: `${d.getDate()}/${d.getMonth() + 1}`,
+        in: dayTxs.filter(t => t.type === TransactionType.IN).reduce((sum, t) => sum + (t.quantity || 0), 0),
+        out: dayTxs.filter(t => t.type === TransactionType.OUT).reduce((sum, t) => sum + (t.quantity || 0), 0),
+      });
+    }
+    return data;
+  }, [transactions]);
+
   const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
     setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
   };
@@ -432,6 +523,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSaveInventoryCheck = async (data: any) => {
+    try {
+      const response = await apiService.post('/api/inventory-checks/save', data);
+      if (response && (response as any).success) {
+        await loadData(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Save inventory check error:', error);
+      toast.error('Lỗi khi lưu phiếu kiểm kê');
+      return false;
+    }
+  };
+
   if (!isAuthenticated) return (
     <>
       <Toaster />
@@ -452,6 +558,7 @@ const App: React.FC = () => {
         activeTab={activeTab} setActiveTab={setActiveTab} hasPermission={hasPermission}
         currentUser={currentUser} userRole={userRole} onLogout={handleLogout}
         onOpenAccount={() => setIsAccountModalOpen(true)}
+        pendingApprovalCount={pendingApprovalCount}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -462,7 +569,9 @@ const App: React.FC = () => {
                 activeTab === 'warehouse_inventory' ? 'Kho Vật Tư' :
                   activeTab === 'warehouse_history' ? 'Lịch Sử Giao Dịch' :
                     activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
-                      activeTab === 'warehouse_transfer' ? 'Điều Chuyển' :
+                      activeTab === 'warehouse_approval' ? 'Duyệt Phiếu Xuất Kho' :
+                        activeTab === 'warehouse_transfer' ? 'Điều Chuyển' :
+                        activeTab === 'warehouse_inventory_check' ? 'Kiểm Kê Kho' :
                         activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
                           activeTab === 'planning_projects' ? 'Dự Án' :
                             activeTab === 'planning_estimates' ? 'Dự Toán' :
@@ -545,17 +654,56 @@ const App: React.FC = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <Card className="shadow-sm mt-8 border-t-4 border-t-emerald-600 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
+                <CardHeader className="p-6 pb-2">
+                  <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+                    <Activity className="text-emerald-600" size={20} /> Tổng quan nhập xuất 7 ngày gần đây
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[280px] mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={last7DaysData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} dx={-10} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 700, paddingTop: '10px' }} />
+                      <Area type="monotone" name="Nhập kho" dataKey="in" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIn)" />
+                      <Area type="monotone" name="Xuất kho" dataKey="out" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorOut)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
                 <Card className="lg:col-span-12 xl:col-span-7 shadow-sm">
                   <CardHeader className="p-6 pb-2">
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-lg font-extrabold flex items-center gap-2">
-                          <AlertTriangle className="text-rose-500" size={20} /> Cảnh báo tồn kho thấp
+                          {summary.lowStockCount > 0 ? (
+                            <><AlertTriangle className="text-rose-500" size={20} /> Cảnh báo tồn kho thấp</>
+                          ) : (
+                            <><CheckCircle2 className="text-emerald-500" size={20} /> Kho hàng ổn định</>
+                          )}
                         </CardTitle>
                         <CardDescription>Danh sách vật tư cần nhập thêm ngay lập tức</CardDescription>
                       </div>
-                      <Badge variant="destructive" className="font-black px-3 py-1 rounded-lg">{summary.lowStockCount} MỤC</Badge>
+                      {summary.lowStockCount > 0 ? (
+                        <Badge variant="destructive" className="font-black px-3 py-1 rounded-lg shadow-sm">{summary.lowStockCount} MỤC</Badge>
+                      ) : (
+                         <Badge className="font-black px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 shadow-none border border-emerald-200 dark:border-emerald-800">0 MỤC</Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -607,28 +755,44 @@ const App: React.FC = () => {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="divide-y divide-border border-t border-border mt-2">
-                      {(Array.isArray(transactions) ? transactions : []).slice(0, 5).map(t => (
-                        <div key={t.id} className="p-5 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-colors flex items-center justify-between group">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 ${t.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                              {t.type === 'IN' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold truncate leading-tight mb-1">{t.materialName}</p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase">{t.receiptId.split('/')[0]}</span>
-                                <span className="text-[10px] font-bold text-muted-foreground/80">{t.date} · {t.workshop}</span>
+                      {(Array.isArray(transactions) ? transactions : []).length === 0 ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-center">
+                          <History size={40} className="text-slate-200 dark:text-slate-700 mb-3" />
+                          <p className="font-bold text-slate-400">Chưa có giao dịch nào.</p>
+                          <p className="text-xs text-muted-foreground mt-1 mb-5">Bắt đầu bằng cách lập phiếu nhập kho.</p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg dark:bg-emerald-950 dark:hover:bg-emerald-900 shadow-sm"
+                            onClick={() => { setActiveTab('warehouse_receipt'); setReceiptType(TransactionType.IN); }}
+                          >
+                            <Plus size={14} className="mr-1.5" /> Lập phiếu nhập
+                          </Button>
+                        </div>
+                      ) : (
+                        (Array.isArray(transactions) ? transactions : []).slice(0, 5).map(t => (
+                          <div key={t.id} className="p-5 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-colors flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 ${t.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                {t.type === 'IN' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold truncate leading-tight mb-1">{t.materialName}</p>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase">{t.receiptId.split('/')[0]}</span>
+                                  <span className="text-[10px] font-bold text-muted-foreground/80">{t.date} · {t.workshop}</span>
+                                </div>
                               </div>
                             </div>
+                            <div className="text-right">
+                              <p className={`text-lg font-black tabular-nums transition-all group-hover:scale-110 ${t.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {t.type === 'IN' ? '+' : '-'}{formatNumber(t.quantity)}
+                              </p>
+                              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">{t.unit}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className={`text-lg font-black tabular-nums transition-all group-hover:scale-110 ${t.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                              {t.type === 'IN' ? '+' : '-'}{formatNumber(t.quantity)}
-                            </p>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">{t.unit}</p>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -644,6 +808,12 @@ const App: React.FC = () => {
             <TransactionHistory transactions={transactions} materials={materials} currentUser={currentUser} onRefresh={loadData} />
           )}
 
+          {activeTab === 'warehouse_approval' && (
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <ApprovalQueue onUpdate={loadData} />
+            </RequireRole>
+          )}
+
           {(activeTab === 'reports_history' || activeTab === 'reports_activity' || activeTab === 'reports_inventory') && (
             <ReportViewer
               transactions={transactions}
@@ -657,37 +827,41 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'warehouse_receipt' && (
-            <WarehouseReceipt
-              materials={materials}
-              budgets={budgets}
-              suppliers={suppliers}
-              currentUser={currentUser}
-              userRole={userRole}
-              loadData={loadData}
-              logActivity={logActivity}
-              requestConfirm={requestConfirm}
-              modalError={modalError}
-              setModalError={setModalError}
-              closeConfirmDialog={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-              createBatchReceipt={(data) => transactionService.createBatchReceipt(data)}
-              generateReceiptId={generateReceiptId}
-              parseNumber={parseNumber}
-              formatNumber={formatNumber}
-            />
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <WarehouseReceipt
+                materials={materials}
+                budgets={budgets}
+                suppliers={suppliers}
+                currentUser={currentUser}
+                userRole={userRole}
+                loadData={loadData}
+                logActivity={logActivity}
+                requestConfirm={requestConfirm}
+                modalError={modalError}
+                setModalError={setModalError}
+                closeConfirmDialog={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                createBatchReceipt={(data) => transactionService.createBatchReceipt(data)}
+                generateReceiptId={generateReceiptId}
+                parseNumber={parseNumber}
+                formatNumber={formatNumber}
+              />
+            </RequireRole>
           )}
 
           {activeTab === 'warehouse_transfer' && (
-            <WarehouseTransfer
-              materials={materials}
-              transferForm={transferForm}
-              setTransferForm={setTransferForm}
-              handleTransfer={handleTransfer}
-              modalError={modalError}
-              formatNumber={formatNumber}
-              parseNumber={parseNumber}
-              receiptSearchClass={receiptSearchClass}
-              setReceiptSearchClass={setReceiptSearchClass}
-            />
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <WarehouseTransfer
+                materials={materials}
+                transferForm={transferForm}
+                setTransferForm={setTransferForm}
+                handleTransfer={handleTransfer}
+                modalError={modalError}
+                formatNumber={formatNumber}
+                parseNumber={parseNumber}
+                receiptSearchClass={receiptSearchClass}
+                setReceiptSearchClass={setReceiptSearchClass}
+              />
+            </RequireRole>
           )}
 
           {activeTab === 'supplier_management' && (
@@ -695,7 +869,23 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'warehouse_merge' && (
-            <MaterialMerge materials={materials} currentUser={currentUser} onUpdate={loadData} />
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <MaterialMerge materials={materials} currentUser={currentUser} onUpdate={loadData} />
+            </RequireRole>
+          )}
+
+          {activeTab === 'warehouse_inventory_check' && (
+            <div className="max-w-[1400px] mx-auto p-4">
+              {showInventoryHistory ? (
+                <InventoryHistory onBack={() => setShowInventoryHistory(false)} />
+              ) : (
+                <InventoryCheck 
+                  materials={materials} 
+                  onSave={handleSaveInventoryCheck}
+                  onViewHistory={() => setShowInventoryHistory(true)}
+                />
+              )}
+            </div>
           )}
 
           {activeTab === 'planning_projects' && (
@@ -706,40 +896,145 @@ const App: React.FC = () => {
             <PlanningEstimates budgets={budgets} projects={projects} materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} />
           )}
 
-          {activeTab === 'users' && hasPermission('MANAGE_USERS') && (
-            <UserManagement
-              users={users} currentUser={currentUser}
-              onUpdate={() => userService.listUsers().then(d => Array.isArray(d) && setUsers(d))}
-            />
+          {activeTab === 'users' && (
+            <RequireRole role={userRole} allowedRoles={['ADMIN']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <UserManagement
+                users={users} currentUser={currentUser}
+                onUpdate={() => userService.listUsers().then(d => Array.isArray(d) && setUsers(d))}
+              />
+            </RequireRole>
           )}
 
           {activeTab === 'settings' && (
             <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Backup Card */}
-                <Card className="shadow-lg border-none bg-card/50 backdrop-blur-xl overflow-hidden group">
+                <Card className="shadow-lg border-none bg-card/50 backdrop-blur-xl overflow-hidden group lg:col-span-2">
                   <div className="h-2 bg-emerald-600 w-full" />
                   <CardHeader className="p-8">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 shadow-inner group-hover:rotate-12 transition-transform">
-                        <Save size={24} />
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 shadow-inner group-hover:rotate-12 transition-transform">
+                          <Database size={24} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl font-black">Quản lý Sao lưu Hệ thống</CardTitle>
+                          <CardDescription>Bảo vệ và phục hồi dữ liệu kho hàng</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-xl font-black">Sao lưu dữ liệu</CardTitle>
-                        <CardDescription>Bảo vệ dữ liệu kho hàng của bạn</CardDescription>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-7 px-3 text-[10px] font-bold border-emerald-600/20 text-emerald-600 bg-emerald-50/50">
+                          <Clock size={12} className="mr-1" /> Tự động: 23:30 hàng ngày
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 font-bold text-xs uppercase"
+                          onClick={handleTriggerServerBackup}
+                          disabled={isBackingUp}
+                        >
+                          {isBackingUp ? <RefreshCcw size={14} className="mr-2 animate-spin" /> : <Save size={14} className="mr-2" />}
+                          Sao lưu ngay
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="px-8 pb-8 space-y-6">
-                    <div className="p-4 rounded-2xl bg-muted/50 border border-border text-xs font-medium leading-relaxed">
-                      Dữ liệu sẽ được xuất ra file data (.db) chứa toàn bộ danh sách vật tư, xưởng, nhà cung cấp và lịch sử giao dịch. File sẽ được lưu mặc định tại Desktop của máy chạy Server.
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-2 space-y-4">
+                        <h4 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                          <History size={14} /> Các bản sao lưu trên Server (Tối đa 30 bản)
+                        </h4>
+                        <div className="border border-border rounded-2xl overflow-hidden bg-background/50">
+                          <div className="max-h-[350px] overflow-y-auto no-scrollbar">
+                            {backups.length === 0 ? (
+                              <div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+                                <Info size={32} className="opacity-20 mb-2" />
+                                <p className="text-sm font-bold">Chưa có bản sao lưu nào trên server</p>
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-border">
+                                {Array.isArray(backups) && backups.map((b, idx) => (
+                                  <div key={idx} className="p-4 flex items-center justify-between hover:bg-emerald-50/20 transition-colors group/item">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600">
+                                        <FileText size={18} />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-bold truncate pr-4">{b.name}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <span className="text-[10px] text-muted-foreground font-medium">{new Date(b.mtime).toLocaleString('vi-VN')}</span>
+                                          <span className="w-1 h-1 rounded-full bg-border" />
+                                          <span className="text-[10px] text-emerald-600 font-bold italic">{(b.size / 1024 / 1024).toFixed(2)} MB</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-8 px-2.5 text-[10px] font-bold uppercase border-emerald-600/20 text-emerald-600 hover:bg-emerald-50"
+                                        onClick={() => {
+                                          const url = `${apiService.getBaseUrl()}/api/download-db-file?filename=${b.name}`;
+                                          const token = localStorage.getItem('auth_token');
+                                          fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+                                            .then(res => res.blob())
+                                            .then(blob => {
+                                              const downloadUrl = window.URL.createObjectURL(blob);
+                                              const link = document.createElement('a');
+                                              link.href = downloadUrl;
+                                              link.download = b.name;
+                                              link.click();
+                                            });
+                                        }}
+                                      >
+                                        <Download size={12} className="mr-1" /> Tải về
+                                      </Button>
+                                      <RequireRole role={userRole} allowedRoles={['ADMIN']}>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 px-2.5 text-[10px] font-bold uppercase text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                                          onClick={() => handleRestoreBackup(b.name)}
+                                        >
+                                          <RefreshCcw size={12} className="mr-1" /> Khôi phục
+                                        </Button>
+                                      </RequireRole>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30">
+                          <h5 className="text-[11px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-500 mb-3 flex items-center gap-2">
+                            <AlertCircle size={14} /> Lưu ý quan trọng
+                          </h5>
+                          <div className="space-y-3">
+                            <p className="text-[11px] leading-relaxed font-medium text-amber-800 dark:text-amber-200">
+                              • <b>Bản sao lưu trên Server</b> được lưu trữ dài hạn (30 ngày gần nhất).
+                            </p>
+                            <p className="text-[11px] leading-relaxed font-medium text-amber-800 dark:text-amber-200">
+                              • <b>Khôi phục dữ liệu</b> sẽ ghi đè toàn bộ dữ liệu hiện tại. Hãy cẩn trọng!
+                            </p>
+                            <p className="text-[11px] leading-relaxed font-medium text-amber-800 dark:text-amber-200">
+                              • Nên tải bản sao lưu về máy cá nhân (Client) trước khi thực hiện các thay đổi lớn.
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          className="w-full h-14 border-2 border-dashed border-emerald-600/30 hover:border-emerald-600 hover:bg-emerald-50/30 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all"
+                          onClick={handleBackup}
+                        >
+                          <Download size={18} className="text-emerald-600" /> Tải bản sao lưu về Client
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-500/20 font-black text-sm uppercase flex items-center justify-center gap-3 btn-hover-effect"
-                      onClick={handleBackup}
-                    >
-                      <Download size={20} /> Thực hiện sao lưu ngay
-                    </Button>
                   </CardContent>
                 </Card>
 

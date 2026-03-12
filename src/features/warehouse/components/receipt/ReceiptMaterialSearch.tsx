@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Check } from 'lucide-react';
+import { Search, Plus, Check, LayoutGrid, List } from 'lucide-react';
 import { Material } from '@/types';
 import { ClassificationFilter, ClassificationType } from '@/components/business';
 import { EmptyState } from '@/components/business';
@@ -35,6 +35,14 @@ export const ReceiptMaterialSearch: React.FC<ReceiptMaterialSearchProps> = ({
         return matchSearch && matchWorkshop && matchClass;
     });
 
+    const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+
+    React.useEffect(() => {
+        if (selectedItems.length > 9) {
+            setViewMode('list');
+        }
+    }, [selectedItems.length]);
+
     return (
         <div className="col-span-12 xl:col-span-8 bg-slate-50 dark:bg-slate-800/20 rounded-[20px] p-6 flex flex-col overflow-hidden border border-slate-200/60 dark:border-slate-700/50 shadow-inner">
             <div className="grid grid-cols-1 gap-4 mb-4 shrink-0">
@@ -50,12 +58,28 @@ export const ReceiptMaterialSearch: React.FC<ReceiptMaterialSearchProps> = ({
                 </div>
             </div>
 
-            <div className="mb-6">
+            <div className="flex items-center justify-between mb-6">
                 <ClassificationFilter
                     value={receiptSearchClass as ClassificationType}
                     onChange={setReceiptSearchClass}
                     styleType="outline"
                 />
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        title="Dạng lưới"
+                    >
+                        <LayoutGrid size={16} />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                        title="Dạng danh sách"
+                    >
+                        <List size={16} />
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
@@ -65,30 +89,30 @@ export const ReceiptMaterialSearch: React.FC<ReceiptMaterialSearchProps> = ({
                         title="Không tìm thấy vật tư phù hợp"
                     />
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                    <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4" : "flex flex-col gap-3 pb-4"}>
                         {filteredMaterials.map(m => {
                             const isInCart = selectedItems.some(it => it.materialId === m.id);
                             return (
                                 <button
                                     key={m.id}
                                     onClick={() => toggleMaterialSelection(m.id)}
-                                    className={`group relative p-4 text-left bg-white dark:bg-slate-900 border rounded-2xl transition-all shadow-sm active:scale-95 flex flex-col justify-between gap-3 h-full ${isInCart ? 'border-sky-500 ring-4 ring-sky-500/10 bg-sky-50/20 dark:bg-sky-900/10' : 'border-slate-100 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-lg'}`}
+                                    className={`group relative text-left bg-white dark:bg-slate-900 border rounded-2xl transition-all shadow-sm active:scale-95 flex ${viewMode === 'grid' ? 'flex-col justify-between p-4 h-full gap-3' : 'flex-row items-center p-3 gap-4'} ${isInCart ? 'border-sky-500 ring-4 ring-sky-500/10 bg-sky-50/20 dark:bg-sky-900/10' : 'border-slate-100 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-lg'}`}
                                 >
-                                    <div className="min-w-0">
-                                        <h5 className="font-black text-[12px] text-slate-800 dark:text-white uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors">{m.name}</h5>
+                                    <div className="flex-1 min-w-0 flex flex-col gap-2">
+                                        <h5 className={`font-black text-[12px] text-slate-800 dark:text-white uppercase leading-tight group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors ${viewMode === 'list' ? 'truncate' : 'line-clamp-2'}`}>{m.name}</h5>
                                         <div className="flex flex-wrap gap-1.5">
                                             <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 dark:text-slate-400 rounded-md uppercase tracking-tighter">{m.workshop}</span>
                                             <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400'} text-[8px] font-black rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
                                             <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-400 uppercase rounded-md tracking-tighter">{m.unit}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-800">
-                                        <div>
+                                    <div className={`flex items-center justify-between ${viewMode === 'grid' ? 'mt-auto pt-3 border-t border-slate-50 dark:border-slate-800' : 'pl-4 border-l border-slate-50 dark:border-slate-800 gap-6'}`}>
+                                        <div className={viewMode === 'list' ? 'text-right' : ''}>
                                             <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tight mb-0.5">Số lượng tồn</p>
                                             <p className="text-sm font-black text-slate-800 dark:text-white tabular-nums">{localFormatNumber(m.quantity)}</p>
                                         </div>
-                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isInCart ? 'bg-sky-600 text-white shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white'}`}>
-                                            {isInCart ? <Check size={16} /> : <Plus size={16} />}
+                                        <div className={`px-3 h-8 rounded-xl flex items-center justify-center transition-all text-[10px] font-bold uppercase tracking-widest ${isInCart ? 'bg-sky-600 text-white shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-emerald-500 group-hover:text-white'}`}>
+                                            {isInCart ? <><Check size={14} className="mr-1" /> Đã Chọn</> : <><Plus size={14} className="mr-1" /> Thêm</>}
                                         </div>
                                     </div>
                                 </button>

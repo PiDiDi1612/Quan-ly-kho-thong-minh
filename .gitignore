@@ -1,21 +1,38 @@
-﻿node_modules
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
 .next
 dist
 out
+build
+coverage
+release
+
+# Environment variables
 .env
 .env.local
 .env.development
 .env.production
 
-# logs
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
+# Database & Data
+*.db
+*.sqlite
+*.sqlite3
+data/
+backup/
 
-# build
-build
-coverage
-
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# Sensitive scripts (direct DB access)
+reset-admin-password.cjs

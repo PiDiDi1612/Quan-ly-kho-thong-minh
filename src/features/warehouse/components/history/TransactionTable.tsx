@@ -13,6 +13,7 @@ interface TransactionTableProps {
     canManage: boolean;
     handleDeleteReceipt: (receipt: any) => void;
     formatNumber: (num: number) => string;
+    materials: any[];
     txPage: number;
     txLimit: number;
     txTotal: number;
@@ -23,9 +24,13 @@ interface TransactionTableProps {
 
 export const TransactionTable: React.FC<TransactionTableProps> = ({
     receiptData, isLoadingTx, selectedReceiptIds, setSelectedReceiptIds, toggleSelectReceipt,
-    setViewingReceipt, setIsViewModalOpen, canManage, handleDeleteReceipt, formatNumber,
+    setViewingReceipt, setIsViewModalOpen, canManage, handleDeleteReceipt, formatNumber, materials,
     txPage, txLimit, txTotal, txTotalPages, setTxPage, setTxLimit
 }) => {
+    const getMaterialInfo = (materialId: string) => {
+        const material = materials.find(m => m.id === materialId);
+        return material || { name: materialId, unit: 'N/A' };
+    };
     return (
         <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
@@ -49,6 +54,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                             <th className="px-6 py-4"><Users size={12} className="inline mr-1 text-sky-500" />Thực hiện</th>
                             <th className="px-6 py-4 text-center">Vật tư</th>
                             <th className="px-6 py-4 text-right">Tổng SL</th>
+                            <th className="px-6 py-4 text-center">Trạng thái</th>
                             <th className="px-6 py-4 text-right">Thao tác</th>
                         </tr>
                     </thead>
@@ -72,14 +78,27 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                 </td>
                             </tr>
                         ) : (
-                            receiptData.map((receipt) => (
-                                <tr key={receipt.receiptId} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                            receiptData.map((receipt) => {
+                                const firstTx = receipt.transactions[0];
+                                const firstMat = firstTx ? getMaterialInfo(firstTx.materialId) : null;
+                                const otherCount = receipt.transactions.length - 1;
+
+                                return (
+                                <tr 
+                                    key={receipt.receiptId} 
+                                    className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                    onClick={() => { setViewingReceipt(receipt); setIsViewModalOpen(true); }}
+                                >
                                     <td className="px-4 py-4 text-center">
                                         <input
                                             type="checkbox"
-                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 focus:ring-sky-500 cursor-pointer"
                                             checked={selectedReceiptIds.includes(receipt.receiptId)}
-                                            onChange={() => toggleSelectReceipt(receipt.receiptId)}
+                                            onChange={(e) => {
+                                                e.stopPropagation();
+                                                toggleSelectReceipt(receipt.receiptId);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
                                         />
                                     </td>
                                     <td className="px-6 py-4 text-xs">
@@ -102,20 +121,47 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                     <td className="px-6 py-4 text-xs font-black text-slate-600 dark:text-slate-400 tracking-tight uppercase">
                                         {receipt.user}
                                     </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-100 dark:border-slate-700">
-                                            {receipt.transactions.length} VT
-                                        </span>
+                                    <td className="px-6 py-4">
+                                        {firstMat ? (
+                                            <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-[200px] mx-auto">
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]" title={firstMat.name}>
+                                                    {firstMat.name}
+                                                </span>
+                                                {otherCount > 0 && (
+                                                    <span className="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                                        +{otherCount} khác
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-100 dark:border-slate-700">
+                                                {receipt.transactions.length} VT
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <span className={`font-black text-xs ${receipt.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
                                             {receipt.type === 'IN' ? '+' : '-'}{formatNumber(receipt.totalQuantity)}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            receipt.transactions[0]?.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                            receipt.transactions[0]?.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        }`}>
+                                            {receipt.transactions[0]?.status === 'pending' ? 'Chờ duyệt' :
+                                             receipt.transactions[0]?.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-1 opacity-10 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
-                                                onClick={() => { setViewingReceipt(receipt); setIsViewModalOpen(true); }}
+                                                onClick={(e) => { 
+                                                    e.stopPropagation();
+                                                    setViewingReceipt(receipt); 
+                                                    setIsViewModalOpen(true); 
+                                                }}
                                                 className="p-2 text-slate-400 hover:text-sky-600 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-sky-50 transition-colors"
                                                 title="Xem chi tiết"
                                             >
@@ -123,7 +169,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                             </button>
                                             {canManage && (
                                                 <button
-                                                    onClick={() => handleDeleteReceipt(receipt)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteReceipt(receipt);
+                                                    }}
                                                     className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-rose-50 transition-colors"
                                                     title="Hủy phiếu"
                                                 >
@@ -133,7 +182,8 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                         </div>
                                     </td>
                                 </tr>
-                            ))
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

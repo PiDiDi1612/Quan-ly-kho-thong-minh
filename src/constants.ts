@@ -34,13 +34,17 @@ export const ROLE_PERMISSIONS: { [key in UserRole]: Permission[] } = {
     'MANAGE_USERS',
     'MANAGE_SETTINGS'
   ],
+  MANAGER: [
+    'MANAGE_WAREHOUSE',
+    'MANAGE_PLANNING',
+    'EXPORT_DATA'
+  ],
   WAREHOUSE: [
     'MANAGE_WAREHOUSE',
     'EXPORT_DATA'
   ],
-  PLANNING: [
-    'MANAGE_PLANNING',
-    'EXPORT_DATA'
+  STAFF: [
+    // Staff can view, but limited in management actions (will be handled by RequireRole and logic)
   ],
   GUEST: []
 };

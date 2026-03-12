@@ -38,7 +38,9 @@ const defaultFormData: Partial<Material> = {
 } as any;
 
 export const useMaterialManagement = (onUpdate: () => void) => {
-  const toast = useToast();
+  const toastSuccess = useToast(s => s.success);
+  const toastWarning = useToast(s => s.warning);
+  const toastError = useToast(s => s.error);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 500);
   const [workshopFilter, setWorkshopFilter] = useState<WorkshopCode | 'ALL'>('ALL');
@@ -99,12 +101,12 @@ export const useMaterialManagement = (onUpdate: () => void) => {
         setTotalPages(1);
       }
     } catch (error) {
-      toast.error('Lỗi khi tải dữ liệu tồn kho');
+      toastError('Lỗi khi tải dữ liệu tồn kho');
     } finally {
       setIsLoading(false);
       isInitialLoad.current = false;
     }
-  }, [currentPage, pageLimit, startDate, endDate, debouncedSearch, workshopFilter, classFilter, toast]);
+  }, [currentPage, pageLimit, startDate, endDate, debouncedSearch, workshopFilter, classFilter, toastError]);
 
   useEffect(() => {
     const timer = setTimeout(loadStockData, 200);
@@ -124,23 +126,23 @@ export const useMaterialManagement = (onUpdate: () => void) => {
 
   const handleSave = async () => {
     if (!formData.name || !formData.unit) {
-      toast.warning('Vui lòng điền đủ thông tin');
+      toastWarning('Vui lòng điền đủ thông tin');
       return;
     }
 
     try {
       if (editingMaterial) {
         await materialService.updateMaterial(editingMaterial.id, { ...formData, quantity: undefined, workshop: undefined } as any);
-        toast.success('Cập nhật thành công');
+        toastSuccess('Cập nhật thành công');
       } else {
         await materialService.createMaterial({ ...formData, quantity: 0, minThreshold: parseNumber(formData.minThreshold) } as any);
-        toast.success('Tạo vật tư thành công');
+        toastSuccess('Tạo vật tư thành công');
       }
       setIsModalOpen(false);
       onUpdate();
       loadStockData();
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi lưu vật tư');
+      toastError(error.message || 'Lỗi lưu vật tư');
     }
   };
 
@@ -155,10 +157,10 @@ export const useMaterialManagement = (onUpdate: () => void) => {
           await materialService.deleteMaterial(id);
           onUpdate();
           loadStockData();
-          toast.success('Đã xóa vật tư');
+          toastSuccess('Đã xóa vật tư');
           setConfirmState((prev) => ({ ...prev, isOpen: false }));
         } catch (error: any) {
-          toast.error(error.message || 'Lỗi khi xóa');
+          toastError(error.message || 'Lỗi khi xóa');
         }
       },
     });
@@ -213,12 +215,12 @@ export const useMaterialManagement = (onUpdate: () => void) => {
         ['Header'],
         ...mappedData.map((i) => [i.name, i.classification, i.unit, i.workshop, i.minThreshold, i.origin, i.note]),
       ]);
-      toast.success(`Thành công: ${res.imported} mới, ${res.updated} cập nhật.`);
+      toastSuccess(`Thành công: ${res.imported} mới, ${res.updated} cập nhật.`);
       setIsImportModalOpen(false);
       onUpdate();
       loadStockData();
     } catch (e) {
-      toast.error('Lỗi nhập dữ liệu');
+      toastError('Lỗi nhập dữ liệu');
     }
   };
 

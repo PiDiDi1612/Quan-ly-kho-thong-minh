@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { getAuthToken } from '../utils/authStorage';
+import { getAuthToken, clearAuthSession } from '../utils/authStorage';
 
 export interface ConnectionConfig {
     mode: 'SERVER' | 'CLIENT' | null;
@@ -80,6 +80,19 @@ class ApiService {
         return this.request<T>(endpoint, 'DELETE');
     }
 
+    // --- Backup APIs ---
+    public async getRecentBackups(): Promise<any[]> {
+        return this.get<any[]>('/api/backups/recent');
+    }
+
+    public async triggerBackup(): Promise<{ success: boolean; message: string; filename: string }> {
+        return this.post<{ success: boolean; message: string; filename: string }>('/api/backups/trigger');
+    }
+
+    public async restoreBackup(filename: string): Promise<{ success: boolean; message: string }> {
+        return this.post<{ success: boolean; message: string }>('/api/backups/restore', { filename });
+    }
+
     private async request<T>(endpoint: string, method: string, body?: any): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
         try {
@@ -104,6 +117,19 @@ class ApiService {
                 } catch {
                     // If can't parse JSON, use default error message
                 }
+
+                // Handle 401 Unauthorized - Token expired or invalid
+                if (res.status === 401) {
+                    clearAuthSession();
+                    // Optional: force reload to trigger App.tsx isAuthenticated state change
+                    if (typeof window !== 'undefined') {
+                        // Avoid infinite reload if we are already on login
+                        if (!window.location.search.includes('auth_error=401')) {
+                            window.location.href = '/?auth_error=401'; 
+                        }
+                    }
+                }
+
                 throw new Error(errorMessage);
             }
 

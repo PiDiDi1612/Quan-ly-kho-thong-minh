@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TablePagination } from '@/components/business/TablePagination';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MaterialTableProps {
   materials: Material[];
@@ -92,20 +93,43 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
                   <TableCell className="text-right text-xs font-black text-emerald-600 tabular-nums">{formatNumber(m.periodIn ?? 0)}</TableCell>
                   <TableCell className="text-right text-xs font-black text-rose-500 tabular-nums">{formatNumber(m.periodOut ?? 0)}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    <div className="flex flex-col items-end">
+                    <div className="flex items-baseline justify-end gap-1.5">
                       <span className={`text-base font-black ${(m.closingStock ?? m.quantity) <= m.minThreshold ? 'text-rose-600 animate-pulse' : 'text-sky-600'}`}>{formatNumber(m.closingStock ?? m.quantity)}</span>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{m.unit}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{m.unit}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-sky-600 hover:bg-sky-50" onClick={() => onView(m)}><Eye size={16} /></Button>
-                      {canManage && (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => onEdit(m)}><Edit2 size={16} /></Button>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-rose-600 hover:bg-rose-50" onClick={() => onDelete(m.id)}><Trash2 size={16} /></Button>
-                        </>
-                      )}
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20" onClick={() => onView(m)}>
+                              <Eye size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Xem chi tiết</TooltipContent>
+                        </Tooltip>
+                        {canManage && (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => onEdit(m)}>
+                                  <Edit2 size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Chỉnh sửa</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" onClick={() => onDelete(m.id)}>
+                                  <Trash2 size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Xóa</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>

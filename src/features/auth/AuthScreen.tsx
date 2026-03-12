@@ -43,6 +43,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   setRememberMe
 }) => {
   return (
+    <>
+    <style>{`
+      @keyframes shake-animation {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+        20%, 40%, 60%, 80% { transform: translateX(4px); }
+      }
+      .custom-shake {
+        animation: shake-animation 0.4s cubic-bezier(.36,.07,.19,.97) both;
+      }
+    `}</style>
     <div className="flex min-h-screen items-center justify-center p-6 bg-background font-sans transition-colors duration-300 relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 dark:bg-emerald-500/5 blur-[120px] rounded-full animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-500/10 dark:bg-sky-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
@@ -129,19 +140,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </div>
             </div>
 
-            {loginError && (
-              <div className="p-4 bg-rose-50 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 rounded-2xl animate-in shake duration-300">
-                <p className="text-[10px] font-black text-rose-600 text-center uppercase tracking-wider uppercase">{loginError}</p>
-              </div>
-            )}
-
             <button
               type="submit"
-              disabled={!loginForm.username || !loginForm.password}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-3xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-[0.2em] text-[11px] mt-2 group flex items-center justify-center gap-2"
+              disabled={!loginForm.username && !loginForm.password}
+              className={`w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-3xl shadow-xl shadow-emerald-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-[0.2em] text-[11px] mt-2 group flex items-center justify-center gap-2 ${loginError ? 'custom-shake' : ''}`}
             >
               Đăng nhập hệ thống <ArrowRightLeft size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
+            
+            {loginError && (
+              <div className="p-4 bg-rose-50 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 rounded-2xl custom-shake mt-4">
+                <p className="text-[10px] font-black text-rose-600 text-center uppercase tracking-wider">{loginError}</p>
+              </div>
+            )}
           </form>
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -203,6 +214,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         Powered by Antigravity Performance
       </div>
     </div>
+    </>
   );
 };
 

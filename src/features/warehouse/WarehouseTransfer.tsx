@@ -9,7 +9,8 @@ import {
     Trash2,
     Search,
     Check,
-    Inbox
+    Inbox,
+    ArrowRight
 } from 'lucide-react';
 import { Material, WorkshopCode, TransactionType } from '@/types';
 import { WORKSHOPS } from '@/constants';
@@ -54,11 +55,11 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 relative">
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Kho nguồn</label>
                                 <select
-                                    className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm"
+                                    className={`w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm ${transferForm.fromWorkshop === transferForm.toWorkshop ? 'border-rose-300 dark:border-rose-900/50 focus:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}
                                     value={transferForm.fromWorkshop}
                                     onChange={e => setTransferForm({ ...transferForm, fromWorkshop: e.target.value as any, items: [] })}
                                 >
@@ -68,13 +69,16 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                             <div className="space-y-1.5">
                                 <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 tracking-wider">Kho đích</label>
                                 <select
-                                    className="w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm"
+                                    className={`w-full px-3 py-2.5 bg-white dark:bg-[#0f172a] border rounded-xl font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500 transition-all shadow-sm ${transferForm.fromWorkshop === transferForm.toWorkshop ? 'border-rose-300 dark:border-rose-900/50 focus:border-rose-500' : 'border-slate-200 dark:border-slate-700'}`}
                                     value={transferForm.toWorkshop}
                                     onChange={e => setTransferForm({ ...transferForm, toWorkshop: e.target.value as any })}
                                 >
                                     {WORKSHOPS.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                                 </select>
                             </div>
+                            {transferForm.fromWorkshop === transferForm.toWorkshop && (
+                                <p className="absolute -bottom-5 left-1 text-[10px] text-rose-500 font-bold col-span-2">Kho nguồn và kho đích không được trùng nhau</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -144,9 +148,11 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
                                     );
                                 })
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-3 opacity-60">
-                                    <ArrowRightLeft size={48} className="stroke-1" />
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-center px-8">Chọn vật tư từ danh sách bên phải để thêm vào phiếu</p>
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 opacity-80 pt-10">
+                                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-full mb-2">
+                                        <ArrowRight size={24} className="text-slate-400" />
+                                    </div>
+                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center px-8">Hãy chọn vật tư từ danh sách bên phải để thêm vào phiếu</p>
                                 </div>
                             )}
                         </div>
@@ -154,8 +160,8 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
 
                     <button
                         onClick={handleTransfer}
-                        disabled={transferForm.items.length === 0}
-                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                        disabled={transferForm.items.length === 0 || transferForm.fromWorkshop === transferForm.toWorkshop}
+                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-700 dark:disabled:to-slate-800 disabled:shadow-none"
                     >
                         <Check size={18} /> Xác nhận điều chuyển
                     </button>

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import { Material } from '@/types';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ReceiptCartProps {
+    receiptType: string;
     selectedItems: { materialId: string; quantity: number | string }[];
     materials: Material[];
     handleQuantityChange: (id: string, val: string) => void;
@@ -12,6 +14,7 @@ interface ReceiptCartProps {
 }
 
 export const ReceiptCart: React.FC<ReceiptCartProps> = ({
+    receiptType,
     selectedItems,
     materials,
     handleQuantityChange,
@@ -34,7 +37,8 @@ export const ReceiptCart: React.FC<ReceiptCartProps> = ({
                         const m = materials.find(x => x.id === item.materialId);
                         if (!m) return null;
                         return (
-                            <div key={idx} className="flex items-center gap-4 p-3 border-b border-slate-50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                            <React.Fragment key={idx}>
+                            <div className="flex items-center gap-4 p-3 border-b border-slate-50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex flex-col gap-0.5">
                                         <p className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase truncate" title={m.name}>{m.name}</p>
@@ -54,7 +58,7 @@ export const ReceiptCart: React.FC<ReceiptCartProps> = ({
                                         }} className="w-8 h-full flex justify-center items-center text-slate-400 hover:text-sky-600 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-all" disabled={!item.quantity || Number(item.quantity) <= 1}><Minus size={14} /></button>
                                         <input
                                             type="text"
-                                            className="w-12 h-full bg-transparent text-center font-black text-slate-800 dark:text-white outline-none"
+                                            className={`w-12 h-full bg-transparent text-center font-black outline-none transition-colors ${receiptType === 'OUT' && Number(item.quantity) > (Number(m.quantity) || 0) ? 'text-rose-500' : 'text-slate-800 dark:text-white'}`}
                                             value={item.quantity}
                                             onChange={e => handleQuantityChange(m.id, e.target.value)}
                                         />
@@ -66,19 +70,34 @@ export const ReceiptCart: React.FC<ReceiptCartProps> = ({
                                     <button onClick={() => removeSelectedItem(m.id)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"><Trash2 size={16} /></button>
                                 </div>
                             </div>
+                            {receiptType === 'OUT' && Number(item.quantity) > (Number(m.quantity) || 0) && (
+                                <p className="text-[10px] text-rose-500 font-bold -mt-1 pl-1">Vượt quá tồn kho (còn {m.quantity} {m.unit})</p>
+                            )}
+                            </React.Fragment>
                         );
                     })}
                 </div>
             )}
             <div className="mt-8">
-                <button
-                    onClick={handleCreateReceipt}
-                    disabled={selectedItems.length === 0}
-                    className="w-full h-14 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 dark:disabled:text-slate-500 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-sky-600/20 disabled:shadow-none flex items-center justify-between px-6"
-                >
-                    <span>LẬP PHIẾU NGAY</span>
-                    <span className="bg-white/20 px-3 py-1 rounded-lg text-xs tabular-nums">{totalSelectedQuantity} Món</span>
-                </button>
+                <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span tabIndex={0} className="block w-full">
+                                <button
+                                    onClick={handleCreateReceipt}
+                                    disabled={selectedItems.length === 0}
+                                    className="w-full h-14 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white disabled:text-slate-400 dark:disabled:text-slate-500 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-sky-600/20 disabled:shadow-none flex items-center justify-between px-6 pointer-events-auto"
+                                >
+                                    <span>LẬP PHIẾU NGAY</span>
+                                    <span className="bg-white/20 px-3 py-1 rounded-lg text-xs tabular-nums">{totalSelectedQuantity} Món</span>
+                                </button>
+                            </span>
+                        </TooltipTrigger>
+                        {selectedItems.length === 0 && (
+                            <TooltipContent>Chưa có vật tư nào được chọn</TooltipContent>
+                        )}
+                    </Tooltip>
+                </TooltipProvider>
             </div>
         </div>
     );

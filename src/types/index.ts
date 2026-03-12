@@ -4,7 +4,7 @@ export enum TransactionType {
   TRANSFER = 'TRANSFER'
 }
 
-export type UserRole = 'ADMIN' | 'WAREHOUSE' | 'PLANNING' | 'GUEST';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'WAREHOUSE' | 'STAFF' | 'GUEST';
 
 export type Permission =
   | 'MANAGE_WAREHOUSE'
@@ -111,6 +111,9 @@ export interface Transaction {
   orderCode?: string;
   supplier?: string;
   transactionTime?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  rejectedReason?: string;
   note?: string;
 }
 

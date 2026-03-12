@@ -10,11 +10,13 @@ export const useTransactionHistory = (
     currentUser: User | null,
     onRefresh: () => void
 ) => {
-    const toast = useToast();
+    const toastSuccess = useToast(s => s.success);
+    const toastError = useToast(s => s.error);
 
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [typeFilter, setTypeFilter] = useState<TransactionType | 'ALL'>('ALL');
+    const [dateRange, setDateRange] = useState<{ from: string; to: string } | undefined>(undefined);
 
     // CRUD States
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -53,6 +55,8 @@ export const useTransactionHistory = (
             });
             if (debouncedSearch) params.set('search', debouncedSearch);
             if (typeFilter !== 'ALL') params.set('type', typeFilter);
+            if (dateRange?.from) params.set('from', dateRange.from);
+            if (dateRange?.to) params.set('to', dateRange.to);
 
             const result = await apiService.get<any>(`/api/transactions/receipts?${params.toString()}`);
             if (result && Array.isArray(result.data)) {
@@ -65,11 +69,11 @@ export const useTransactionHistory = (
                 setTxTotalPages(1);
             }
         } catch (error) {
-            toast.error('Lỗi khi tải lịch sử giao dịch');
+            toastError('Lỗi khi tải lịch sử giao dịch');
         } finally {
             setIsLoadingTx(false);
         }
-    }, [txPage, txLimit, debouncedSearch, typeFilter, toast]);
+    }, [txPage, txLimit, debouncedSearch, typeFilter, dateRange, toastError]);
 
     useEffect(() => {
         loadReceipts();
@@ -77,7 +81,7 @@ export const useTransactionHistory = (
 
     useEffect(() => {
         setTxPage(1);
-    }, [debouncedSearch, typeFilter]);
+    }, [debouncedSearch, typeFilter, dateRange]);
 
     const toggleSelectReceipt = (receiptId: string) => {
         setSelectedReceiptIds(prev =>
@@ -93,18 +97,18 @@ export const useTransactionHistory = (
     const handleSaveEdit = async () => {
         if (!editingTransaction) return;
         if (editQuantity <= 0) {
-            toast.error('Số lượng phải lớn hơn 0');
+            toastError('Số lượng phải lớn hơn 0');
             return;
         }
 
         try {
             await transactionService.updateTransactionQuantity(editingTransaction.id, editQuantity);
-            toast.success('Cập nhật giao dịch thành công');
+            toastSuccess('Cập nhật giao dịch thành công');
             setIsEditModalOpen(false);
             loadReceipts();
             onRefresh();
         } catch (error: any) {
-            toast.error(error.message || 'Lỗi khi cập nhật giao dịch');
+            toastError(error.message || 'Lỗi khi cập nhật giao dịch');
         }
     };
 
@@ -117,12 +121,12 @@ export const useTransactionHistory = (
             onConfirm: async () => {
                 try {
                     await transactionService.deleteTransaction(transaction.id, currentUser?.id || 'SYSTEM');
-                    toast.success('Đã xóa giao dịch và hoàn trả tồn kho');
+                    toastSuccess('Đã xóa giao dịch và hoàn trả tồn kho');
                     loadReceipts();
                     onRefresh();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
                 } catch (error: any) {
-                    toast.error(error.message || 'Lỗi khi xóa giao dịch');
+                    toastError(error.message || 'Lỗi khi xóa giao dịch');
                 }
             }
         });
@@ -139,12 +143,12 @@ export const useTransactionHistory = (
                     for (const t of receipt.transactions) {
                         await transactionService.deleteTransaction(t.id, currentUser?.id || 'SYSTEM');
                     }
-                    toast.success('Đã hủy phiếu thành công');
+                    toastSuccess('Đã hủy phiếu thành công');
                     loadReceipts();
                     onRefresh();
                     setConfirmState(prev => ({ ...prev, isOpen: false }));
                 } catch (error: any) {
-                    toast.error('Lỗi khi hủy phiếu: ' + error.message);
+                    toastError('Lỗi khi hủy phiếu: ' + error.message);
                 }
             }
         });
@@ -170,18 +174,18 @@ export const useTransactionHistory = (
             XLSX.utils.book_append_sheet(wb, ws, "Lịch sử Giao dịch");
             XLSX.writeFile(wb, `Lich_Su_Kho_${new Date().toISOString().split('T')[0]}.xlsx`);
         } catch (error) {
-            toast.error('Lỗi khi xuất Excel');
+            toastError('Lỗi khi xuất Excel');
         }
     };
 
     return {
         state: {
-            searchTerm, typeFilter, receiptData, txPage, txLimit, txTotal, txTotalPages, isLoadingTx,
+            searchTerm, typeFilter, dateRange, receiptData, txPage, txLimit, txTotal, txTotalPages, isLoadingTx,
             selectedReceiptIds, isViewModalOpen, viewingReceipt, isEditModalOpen, editingTransaction,
             editQuantity, editingRowId, editingQuantity, confirmState, canManage
         },
         actions: {
-            setSearchTerm, setTypeFilter, setTxPage, setTxLimit, setSelectedReceiptIds, setIsViewModalOpen,
+            setSearchTerm, setTypeFilter, setDateRange, setTxPage, setTxLimit, setSelectedReceiptIds, setIsViewModalOpen,
             setViewingReceipt, setIsEditModalOpen, setEditingTransaction, setEditQuantity, setEditingRowId,
             setEditingQuantity, setConfirmState, toggleSelectReceipt, handleBatchPrint, handleSaveEdit,
             handleDeleteTransaction, handleDeleteReceipt, handleExportHistory, loadReceipts
