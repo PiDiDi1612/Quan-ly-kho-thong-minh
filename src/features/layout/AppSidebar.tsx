@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Activity, Package, Plus, ArrowRightLeft, History, ShoppingCart,
   MapPin, ClipboardList, Database, FileText, Settings, Users,
-  ChevronLeft, ChevronRight, LogOut, LayoutDashboard, BarChart2
+  ChevronLeft, ChevronRight, LogOut, LayoutDashboard, BarChart2, Info
 } from 'lucide-react';
 import { User, UserRole, Permission } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ export type AppTab =
   | 'supplier_management' | 'warehouse_merge'
   | 'planning_projects' | 'planning_estimates'
   | 'reports_inventory' | 'reports_history' | 'reports_activity'
-  | 'users' | 'settings' | 'materials_categories';
+  | 'users' | 'settings' | 'materials_categories' | 'about';
 
 interface AppSidebarProps {
   activeTab: AppTab;
@@ -72,6 +72,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       items: [
         { id: 'users', label: 'Phân Quyền & User', icon: Users, permission: 'MANAGE_USERS' },
         { id: 'settings', label: 'Nhật Ký & Cài Đặt', icon: Settings, permission: 'MANAGE_ROLES' },
+        { id: 'about', label: 'Tác Giả', icon: Info, permission: null },
       ]
     }
   ];

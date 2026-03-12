@@ -31,7 +31,7 @@ export const MaterialManagement: React.FC<MaterialManagementProps> = ({ transact
   const state = useMaterialManagement(onUpdate);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500">
       <MaterialToolbar
         searchTerm={state.searchTerm}
         onSearchChange={state.setSearchTerm}

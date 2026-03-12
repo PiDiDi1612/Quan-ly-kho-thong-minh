@@ -24,8 +24,8 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
   const endItem = Math.min(currentPage * pageLimit, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
-      <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200/60 shadow-sm">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 mt-auto">
+      <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-md border border-slate-200/60 shadow-sm">
         Hiển thị <span className="text-emerald-600">{startItem}</span> - <span className="text-emerald-600">{endItem}</span> / {totalItems} {itemLabel}
       </div>
       <Pagination

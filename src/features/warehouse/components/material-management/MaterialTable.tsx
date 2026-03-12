@@ -39,10 +39,10 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
   onLimitChange,
 }) => {
   return (
-    <Card className="rounded-2xl overflow-hidden border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none">
-      <div className="overflow-x-auto">
+    <Card className="rounded-2xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-auto min-h-0">
         <Table>
-          <TableHeader className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+          <TableHeader className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[60px] font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">ẢNH</TableHead>
               <TableHead className="w-[250px] font-black uppercase text-[10px] tracking-widest text-slate-400">VẬT TƯ & MÃ</TableHead>

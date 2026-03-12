@@ -1,0 +1,102 @@
+import React from 'react';
+import { Search, Plus, Check } from 'lucide-react';
+import { Material } from '@/types';
+import { ClassificationFilter, ClassificationType } from '@/components/business';
+import { EmptyState } from '@/components/business';
+import { Package } from 'lucide-react';
+
+interface ReceiptMaterialSearchProps {
+    materialSearch: string;
+    setMaterialSearch: (val: string) => void;
+    receiptSearchClass: string;
+    setReceiptSearchClass: (val: string) => void;
+    materials: Material[];
+    receiptWorkshop: string;
+    selectedItems: any[];
+    toggleMaterialSelection: (id: string) => void;
+    localFormatNumber: (val: any) => string;
+}
+
+export const ReceiptMaterialSearch: React.FC<ReceiptMaterialSearchProps> = ({
+    materialSearch,
+    setMaterialSearch,
+    receiptSearchClass,
+    setReceiptSearchClass,
+    materials,
+    receiptWorkshop,
+    selectedItems,
+    toggleMaterialSelection,
+    localFormatNumber
+}) => {
+    const filteredMaterials = (Array.isArray(materials) ? materials : []).filter(m => {
+        const matchSearch = String(m.name || '').toLowerCase().includes(String(materialSearch || '').toLowerCase());
+        const matchWorkshop = m.workshop === receiptWorkshop;
+        const matchClass = receiptSearchClass === 'ALL' || m.classification === receiptSearchClass;
+        return matchSearch && matchWorkshop && matchClass;
+    });
+
+    return (
+        <div className="col-span-12 xl:col-span-8 bg-slate-50 dark:bg-slate-800/20 rounded-[20px] p-6 flex flex-col overflow-hidden border border-slate-200/60 dark:border-slate-700/50 shadow-inner">
+            <div className="grid grid-cols-1 gap-4 mb-4 shrink-0">
+                <div className="relative">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Gõ tên vật tư để tìm kiếm..."
+                        className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 outline-none shadow-sm focus:ring-2 focus:ring-sky-500/20 transition-all uppercase"
+                        value={materialSearch}
+                        onChange={e => setMaterialSearch(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <div className="mb-6">
+                <ClassificationFilter
+                    value={receiptSearchClass as ClassificationType}
+                    onChange={setReceiptSearchClass}
+                    styleType="outline"
+                />
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar pr-2">
+                {filteredMaterials.length === 0 ? (
+                    <EmptyState
+                        icon={<Package size={48} />}
+                        title="Không tìm thấy vật tư phù hợp"
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+                        {filteredMaterials.map(m => {
+                            const isInCart = selectedItems.some(it => it.materialId === m.id);
+                            return (
+                                <button
+                                    key={m.id}
+                                    onClick={() => toggleMaterialSelection(m.id)}
+                                    className={`group relative p-4 text-left bg-white dark:bg-slate-900 border rounded-2xl transition-all shadow-sm active:scale-95 flex flex-col justify-between gap-3 h-full ${isInCart ? 'border-sky-500 ring-4 ring-sky-500/10 bg-sky-50/20 dark:bg-sky-900/10' : 'border-slate-100 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-700 hover:shadow-lg'}`}
+                                >
+                                    <div className="min-w-0">
+                                        <h5 className="font-black text-[12px] text-slate-800 dark:text-white uppercase line-clamp-2 leading-tight mb-2 group-hover:text-sky-700 dark:group-hover:text-sky-400 transition-colors">{m.name}</h5>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-500 dark:text-slate-400 rounded-md uppercase tracking-tighter">{m.workshop}</span>
+                                            <span className={`px-2 py-0.5 ${m.classification === 'Vật tư chính' ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-500 dark:text-rose-400'} text-[8px] font-black rounded-md uppercase`}>{m.classification === 'Vật tư chính' ? 'Chính' : 'Phụ'}</span>
+                                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[8px] font-black text-slate-400 uppercase rounded-md tracking-tighter">{m.unit}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50 dark:border-slate-800">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tight mb-0.5">Số lượng tồn</p>
+                                            <p className="text-sm font-black text-slate-800 dark:text-white tabular-nums">{localFormatNumber(m.quantity)}</p>
+                                        </div>
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isInCart ? 'bg-sky-600 text-white shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white'}`}>
+                                            {isInCart ? <Check size={16} /> : <Plus size={16} />}
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};

@@ -29,6 +29,7 @@ import { ReportViewer } from './features/reports/ReportViewer';
 import { AuthScreen } from './features/auth/AuthScreen';
 import { AccountModal, type AccountForm } from './features/account/AccountModal';
 import { AppSidebar, type AppTab } from './features/layout/AppSidebar';
+import { AboutPage } from './features/about/AboutPage';
 import { apiService } from './services/api';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
@@ -465,7 +466,8 @@ const App: React.FC = () => {
                         activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
                           activeTab === 'planning_projects' ? 'Dự Án' :
                             activeTab === 'planning_estimates' ? 'Dự Toán' :
-                              activeTab === 'users' ? 'Người Dùng' : 'SmartStock'}
+                              activeTab === 'users' ? 'Người Dùng' :
+                                activeTab === 'about' ? 'Tác Giả & Giới Thiệu' : 'SmartStock'}
             </h2>
           </div>
 
@@ -656,13 +658,21 @@ const App: React.FC = () => {
 
           {activeTab === 'warehouse_receipt' && (
             <WarehouseReceipt
-              materials={materials} budgets={budgets} suppliers={suppliers}
-              receiptId={receiptId} setReceiptId={setReceiptId} receiptType={receiptType}
-              setReceiptType={setReceiptType} receiptWorkshop={receiptWorkshop} setReceiptWorkshop={setReceiptWorkshop}
-              receiptTime={receiptTime} setReceiptTime={setReceiptTime} receiptTimeDisplay={receiptTimeDisplay}
-              setReceiptTimeDisplay={setReceiptTimeDisplay} receiptSupplier={receiptSupplier} setReceiptSupplier={setReceiptSupplier}
-              selectedItems={selectedItems} setSelectedItems={setSelectedItems} orderCode={orderCode}
-              setOrderCode={setOrderCode} handleCreateReceipt={handleCreateReceipt} modalError={modalError}
+              materials={materials}
+              budgets={budgets}
+              suppliers={suppliers}
+              currentUser={currentUser}
+              userRole={userRole}
+              loadData={loadData}
+              logActivity={logActivity}
+              requestConfirm={requestConfirm}
+              modalError={modalError}
+              setModalError={setModalError}
+              closeConfirmDialog={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+              createBatchReceipt={(data) => transactionService.createBatchReceipt(data)}
+              generateReceiptId={generateReceiptId}
+              parseNumber={parseNumber}
+              formatNumber={formatNumber}
             />
           )}
 
@@ -774,6 +784,7 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+          {activeTab === 'about' && <AboutPage />}
         </main>
       </div>
 
