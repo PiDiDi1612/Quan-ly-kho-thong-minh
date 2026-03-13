@@ -7,7 +7,7 @@ const os = require('os');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const ExcelJS = require('exceljs');
-
+const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -24,7 +24,19 @@ global.io = io;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+// Rate limiting: chống brute force đăng nhập
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 phút
+    max: 10, // tối đa 10 lần thử trong 15 phút
+    message: {
+        success: false,
+        error: 'Quá nhiều lần đăng nhập sai. Vui lòng thử lại sau 15 phút.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
+app.use('/auth/login', loginLimiter);
 // Helper to notify all clients
 const notifyUpdate = () => {
     io.emit('data_updated');
@@ -90,7 +102,27 @@ const verifyPassword = (plain, storedHash) => {
     const computed = crypto.pbkdf2Sync(String(plain), salt, iterations, HASH_KEYLEN, 'sha512').toString('hex');
     return crypto.timingSafeEqual(Buffer.from(computed, 'hex'), Buffer.from(expected, 'hex'));
 };
+// ===== INPUT VALIDATION HELPERS =====
+const VALID_WORKSHOPS = ['OG', 'CK', 'NT'];
+const VALID_CLASSIFICATIONS = ['Vật tư chính', 'Vật tư phụ'];
+const VALID_ROLES = ['ADMIN', 'MANAGER', 'WAREHOUSE', 'STAFF'];
+const VALID_TX_TYPES = ['IN', 'OUT', 'TRANSFER'];
 
+const validateFields = (fields) => {
+    for (const [key, value] of Object.entries(fields)) {
+        if (value === undefined || value === null || String(value).trim() === '') {
+            return `Trường "${key}" không được để trống.`;
+        }
+    }
+    return null;
+};
+
+const validateNumber = (value, fieldName, min = 0) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return `"${fieldName}" phải là số hợp lệ.`;
+    if (num <= min) return `"${fieldName}" phải lớn hơn ${min}.`;
+    return null;
+};
 const parseJsonSafe = (value, fallback) => {
     try {
         if (typeof value !== 'string') return fallback;
