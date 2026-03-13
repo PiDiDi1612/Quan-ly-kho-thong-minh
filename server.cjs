@@ -381,8 +381,8 @@ const isTableEmpty = (tableName) => {
 // Users will add their own materials as needed
 
 const SEED_USERS = [
-    { id: 'u1', username: 'admin', password: '123', fullName: 'Quản trị viên', email: 'admin@smartstock.com', role: 'ADMIN', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'MANAGE_USERS', 'VIEW_ACTIVITY_LOG', 'MANAGE_SETTINGS']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
-    { id: 'u2', username: 'manager', password: '123', fullName: 'Quản lý kho', email: 'manager@smartstock.com', role: 'MANAGER', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'VIEW_ACTIVITY_LOG']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
+    { id: 'u1', username: 'admin', password: hashPassword(process.env.ADMIN_DEFAULT_PASSWORD || 'SmartStock@2026!'), fullName: 'Quản trị viên', email: 'admin@smartstock.com', role: 'ADMIN', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'MANAGE_USERS', 'VIEW_ACTIVITY_LOG', 'MANAGE_SETTINGS']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
+    { id: 'u2', username: 'manager', password: hashPassword(process.env.ADMIN_DEFAULT_PASSWORD || 'SmartStock@2026!'), fullName: 'Quản lý kho', email: 'manager@smartstock.com', role: 'MANAGER', permissions: JSON.stringify(['VIEW_DASHBOARD', 'VIEW_INVENTORY', 'VIEW_HISTORY', 'VIEW_ORDERS', 'MANAGE_MATERIALS', 'CREATE_RECEIPT', 'DELETE_TRANSACTION', 'MANAGE_BUDGETS', 'TRANSFER_MATERIALS', 'EXPORT_DATA', 'VIEW_ACTIVITY_LOG']), isActive: 1, createdAt: '2024-01-01', createdBy: 'SYSTEM' },
 ];
 
 // REMOVED: Material seed initialization - database starts empty
@@ -2159,7 +2159,7 @@ app.post('/api/inventory-checks/save', authMiddleware, (req, res) => {
     try {
         const checkDate = new Date().toISOString();
         const createdAt = new Date().toISOString();
-        
+
         // Save inventory check record
         db.prepare(`
             INSERT INTO inventory_checks (id, warehouse, checkDate, checkedBy, items, status, note, createdAt)
@@ -2182,18 +2182,18 @@ app.post('/api/inventory-checks/save', authMiddleware, (req, res) => {
                     const txId = `TX-ADJ-${crypto.randomBytes(4).toString('hex')}`;
                     const type = diff > 0 ? 'IN' : 'OUT';
                     const qty = Math.abs(diff);
-                    
+
                     insertTx.run(
-                        txId, 
-                        receiptId, 
-                        item.materialId, 
-                        item.materialName, 
-                        type, 
-                        qty, 
-                        checkDate.split('T')[0], 
-                        checkDate, 
-                        user.fullName, 
-                        warehouse, 
+                        txId,
+                        receiptId,
+                        item.materialId,
+                        item.materialName,
+                        type,
+                        qty,
+                        checkDate.split('T')[0],
+                        checkDate,
+                        user.fullName,
+                        warehouse,
                         `Điều chỉnh kiểm kê - ${id}`
                     );
 
@@ -2284,7 +2284,7 @@ const performBackup = () => {
     try {
         const now = new Date();
         const timestamp = now.toISOString().replace(/[T:]/g, '-').replace(/\..+/, '').replace(/-/g, (m, i) => i < 10 ? '-' : i === 10 ? '_' : '-');
-        const filename = `smartstock_backup_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.db`;
+        const filename = `smartstock_backup_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}.db`;
         const destPath = path.join(backupDir, filename);
         const srcPath = path.join(dataDir, 'data.db');
 
