@@ -973,6 +973,21 @@ app.get('/api/suppliers', (req, res) => {
 
 app.post('/api/materials/save', verifyToken, (req, res) => {
     const material = { note: '', image: '', customerCode: '', ...req.body };
+    // Validate input
+    const validErr = validateFields({ name, unit, workshop });
+    if (validErr) return res.status(400).json({ success: false, error: validErr });
+
+    if (name.trim().length < 2)
+        return res.status(400).json({ success: false, error: 'Tên vật tư phải có ít nhất 2 ký tự.' });
+
+    if (!VALID_WORKSHOPS.includes(workshop))
+        return res.status(400).json({ success: false, error: 'Workshop không hợp lệ. Phải là OG, CK hoặc NT.' });
+
+    if (classification && !VALID_CLASSIFICATIONS.includes(classification))
+        return res.status(400).json({ success: false, error: 'Phân loại không hợp lệ.' });
+
+    const qtyErr = validateNumber(quantity ?? 0, 'Số lượng', -1);
+    if (qtyErr) return res.status(400).json({ success: false, error: qtyErr });
     db.prepare(`
         INSERT INTO materials (id, name, classification, unit, quantity, minThreshold, lastUpdated, workshop, origin, note, image, customerCode) 
         VALUES (@id, @name, @classification, @unit, @quantity, @minThreshold, @lastUpdated, @workshop, @origin, @note, @image, @customerCode) 
@@ -1030,6 +1045,23 @@ app.post('/api/transactions/delete', (req, res) => {
 
 app.post('/api/transactions/commit', (req, res) => {
     const { mode } = req.body || {};
+    // Validate input
+    const receiptErr = validateFields({ receiptType, receiptWorkshop, user });
+    if (receiptErr) return res.status(400).json({ success: false, error: receiptErr });
+
+    if (!VALID_TX_TYPES.includes(receiptType))
+        return res.status(400).json({ success: false, error: 'Loại phiếu không hợp lệ.' });
+
+    if (!VALID_WORKSHOPS.includes(receiptWorkshop))
+        return res.status(400).json({ success: false, error: 'Workshop không hợp lệ.' });
+
+    if (!Array.isArray(items) || items.length === 0)
+        return res.status(400).json({ success: false, error: 'Phiếu phải có ít nhất 1 vật tư.' });
+
+    for (const item of items) {
+        const itemErr = validateNumber(item.quantity, 'Số lượng', 0);
+        if (itemErr) return res.status(400).json({ success: false, error: itemErr });
+    }
     if (mode === 'TRANSFER') {
         if (!hasPermission(req.auth?.user, 'TRANSFER_MATERIALS')) {
             return res.status(403).json({ success: false, error: 'Forbidden' });
@@ -1679,6 +1711,21 @@ app.post('/api/users/delete', requirePermission('MANAGE_USERS'), (req, res) => {
 
 app.post('/api/users/save', requirePermission('MANAGE_USERS'), (req, res) => {
     const user = req.body;
+    // Validate input
+    const userErr = validateFields({ username, fullName, role });
+    if (userErr) return res.status(400).json({ success: false, error: userErr });
+
+    if (username.trim().length < 3)
+        return res.status(400).json({ success: false, error: 'Username phải có ít nhất 3 ký tự.' });
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username))
+        return res.status(400).json({ success: false, error: 'Username chỉ được chứa chữ cái, số và dấu gạch dưới.' });
+
+    if (!VALID_ROLES.includes(role))
+        return res.status(400).json({ success: false, error: 'Role không hợp lệ.' });
+
+    if (password && password.length < 6)
+        return res.status(400).json({ success: false, error: 'Mật khẩu phải có ít nhất 6 ký tự.' });
 
     // Enforce single ADMIN account
     if (user.role === 'ADMIN') {

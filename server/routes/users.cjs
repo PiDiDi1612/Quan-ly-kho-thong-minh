@@ -114,7 +114,7 @@ router.post('/update_self', (req, res) => {
 });
 
 // ===== BUDGETS =====
-router.get('/budgets', (req, res) => {
+router.get('/', (req, res) => {
     const { page, limit, offset, search } = parsePagination(req.query);
     const conditions = [];
     const params = {};
@@ -134,7 +134,7 @@ router.get('/budgets', (req, res) => {
     }
 });
 
-router.get('/budgets/all', (req, res) => {
+router.get('/all', (req, res) => {
     try {
         res.json(db.prepare('SELECT * FROM budgets').all().map(b => ({ ...b, items: parseJsonSafe(b.items, []) })));
     } catch (error) {

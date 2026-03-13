@@ -67,6 +67,7 @@ app.use('/api', authMiddleware);
 
 // ===== PROTECTED ROUTES =====
 app.use('/api/auth', authRoutes);
+app.use('/api/system-info', systemRouter);
 app.use('/api/dashboard', systemRouter);
 app.use('/api/activity_logs', systemRouter);
 app.use('/api/materials', materialsRouter);

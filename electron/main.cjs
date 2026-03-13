@@ -29,13 +29,13 @@ function createWindow() {
     try {
         const { dialog } = require('electron');
 
-        // Luôn nạp server.cjs từ trong gói ứng dụng (bundle)
+        // Luôn nạp server/index.cjs từ trong gói ứng dụng (bundle)
         // __dirname là /electron, nên .. là thư mục gốc của app
-        const serverPath = path.join(__dirname, '..', 'server.cjs');
+        const serverPath = path.join(__dirname, '..', 'server/index.cjs');
 
         if (!fs.existsSync(serverPath)) {
             // Thử dự phòng nếu cấu hình thay đổi
-            const altPath = path.join(process.resourcesPath, 'app.asar', 'server.cjs');
+            const altPath = path.join(process.resourcesPath, 'app.asar', 'server/index.cjs');
             if (fs.existsSync(altPath)) {
                 loadAndStartServer(altPath);
             } else {
@@ -106,7 +106,7 @@ function createWindow() {
         if (!isQuitting) {
             event.preventDefault();
             win.hide();
-            
+
             // Show notification on first hide
             if (!app.firstHideDone) {
                 new Notification({
@@ -145,8 +145,8 @@ function setupTray() {
             { type: 'separator' },
             { label: `🔄 Trạng thái Server: Đang chạy (${clientCount} client)`, enabled: false },
             { type: 'separator' },
-            { 
-                label: '❌ Thoát hoàn toàn', 
+            {
+                label: '❌ Thoát hoàn toàn',
                 click: async () => {
                     const { response } = await dialog.showMessageBox({
                         type: 'question',
@@ -160,10 +160,10 @@ function setupTray() {
                         isQuitting = true;
                         app.quit();
                     }
-                } 
+                }
             }
         ]);
-        
+
         tray.setToolTip(`SmartStock Server (${clientCount} connections)`);
         tray.setContextMenu(contextMenu);
     };
