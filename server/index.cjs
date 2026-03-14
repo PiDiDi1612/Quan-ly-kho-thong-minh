@@ -66,22 +66,14 @@ app.get('/api/system-info', (req, res) => {
 app.use('/api', authMiddleware);
 
 // ===== PROTECTED ROUTES =====
+app.use('/api', systemRouter);
 app.use('/api/auth', authRoutes);
-app.use('/api/system-info', systemRouter);
-app.use('/api/dashboard', systemRouter);
-app.use('/api/activity_logs', systemRouter);
 app.use('/api/materials', materialsRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/approval', approvalRouter);
 app.use('/api/users', usersRouter);
-app.use('/api/budgets', usersRouter);
-app.use('/api/projects', usersRouter);
 app.use('/api/suppliers', suppliersRouter);
-app.use('/api/customer-codes', suppliersRouter);
 app.use('/api/backups', backupsRouter);
-app.use('/api/backup', backupsRouter);
-app.use('/api/download-db', backupsRouter);
-app.use('/api/inventory-checks', backupsRouter);
 
 // ===== STATIC FRONTEND =====
 const distPath = path.join(__dirname, '..', 'dist');

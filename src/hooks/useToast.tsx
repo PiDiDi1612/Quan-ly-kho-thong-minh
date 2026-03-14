@@ -19,7 +19,7 @@ interface ToastStore {
     info: (message: string, duration?: number) => void;
 }
 
-export const useToast = create<ToastStore>((set) => ({
+export const useToast = create<ToastStore>((set, get) => ({
     toasts: [],
 
     addToast: (type, message, duration = 5000) => {
@@ -46,18 +46,18 @@ export const useToast = create<ToastStore>((set) => ({
     },
 
     success: (message, duration) => {
-        useToast.getState().addToast('success', message, duration);
+        get().addToast('success', message, duration);
     },
 
     error: (message, duration) => {
-        useToast.getState().addToast('error', message, duration);
+        get().addToast('error', message, duration);
     },
 
     warning: (message, duration) => {
-        useToast.getState().addToast('warning', message, duration);
+        get().addToast('warning', message, duration);
     },
 
     info: (message, duration) => {
-        useToast.getState().addToast('info', message, duration);
+        get().addToast('info', message, duration);
     },
 }));
