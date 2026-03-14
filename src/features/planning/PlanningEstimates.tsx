@@ -19,9 +19,11 @@ interface PlanningEstimatesProps {
     transactions: Transaction[];
     currentUser: User | null;
     onUpdate: () => void;
+    canManage?: boolean;
 }
 
 export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
+    const hookProps = { ...props };
     const {
         searchTerm, setSearchTerm,
         projectSearch, setProjectSearch,
@@ -52,7 +54,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
         getIssuedQuantity,
         filteredBudgets,
         formatNumber
-    } = usePlanningEstimates(props);
+    } = usePlanningEstimates(hookProps);
 
     const [confirmState, setConfirmState] = React.useState<{
         isOpen: boolean;

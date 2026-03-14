@@ -21,7 +21,22 @@ function createWindow() {
             contextIsolation: true
         }
     });
-
+    // CSP Header
+    win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [
+                    "default-src 'self';" +
+                    "script-src 'self' 'unsafe-inline';" +
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com;" +
+                    "font-src 'self' https://fonts.gstatic.com;" +
+                    "img-src 'self' data: blob:;" +
+                    "connect-src 'self' http://127.0.0.1:3000 http://localhost:3000 ws://127.0.0.1:3000 ws://localhost:3000 http://192.168.0.0/16 ws://192.168.0.0/16;"
+                ]
+            }
+        });
+    });
     // Force clear cache to ensure new UI loads
     win.webContents.session.clearCache().catch(err => console.error("Failed to clear cache:", err));
 

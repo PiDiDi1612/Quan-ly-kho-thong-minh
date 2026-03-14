@@ -147,7 +147,7 @@ router.post('/commit', (req, res) => {
         if (!Array.isArray(items) || items.length === 0) throw new Error('Danh sách vật tư trống.');
         if (!receiptWorkshop || !receiptType) throw new Error('Thiếu thông tin phiếu.');
 
-        const isPrivileged = ['ADMIN', 'MANAGER'].includes(userRole);
+        const isPrivileged = userRole === 'ADMIN';
         const needsApproval = receiptType === 'OUT' && !isPrivileged;
         const txStatus = needsApproval ? 'pending' : 'approved';
         const approvedBy = !needsApproval && receiptType === 'OUT' ? user : null;
@@ -256,7 +256,7 @@ router.post('/commit', (req, res) => {
     try {
         const result = mode === 'TRANSFER'
             ? commitTransfer(req.body.payload || {})
-            : commitReceipt(req.body.payload || {}, req.auth?.user?.role || req.user?.role || 'STAFF');
+            : commitReceipt(req.body.payload || {}, req.auth?.user?.role || req.user?.role || 'GUEST');
         notifyUpdate();
         return res.json({ success: true, ...result });
     } catch (error) {

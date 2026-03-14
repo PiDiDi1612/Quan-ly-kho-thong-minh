@@ -15,9 +15,10 @@ interface PlanningProjectsProps {
     projects: Project[];
     currentUser: User | null;
     onUpdate: () => void;
+    canManage?: boolean;
 }
 
-export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, currentUser, onUpdate }) => {
+export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, currentUser, onUpdate, canManage: propCanManage }) => {
     const toast = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,7 +49,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
         onConfirm: () => { },
     });
 
-    const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
+    const canModify = propCanManage !== undefined ? propCanManage : (currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false));
 
     const PROJECT_FIELDS: ExcelField[] = [
         { key: 'code', label: 'Mã dự án (*)', required: true, autoMatchPatterns: ['mã', 'công trình', 'project code'] },

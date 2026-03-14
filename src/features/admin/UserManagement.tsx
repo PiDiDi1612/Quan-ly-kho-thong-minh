@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, X, Lock, User as UserIcon, Mail, Shield, Key, ToggleLeft, Settings, Save } from 'lucide-react';
 import { User, UserRole, Permission } from '../../types';
-import { ROLE_PERMISSIONS, PERMISSIONS, VISIBLE_PERMISSIONS } from '../../constants';
+import { ROLE_PERMISSIONS, PERMISSIONS } from '../../constants';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -170,17 +170,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
         }
     };
 
-    const togglePermission = (perm: Permission) => {
-        // ADMIN always has all permissions - cannot be changed
-        if (formData.role === 'ADMIN') return;
-
-        const currentPerms = formData.permissions || [];
-        if (currentPerms.includes(perm)) {
-            setFormData({ ...formData, permissions: currentPerms.filter(p => p !== perm) });
-        } else {
-            setFormData({ ...formData, permissions: [...currentPerms, perm] });
-        }
-    };
+    // Simplified: Role-based permissions only, no toggling allowed
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -402,45 +392,25 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                     <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                         <div className="flex justify-between items-center">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                <Shield size={14} /> Phân quyền chi tiết
+                                <Shield size={14} /> Quyền hạn của vai trò
                             </label>
-                            <span className="text-[10px] text-slate-400">{formData.role === 'ADMIN' ? Object.keys(PERMISSIONS).length : formData.permissions?.length} quyền được chọn</span>
+                            <span className="text-[10px] text-slate-400">{(ROLE_PERMISSIONS[formData.role as UserRole] || []).length} quyền hệ thống</span>
                         </div>
 
-                        {formData.role === 'ADMIN' && (
-                            <p className="text-xs text-sky-600 bg-sky-50 dark:bg-sky-900/20 p-2 rounded-lg border border-sky-100 flex items-center gap-2">
-                                <Lock size={14} /> Vai trò Quản trị viên luôn được cấp toàn quyền.
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
+                            <div className="flex flex-wrap gap-2">
+                                {(ROLE_PERMISSIONS[formData.role as UserRole] || []).map(perm => (
+                                    <span key={perm} className="px-2 py-1 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold border border-slate-100 dark:border-slate-800">
+                                        {PERMISSIONS[perm]}
+                                    </span>
+                                ))}
+                                {(ROLE_PERMISSIONS[formData.role as UserRole] || []).length === 0 && (
+                                    <span className="text-[10px] text-slate-400 italic">Vai trò này không có quyền thực hiện hành động</span>
+                                )}
+                            </div>
+                            <p className="mt-3 text-[10px] text-amber-600 font-medium italic">
+                                * Hệ thống hiện tại áp dụng phân quyền tự động theo vai trò.
                             </p>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {VISIBLE_PERMISSIONS.map(perm => {
-                                const isChecked = formData.role === 'ADMIN' || formData.permissions?.includes(perm);
-                                const isDisabled = formData.role === 'ADMIN';
-
-                                return (
-                                    <label
-                                        key={perm}
-                                        className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${isDisabled ? 'opacity-70 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800'
-                                            } ${isChecked ? 'border-sky-200 bg-sky-50/50' : 'border-slate-100 dark:border-slate-700'}`}
-                                    >
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked ? 'bg-sky-600 border-sky-600' : 'border-slate-300'
-                                            }`}>
-                                            {isChecked && <CheckCircle2 size={12} className="text-white" />}
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            className="hidden"
-                                            checked={isChecked}
-                                            disabled={isDisabled}
-                                            onChange={() => togglePermission(perm)}
-                                        />
-                                        <span className={`text-xs font-medium ${isDisabled ? 'text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                                            {PERMISSIONS[perm]}
-                                        </span>
-                                    </label>
-                                );
-                            })}
                         </div>
                     </div>
 

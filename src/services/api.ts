@@ -127,12 +127,9 @@ class ApiService {
                 // Handle 401 Unauthorized - Token expired or invalid
                 if (res.status === 401) {
                     clearAuthSession();
-                    // Optional: force reload to trigger App.tsx isAuthenticated state change
+                    // Dispatch custom event for immediate UI update
                     if (typeof window !== 'undefined') {
-                        // Avoid infinite reload if we are already on login
-                        if (!window.location.search.includes('auth_error=401')) {
-                            window.location.href = '/?auth_error=401';
-                        }
+                       window.dispatchEvent(new CustomEvent('api-unauthorized'));
                     }
                 }
 

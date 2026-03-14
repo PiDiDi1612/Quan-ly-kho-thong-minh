@@ -11,8 +11,8 @@ const notifyUpdate = () => { if (_io) _io.emit('data_updated'); };
 router.get('/pending', (req, res) => {
     try {
         const user = req.auth?.user;
-        if (!user || !['ADMIN', 'MANAGER'].includes(user.role))
-            return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền xem phiếu chờ duyệt.' });
+        if (!user || user.role !== 'ADMIN')
+            return res.status(403).json({ success: false, error: 'Chỉ ADMIN mới có quyền xem phiếu chờ duyệt.' });
 
         const rows = db.prepare(`
             SELECT t.*, m.unit as materialUnit FROM transactions t
@@ -54,8 +54,8 @@ router.get('/count', (req, res) => {
 // POST /api/approval/approve
 router.post('/approve', (req, res) => {
     const user = req.auth?.user;
-    if (!user || !['ADMIN', 'MANAGER'].includes(user.role))
-        return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền duyệt phiếu.' });
+    if (!user || user.role !== 'ADMIN')
+        return res.status(403).json({ success: false, error: 'Chỉ ADMIN mới có quyền duyệt phiếu.' });
 
     const { receiptId } = req.body;
     if (!receiptId) return res.status(400).json({ success: false, error: 'Thiếu receiptId.' });
@@ -91,8 +91,8 @@ router.post('/approve', (req, res) => {
 // POST /api/approval/reject
 router.post('/reject', (req, res) => {
     const user = req.auth?.user;
-    if (!user || !['ADMIN', 'MANAGER'].includes(user.role))
-        return res.status(403).json({ success: false, error: 'Chỉ ADMIN/MANAGER mới có quyền từ chối phiếu.' });
+    if (!user || user.role !== 'ADMIN')
+        return res.status(403).json({ success: false, error: 'Chỉ ADMIN mới có quyền từ chối phiếu.' });
 
     const { receiptId, reason } = req.body;
     if (!receiptId) return res.status(400).json({ success: false, error: 'Thiếu receiptId.' });

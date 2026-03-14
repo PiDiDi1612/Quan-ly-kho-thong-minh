@@ -25,6 +25,7 @@ interface WarehouseTransferProps {
     parseNumber: (val: any) => number;
     receiptSearchClass: string;
     setReceiptSearchClass: (c: any) => void;
+    canManage?: boolean;
 }
 
 export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
@@ -36,7 +37,8 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
     formatNumber,
     parseNumber,
     receiptSearchClass,
-    setReceiptSearchClass
+    setReceiptSearchClass,
+    canManage
 }) => {
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-[#1e293b] rounded-[20px] shadow-sm border border-slate-100 dark:border-slate-700 animate-in fade-in duration-300">
@@ -160,10 +162,10 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
 
                     <button
                         onClick={handleTransfer}
-                        disabled={transferForm.items.length === 0 || transferForm.fromWorkshop === transferForm.toWorkshop}
+                        disabled={transferForm.items.length === 0 || transferForm.fromWorkshop === transferForm.toWorkshop || !canManage}
                         className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all uppercase tracking-wider text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-700 dark:disabled:to-slate-800 disabled:shadow-none"
                     >
-                        <Check size={18} /> Xác nhận điều chuyển
+                        <Check size={18} /> {canManage ? 'Xác nhận điều chuyển' : 'Không có quyền điều chuyển'}
                     </button>
                 </div>
 
@@ -231,4 +233,3 @@ export const WarehouseTransfer: React.FC<WarehouseTransferProps> = ({
         </div>
     );
 };
-

@@ -8,9 +8,10 @@ import { SupplierMergeModal } from './components/supplier/SupplierMergeModal';
 
 interface SupplierManagementProps {
     onUpdate: () => void;
+    canManage?: boolean;
 }
 
-export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate }) => {
+export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate, canManage }) => {
     const { state, actions } = useSupplierManagement(onUpdate);
 
     return (
@@ -41,21 +42,25 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                         <Download size={16} className="text-emerald-500 group-hover:scale-110 transition-transform stroke-[3]" />
                         <span className="hidden sm:inline">Xuất Excel</span>
                     </button>
-                    <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:border-sky-200 dark:hover:text-sky-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={actions.handleImportExcel}>
-                        <FileSpreadsheet size={16} className="text-sky-500 group-hover:scale-110 transition-transform stroke-[3]" />
-                        <span className="hidden sm:inline">Nhập Excel</span>
-                    </button>
-                    <button
-                        className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:border-purple-200 dark:hover:text-purple-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm"
-                        onClick={actions.handleOpenMergeModal}
-                    >
-                        <Settings size={16} className="text-purple-500 group-hover:rotate-90 transition-transform stroke-[3]" />
-                        <span className="hidden sm:inline">Hợp nhất</span>
-                    </button>
-                    <button className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 ml-1" onClick={() => actions.handleOpenModal()}>
-                        <Plus size={18} className="stroke-[3]" />
-                        Thêm Mới
-                    </button>
+                    {canManage && (
+                        <>
+                            <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:border-sky-200 dark:hover:text-sky-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={actions.handleImportExcel}>
+                                <FileSpreadsheet size={16} className="text-sky-500 group-hover:scale-110 transition-transform stroke-[3]" />
+                                <span className="hidden sm:inline">Nhập Excel</span>
+                            </button>
+                            <button
+                                className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:border-purple-200 dark:hover:text-purple-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm"
+                                onClick={actions.handleOpenMergeModal}
+                            >
+                                <Settings size={16} className="text-purple-500 group-hover:rotate-90 transition-transform stroke-[3]" />
+                                <span className="hidden sm:inline">Hợp nhất</span>
+                            </button>
+                            <button className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 ml-1" onClick={() => actions.handleOpenModal()}>
+                                <Plus size={18} className="stroke-[3]" />
+                                Thêm Mới
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 

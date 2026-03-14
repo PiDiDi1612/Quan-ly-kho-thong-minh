@@ -11,9 +11,11 @@ interface UsePlanningEstimatesProps {
     transactions: Transaction[];
     currentUser: User | null;
     onUpdate: () => void;
+    canManage?: boolean;
 }
 
-export const usePlanningEstimates = ({ budgets, projects, materials, transactions, currentUser, onUpdate }: UsePlanningEstimatesProps) => {
+export const usePlanningEstimates = (props: UsePlanningEstimatesProps) => {
+    const { budgets, projects, materials, transactions, currentUser, onUpdate, canManage: propCanManage } = props;
     const toast = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
@@ -55,7 +57,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const budgetFileInputRef = useRef<HTMLInputElement>(null);
-    const canModify = currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false);
+    const canModify = propCanManage !== undefined ? propCanManage : (currentUser?.role === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_PLANNING') ?? false));
 
     const formatNumber = (num: number | string | undefined): string => {
         const val = typeof num === 'number' ? num : parseFloat(num?.toString() || '0');
@@ -94,7 +96,7 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
             window.removeEventListener('open-budget-modal', handleOpen);
             window.removeEventListener('import-budget-excel', handleImport);
         };
-    }, [handleOpenModal]);
+    }, []);
 
     const handleSave = async () => {
         if (!formData.orderCode || !formData.items || formData.items.length === 0) {
@@ -178,12 +180,10 @@ export const usePlanningEstimates = ({ budgets, projects, materials, transaction
 
         const newOrderCode = generateOrderCode(projectCode, workshop);
 
-        // Robust suffix extraction: if current orderName starts with current projectCode + '-', take the rest
         const currentSuffix = (formData.projectCode && formData.orderName?.startsWith(`${formData.projectCode}-`))
             ? formData.orderName.substring(formData.projectCode.length + 1)
             : (formData.orderName || '');
 
-        // Generate new order name with prefix
         const newOrderName = projectCode ? (projectCode + (currentSuffix ? `-${currentSuffix}` : '-')) : '';
 
         if (project) {

@@ -21,16 +21,17 @@ interface WarehouseReceiptProps {
     formatNumber: (val: any) => string;
     suppliers: any[];
     budgets: any[];
+    canManage?: boolean;
 }
 
 export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
     materials, currentUser, userRole, loadData, logActivity, requestConfirm,
     modalError, setModalError, closeConfirmDialog, createBatchReceipt,
-    generateReceiptId, parseNumber, formatNumber, suppliers, budgets
+    generateReceiptId, parseNumber, formatNumber, suppliers, budgets, canManage
 }) => {
     const { state, actions } = useWarehouseReceipt({
         materials, currentUser, userRole, loadData, logActivity, requestConfirm,
-        setModalError, closeConfirmDialog, createBatchReceipt, generateReceiptId, parseNumber
+        setModalError, closeConfirmDialog, createBatchReceipt, generateReceiptId, parseNumber, canManage
     });
 
     const safeSuppliers = Array.isArray(suppliers) ? suppliers : [];

@@ -44,332 +44,47 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { useToast } from './hooks/useToast';
+import { useAuth } from './hooks/useAuth';
+import { useAppConfig } from './hooks/useAppConfig';
+import { useSocket } from './hooks/useSocket';
+import { useBackup } from './hooks/useBackup';
+import { useAppData } from './hooks/useAppData';
+import { useTabNavigation } from './hooks/useTabNavigation';
+import { useAppModals } from './hooks/useAppModals';
 import {
-  clearRememberedUsername,
-  getRememberedUsername,
-  setAuthSession,
-  setRememberedUsername
+  setAuthSession
 } from './utils/authStorage';
 
 const App: React.FC = () => {
   const toast = useToast();
+  const {
+    isAuthenticated, userRole, currentUser, setCurrentUser,
+    authToken, setAuthToken, loginForm, setLoginForm, showPassword, setShowPassword,
+    loginError, setLoginError, rememberMe, setRememberMe, handleLogin, handleLogout, hasPermission
+  } = useAuth();
+
+  const {
+    connectionConfig, serverIp, theme, setTheme, currentTime, handleSaveConnection
+  } = useAppConfig(isAuthenticated);
+
+  const {
+    backups, isBackingUp, fetchBackups, handleTriggerServerBackup, handleRestoreBackup
+  } = useBackup(isAuthenticated, (title, msg, onConf, type) => {
+    requestConfirm(title, msg, onConf, type || 'info');
+  });
+
   // --- CONNECTION CONFIG ---
-  const [connectionConfig] = useState<{ mode: 'SERVER' | 'CLIENT' | null, serverIp: string }>(() => {
-    const saved = localStorage.getItem('connection_config');
-    if (saved) return JSON.parse(saved);
-    return { mode: null, serverIp: '' };
-  });
 
-  // --- AUTH STATE ---
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>('GUEST');
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authToken, setAuthToken] = useState<string>('');
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [isConnectionSetupOpen, setIsConnectionSetupOpen] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [tempIp, setTempIp] = useState('');
+  const {
+    materials, setMaterials, transactions, setTransactions, users, setUsers,
+    activityLogs, setActivityLogs, projects, setProjects, budgets, setBudgets,
+    suppliers, setSuppliers, isSyncing, serverSummary, setServerSummary,
+    pendingApprovalCount, setPendingApprovalCount, loadData, debouncedLoadData, parseNumber
+  } = useAppData(currentUser, setCurrentUser, isAuthenticated);
 
-  useEffect(() => {
-    const storedUsername = getRememberedUsername();
-    if (storedUsername) {
-      setRememberMe(true);
-      setLoginForm(prev => ({ ...prev, username: storedUsername }));
-    }
-  }, []);
+  useSocket(isAuthenticated, debouncedLoadData);
 
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [budgets, setBudgets] = useState<OrderBudget[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [serverSummary, setServerSummary] = useState<any>(null);
-  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
-
-  // --- UI STATE ---
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-    }
-    return 'light';
-  });
-
-  // --- BACKUP STATE ---
-  const [backups, setBackups] = useState<any[]>([]);
-  const [isBackingUp, setIsBackingUp] = useState(false);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const { user, token, isAuthenticated } = authService.initAuth();
-    if (isAuthenticated && user && token) {
-      setCurrentUser(user);
-      setUserRole(user.role);
-      setIsAuthenticated(true);
-      setAuthToken(token);
-    }
-  }, []);
-
-  const [serverIp, setServerIp] = useState<string>('');
-  const [showInventoryHistory, setShowInventoryHistory] = useState(false);
-
-  useEffect(() => {
-    const fetchIp = async () => {
-      try {
-        const data = await apiService.get<{ ip: string }>('/api/system-info');
-        if (data && data.ip) setServerIp(data.ip);
-      } catch (error) { }
-    };
-    fetchIp();
-  }, [connectionConfig.mode, isAuthenticated]);
-
-  const loadData = async (isBackground = false) => {
-    if (isSyncing && !isBackground) return;
-    if (!isBackground) setIsSyncing(true);
-    try {
-      const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
-        materialService.listMaterials({}),
-        transactionService.listAllTransactions({}),
-        apiService.get<Project[]>('/api/projects?limit=200').then((r: any) => r?.data || r).catch(() => []),
-        apiService.get<OrderBudget[]>('/api/budgets/all').catch(() => []),
-        supplierService.listSuppliers().catch(() => []),
-        currentUser?.role === 'ADMIN' ? userService.listUsers().catch(() => []) : Promise.resolve([]),
-        currentUser?.role === 'ADMIN' ? apiService.get<any>('/api/activity_logs?limit=50').then((r: any) => r?.data || r).catch(() => []) : Promise.resolve([]),
-        apiService.get<any>('/api/dashboard/summary').catch(() => null),
-        apiService.get<Transaction[]>('/api/transactions/planning').catch(() => [])
-      ]);
-
-      const allTransactions = [
-        ...(Array.isArray(txData) ? txData : []),
-        ...(Array.isArray(planningTxData) ? planningTxData : [])
-      ];
-
-      setMaterials(Array.isArray(matRes) ? (matRes as any).data || matRes : []);
-      setTransactions(allTransactions);
-      setProjects(Array.isArray(projData) ? projData : []);
-      setBudgets(Array.isArray(budData) ? budData : []);
-      setSuppliers(Array.isArray(suppData) ? suppData : []);
-      setServerSummary(summaryData);
-
-      (inventoryService as any).allTransactions = allTransactions;
-      (inventoryService as any).lastFetchTime = Date.now();
-      (inventoryService as any).stockCache.clear();
-
-      if (currentUser?.role === 'ADMIN') {
-        const safeUsers = Array.isArray(usersData) ? usersData : [];
-        setUsers(safeUsers);
-        setActivityLogs(Array.isArray(logsData) ? logsData : []);
-        const updatedSelf = currentUser ? safeUsers.find((u: User) => u.id === currentUser.id) : null;
-        if (updatedSelf) setCurrentUser(updatedSelf);
-      }
-
-      // Fetch pending approval count for admin/manager
-      if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER')) {
-        apiService.get<{ count: number }>('/api/approval/count').then(res => {
-          if (res && typeof res.count === 'number') setPendingApprovalCount(res.count);
-        }).catch(() => { });
-      }
-    } catch (error) {
-      console.error("Failed to load data", error);
-    } finally {
-      if (!isBackground) setIsSyncing(false);
-    }
-  };
-
-  const [activeTab, setActiveTab] = useState<AppTab>('dashboard');
-
-  const fetchBackups = async () => {
-    try {
-      const data: any = await apiService.getRecentBackups();
-      setBackups(Array.isArray(data) ? data : (data?.backups || []));
-    } catch (error) {
-      console.error("Failed to fetch backups", error);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'settings' && isAuthenticated) {
-      fetchBackups();
-    }
-  }, [activeTab, isAuthenticated]);
-
-  const handleTriggerServerBackup = async () => {
-    setIsBackingUp(true);
-    try {
-      const result = await apiService.triggerBackup();
-      if (result.success) {
-        toast.success('Đã tạo bản sao lưu trên server: ' + result.filename);
-        fetchBackups();
-      } else {
-        toast.error('Lỗi khi tạo bản sao lưu: ' + result.message);
-      }
-    } catch (error: any) {
-      toast.error('Lỗi kết nối server: ' + error.message);
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
-
-  const handleRestoreBackup = async (filename: string) => {
-    requestConfirm(
-      'XÁC NHẬN KHÔI PHỤC DỮ LIỆU',
-      `CẢNH BÁO: Toàn bộ dữ liệu hiện tại sẽ bị thay thế bởi bản sao lưu "${filename}". Hệ thống sẽ tự động khởi động lại sau khi khôi phục. Bạn có chắc chắn muốn thực hiện?`,
-      async () => {
-        try {
-          const result = await apiService.restoreBackup(filename);
-          if (result.success) {
-            toast.success('Khôi phục thành công! Hệ thống đang khởi động lại...');
-            setTimeout(() => {
-              window.location.reload();
-            }, 3000);
-          } else {
-            toast.error('Lỗi khi khôi phục: ' + result.message);
-          }
-        } catch (error: any) {
-          toast.error('Lỗi kết nối server: ' + error.message);
-        }
-      },
-      'danger'
-    );
-  };
-
-  const parseNumber = (val: string | number | undefined): number => {
-    if (!val) return 0;
-    if (typeof val === 'number') return val;
-    const cleanVal = val.toString().replace(/,/g, '.');
-    const floatVal = parseFloat(cleanVal);
-    return isNaN(floatVal) ? 0 : Math.round(floatVal * 100) / 100;
-  };
-
-  const handleSaveConnection = (mode: 'SERVER' | 'CLIENT', ip?: string) => {
-    apiService.setConfig(mode, ip || '');
-    window.location.reload();
-  };
-
-  const debouncedLoadData = useMemo(() => debounce(() => {
-    loadData(true);
-  }, 1000, { leading: false, trailing: true }), []);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    apiService.initSocket(debouncedLoadData);
-    const interval = setInterval(() => loadData(true), 10000);
-    return () => {
-      clearInterval(interval);
-      debouncedLoadData.cancel();
-      apiService.disconnectSocket();
-    };
-  }, [isAuthenticated, debouncedLoadData]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !authToken) return;
-    const checkTokenExpiry = () => {
-      if (authService.isTokenExpired(authToken)) {
-        authService.logout();
-        setIsAuthenticated(false);
-        setAuthToken('');
-        setCurrentUser(null);
-        toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-      }
-    };
-    checkTokenExpiry();
-    const interval = setInterval(checkTokenExpiry, 60000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, authToken, toast]);
-
-  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean; title: string; message: string; type: 'danger' | 'info'; onConfirm: () => void;
-  }>({ isOpen: false, title: '', message: '', type: 'info', onConfirm: () => { } });
-
-  const [receiptType, setReceiptType] = useState<TransactionType>(TransactionType.OUT);
-  const [receiptWorkshop, setReceiptWorkshop] = useState<WorkshopCode>('OG');
-  const [receiptId, setReceiptId] = useState('');
-  const [receiptSupplier, setReceiptSupplier] = useState('');
-  const [receiptTime, setReceiptTime] = useState('');
-  const [receiptTimeDisplay, setReceiptTimeDisplay] = useState('');
-  const [selectedItems, setSelectedItems] = useState<{ materialId: string, quantity: number }[]>([]);
-  const [orderCode, setOrderCode] = useState('');
-  const [accountForm, setAccountForm] = useState<AccountForm>({
-    currentPassword: '', newPassword: '', confirmPassword: '', fullName: '', email: ''
-  });
-  const [modalError, setModalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (activeTab === 'warehouse_receipt') {
-      setReceiptId(generateReceiptId(receiptType, receiptWorkshop));
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      setReceiptTime(`${yyyy}-${mm}-${dd}`);
-      setReceiptTimeDisplay(`${dd}/${mm}/${yyyy}`);
-      setReceiptSupplier('');
-    }
-  }, [activeTab, receiptType, receiptWorkshop]);
-
-  const generateReceiptId = (type: TransactionType, workshop: WorkshopCode) => {
-    const year = new Date().getFullYear().toString().slice(-2);
-    const prefix = type === TransactionType.IN ? 'PNK' : type === TransactionType.OUT ? 'PXK' : 'PDC';
-    const safeTxs = Array.isArray(transactions) ? transactions : [];
-    const sameTypeTxs = safeTxs.filter(t => t.receiptId.startsWith(`${prefix}/${workshop}/${year}/`));
-    let nextNum = 1;
-    if (sameTypeTxs.length > 0) {
-      const nums = sameTypeTxs.map(t => parseInt(t.receiptId.split('/')[3], 10) || 0).filter(n => !isNaN(n));
-      nextNum = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-    }
-    return `${prefix}/${workshop}/${year}/${nextNum.toString().padStart(5, '0')}`;
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await authService.login(loginForm.username.trim().toLowerCase(), loginForm.password.trim(), rememberMe);
-      if (!response.success) {
-        setLoginError('Thông tin đăng nhập không chính xác');
-        setTimeout(() => setLoginError(null), 3000);
-        return;
-      }
-      setAuthToken(response.token);
-      if (rememberMe) setRememberedUsername(loginForm.username.trim().toLowerCase());
-      else clearRememberedUsername();
-      setCurrentUser(response.user);
-      setUserRole(response.user.role);
-      setIsAuthenticated(true);
-      setLoginError(null);
-    } catch (error) {
-      setLoginError('Không thể kết nối máy chủ.');
-    }
-  };
-
-  const handleLogout = async () => {
-    await authService.logout();
-    setAuthToken('');
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-  };
+  const { activeTab, setActiveTab } = useTabNavigation('dashboard');
 
   const logActivity = (action: string, entityType: ActivityLog['entityType'], entityId?: string, details?: string) => {
     if (!currentUser) return;
@@ -386,7 +101,36 @@ const App: React.FC = () => {
     apiService.post('/api/activity_logs/save', newLog).catch(() => { });
   };
 
-  const hasPermission = (permission: Permission): boolean => authService.hasPermission(currentUser, permission);
+  const {
+    isReceiptModalOpen, setIsReceiptModalOpen, isTransferModalOpen, setIsTransferModalOpen,
+    isAccountModalOpen, setIsAccountModalOpen, confirmDialog, setConfirmDialog,
+    receiptType, setReceiptType, receiptWorkshop, setReceiptWorkshop, receiptId, setReceiptId,
+    receiptSupplier, setReceiptSupplier, receiptTime, setReceiptTime, receiptTimeDisplay, setReceiptTimeDisplay,
+    selectedItems, setSelectedItems, orderCode, setOrderCode, accountForm, setAccountForm,
+    modalError, setModalError, generateReceiptId, requestConfirm, quickRestock,
+    handleCreateReceipt, handleUpdateAccount, handleBackup, handleSaveInventoryCheck
+  } = useAppModals({
+    transactions, currentUser, setCurrentUser, userRole, isAuthenticated,
+    activeTab, setActiveTab, loadData, logActivity, authToken, parseNumber
+  });
+
+  const [isConnectionSetupOpen, setIsConnectionSetupOpen] = useState(false);
+  const [tempIp, setTempIp] = useState('');
+
+  // --- UI STATE ---
+  const [showInventoryHistory, setShowInventoryHistory] = useState(false);
+
+
+  useEffect(() => {
+    if (activeTab === 'settings' && isAuthenticated) {
+      fetchBackups();
+    }
+  }, [activeTab, isAuthenticated, fetchBackups]);
+
+
+
+
+
   const canModify = hasPermission('MANAGE_WAREHOUSE');
 
   const formatNumber = (val: number | string | undefined): string => {
@@ -442,101 +186,11 @@ const App: React.FC = () => {
     return data;
   }, [transactions]);
 
-  const requestConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'info' = 'info') => {
-    setConfirmDialog({ isOpen: true, title, message, onConfirm, type });
-  };
-
-  const quickRestock = (material: Material) => {
-    setReceiptType(TransactionType.IN);
-    setReceiptWorkshop(material.workshop);
-    setSelectedItems([{ materialId: material.id, quantity: material.minThreshold * 2 }]);
-    setIsReceiptModalOpen(true);
-    setActiveTab('warehouse_receipt');
-  };
-
-  const handleCreateReceipt = () => {
-    if (selectedItems.length === 0) return;
-    requestConfirm('Xác nhận lập phiếu', `Hệ thống sẽ ${receiptType === 'IN' ? 'Nhập' : 'Xuất'} hàng.`, async () => {
-      const finalId = receiptId.trim() || generateReceiptId(receiptType, receiptWorkshop);
-      try {
-        const result = await transactionService.createBatchReceipt({
-          receiptId: finalId, receiptType, receiptWorkshop,
-          receiptTime: receiptTime || new Date().toISOString().split('T')[0],
-          receiptSupplier: receiptSupplier || undefined,
-          orderCode: orderCode || undefined,
-          user: currentUser?.fullName || userRole,
-          items: selectedItems.map(item => ({ materialId: item.materialId, quantity: parseNumber(item.quantity) }))
-        });
-        if (!result.success) { setModalError(result.error || 'Lưu phiếu thất bại'); return; }
-        await loadData();
-        logActivity(`Lập phiếu ${finalId}`, 'TRANSACTION', finalId);
-        setActiveTab('warehouse_inventory');
-        setSelectedItems([]); setOrderCode(''); setReceiptId('');
-        setIsReceiptModalOpen(false); setConfirmDialog(p => ({ ...p, isOpen: false }));
-        toast.success(`Phiếu ${finalId} đã tạo thành công!`);
-      } catch (err: any) { setModalError(err.message || 'Lỗi lưu phiếu'); }
-    });
-  };
 
   const { transferForm, setTransferForm, handleTransfer, receiptSearchClass, setReceiptSearchClass } = useWarehouseTransfer({
     transactions, currentUser, userRole, activeTab, loadData, logActivity, setActiveTab, requestConfirm, setModalError,
     closeConfirmDialog: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
   });
-
-  const handleUpdateAccount = () => {
-    if (!accountForm.currentPassword) { toast.warning('Nhập mật khẩu hiện tại'); return; }
-    userService.updateCurrentUser({
-      fullName: accountForm.fullName || currentUser?.fullName || '',
-      email: accountForm.email || currentUser?.email || '',
-      currentPassword: accountForm.currentPassword,
-      newPassword: accountForm.newPassword || undefined
-    }).then(updated => {
-      setCurrentUser(updated); setAuthSession(authToken, updated);
-      setIsAccountModalOpen(false); toast.success('Cập nhật thành công!');
-    }).catch(err => toast.error(err.message || 'Lỗi cập nhật'));
-  };
-
-  const handleBackup = async () => {
-    try {
-      const url = `${apiService.getBaseUrl()}/api/download-db`;
-      const token = localStorage.getItem('auth_token');
-
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `SmartStock_Backup_${new Date().toISOString().split('T')[0]}.db`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success('Đã tải xuống bản sao lưu dữ liệu (.db)');
-    } catch (e) {
-      console.error(e);
-      toast.error('Lỗi khi tải bản sao lưu dữ liệu.');
-    }
-  };
-
-  const handleSaveInventoryCheck = async (data: any) => {
-    try {
-      const response = await apiService.post('/api/inventory-checks/save', data);
-      if (response && (response as any).success) {
-        await loadData(true);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Save inventory check error:', error);
-      toast.error('Lỗi khi lưu phiếu kiểm kê');
-      return false;
-    }
-  };
 
   if (!isAuthenticated) return (
     <>
@@ -809,25 +463,27 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'warehouse_approval' && (
-            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+            <RequireRole role={userRole} allowedRoles={['ADMIN']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
               <ApprovalQueue onUpdate={loadData} />
             </RequireRole>
           )}
 
           {(activeTab === 'reports_history' || activeTab === 'reports_activity' || activeTab === 'reports_inventory') && (
-            <ReportViewer
-              transactions={transactions}
-              activityLogs={activityLogs}
-              materials={materials}
-              currentUser={currentUser}
-              onRefresh={loadData}
-              onBack={() => setActiveTab('settings')}
-              initialTab={activeTab === 'reports_history' ? 'history' : activeTab === 'reports_activity' ? 'activity' : 'inventory'}
-            />
+            <RequireRole role={userRole} allowedRoles={['ADMIN']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập báo cáo</div>}>
+              <ReportViewer
+                transactions={transactions}
+                activityLogs={activityLogs}
+                materials={materials}
+                currentUser={currentUser}
+                onRefresh={loadData}
+                onBack={() => setActiveTab('settings')}
+                initialTab={activeTab === 'reports_history' ? 'history' : activeTab === 'reports_activity' ? 'activity' : 'inventory'}
+              />
+            </RequireRole>
           )}
 
           {activeTab === 'warehouse_receipt' && (
-            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
               <WarehouseReceipt
                 materials={materials}
                 budgets={budgets}
@@ -844,12 +500,13 @@ const App: React.FC = () => {
                 generateReceiptId={generateReceiptId}
                 parseNumber={parseNumber}
                 formatNumber={formatNumber}
+                canManage={canModify}
               />
             </RequireRole>
           )}
 
           {activeTab === 'warehouse_transfer' && (
-            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
               <WarehouseTransfer
                 materials={materials}
                 transferForm={transferForm}
@@ -860,16 +517,17 @@ const App: React.FC = () => {
                 parseNumber={parseNumber}
                 receiptSearchClass={receiptSearchClass}
                 setReceiptSearchClass={setReceiptSearchClass}
+                canManage={canModify}
               />
             </RequireRole>
           )}
 
           {activeTab === 'supplier_management' && (
-            <SupplierManagement suppliers={suppliers} currentUser={currentUser} onUpdate={loadData} />
+            <SupplierManagement suppliers={suppliers} currentUser={currentUser} onUpdate={loadData} canManage={hasPermission('MANAGE_SUPPLIERS')} />
           )}
 
           {activeTab === 'warehouse_merge' && (
-            <RequireRole role={userRole} allowedRoles={['ADMIN', 'MANAGER']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+            <RequireRole role={userRole} allowedRoles={['ADMIN']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
               <MaterialMerge materials={materials} currentUser={currentUser} onUpdate={loadData} />
             </RequireRole>
           )}
@@ -889,11 +547,11 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'planning_projects' && (
-            <PlanningProjects projects={projects} currentUser={currentUser} onUpdate={loadData} />
+            <PlanningProjects projects={projects} currentUser={currentUser} onUpdate={loadData} canManage={hasPermission('MANAGE_PLANNING')} />
           )}
 
           {activeTab === 'planning_estimates' && (
-            <PlanningEstimates budgets={budgets} projects={projects} materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} />
+            <PlanningEstimates budgets={budgets} projects={projects} materials={materials} transactions={transactions} currentUser={currentUser} onUpdate={loadData} canManage={hasPermission('MANAGE_PLANNING')} />
           )}
 
           {activeTab === 'users' && (

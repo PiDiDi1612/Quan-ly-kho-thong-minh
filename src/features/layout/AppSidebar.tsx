@@ -33,9 +33,8 @@ interface AppSidebarProps {
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Quản trị',
-  MANAGER: 'Quản lý',
   WAREHOUSE: 'Thủ kho',
-  STAFF: 'Nhân viên',
+  PLANNING: 'Kế hoạch',
   GUEST: 'Khách',
 };
 
@@ -51,7 +50,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard, permission: null },
         { id: 'warehouse_inventory', label: 'Danh Sách Vật Tư', icon: Package, permission: 'VIEW_MATERIAL' },
         { id: 'warehouse_receipt', label: 'Lập Phiếu (Nhập/Xuất)', icon: Plus, permission: 'MANAGE_WAREHOUSE' },
-        { id: 'warehouse_approval', label: 'Duyệt Phiếu', icon: ListChecks, permission: 'MANAGE_ROLES', badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
+        { id: 'warehouse_approval', label: 'Duyệt Phiếu', icon: ListChecks, permission: 'APPROVE_TRANSACTION', badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
         { id: 'warehouse_transfer', label: 'Chuyển Kho', icon: ArrowRightLeft, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_inventory_check', label: 'Kiểm Kê Kho', icon: ClipboardList, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_history', label: 'Lịch Sử Giao Dịch', icon: History, permission: 'VIEW_TRANSACTION' },
@@ -78,7 +77,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       title: 'HỆ THỐNG',
       items: [
         { id: 'users', label: 'Phân Quyền & User', icon: Users, permission: 'MANAGE_USERS' },
-        { id: 'settings', label: 'Nhật Ký & Cài Đặt', icon: Settings, permission: 'MANAGE_ROLES' },
+        { id: 'settings', label: 'Nhật Ký & Cài Đặt', icon: Settings, permission: 'MANAGE_SETTINGS' },
         { id: 'about', label: 'Tác Giả', icon: Info, permission: null },
       ]
     }

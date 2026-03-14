@@ -3,7 +3,7 @@
 // ===== CONSTANTS =====
 const VALID_WORKSHOPS = ['OG', 'CK', 'NT'];
 const VALID_CLASSIFICATIONS = ['Vật tư chính', 'Vật tư phụ'];
-const VALID_ROLES = ['ADMIN', 'MANAGER', 'WAREHOUSE', 'STAFF'];
+const VALID_ROLES = ['ADMIN', 'WAREHOUSE', 'PLANNING', 'GUEST'];
 const VALID_TX_TYPES = ['IN', 'OUT', 'TRANSFER'];
 
 // ===== VALIDATION HELPERS =====
@@ -23,12 +23,35 @@ const validateNumber = (value, fieldName, min = 0) => {
     return null;
 };
 
+const ROLE_PERMISSIONS = {
+    ADMIN: [
+        'VIEW_MATERIAL', 'MANAGE_WAREHOUSE', 'VIEW_TRANSACTION', 'MANAGE_SUPPLIERS',
+        'PLANNING_PROJECTS', 'PLANNING_ESTIMATES', 'MANAGE_PLANNING', 'VIEW_REPORT',
+        'MANAGE_USERS', 'MANAGE_SETTINGS', 'MANAGE_ROLES', 'EXPORT_DATA', 'APPROVE_TRANSACTION'
+    ],
+    WAREHOUSE: [
+        'VIEW_MATERIAL', 'MANAGE_WAREHOUSE', 'VIEW_TRANSACTION', 'MANAGE_SUPPLIERS',
+        'PLANNING_PROJECTS', 'PLANNING_ESTIMATES', 'EXPORT_DATA',
+        'APPROVE_TRANSACTION'
+    ],
+    PLANNING: [
+        'VIEW_MATERIAL', 'VIEW_TRANSACTION', 'PLANNING_PROJECTS', 'PLANNING_ESTIMATES',
+        'MANAGE_PLANNING', 'EXPORT_DATA'
+    ],
+    GUEST: [
+        'VIEW_MATERIAL', 'VIEW_TRANSACTION', 'PLANNING_PROJECTS', 'PLANNING_ESTIMATES'
+    ]
+};
+
 // ===== PERMISSION HELPERS =====
 const hasPermission = (user, permission) => {
     if (!user) return false;
     if (user.role === 'ADMIN') return true;
-    const perms = Array.isArray(user.permissions) ? user.permissions : [];
-    return perms.includes(permission);
+    
+    const rolePerms = ROLE_PERMISSIONS[user.role] || [];
+    const explicitPerms = Array.isArray(user.permissions) ? user.permissions : [];
+    
+    return rolePerms.includes(permission) || explicitPerms.includes(permission);
 };
 
 const requirePermission = (permission) => (req, res, next) => {

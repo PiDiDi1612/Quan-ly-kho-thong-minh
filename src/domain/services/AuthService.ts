@@ -1,4 +1,5 @@
 import { User, UserRole, Permission } from '@/types';
+import { ROLE_PERMISSIONS } from '@/constants';
 import { IAuthService, LoginResponse } from '@/domain/interfaces/IAuthService';
 import { apiService } from '@/services/api';
 import {
@@ -83,9 +84,13 @@ export class AuthService implements IAuthService {
     }
 
     hasPermission(user: User | null, permission: Permission): boolean {
-        if (!user || !Array.isArray(user.permissions)) return false;
+        if (!user) return false;
         if (user.role === 'ADMIN') return true;
-        return user.permissions.includes(permission);
+        
+        const rolePerms = ROLE_PERMISSIONS[user.role] || [];
+        const explicitPerms = Array.isArray(user.permissions) ? user.permissions : [];
+        
+        return rolePerms.includes(permission) || explicitPerms.includes(permission);
     }
 
     getUserRole(user: User | null): UserRole {

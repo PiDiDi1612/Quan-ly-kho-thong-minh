@@ -10,6 +10,7 @@ export default defineConfig({
         setupFiles: ['./vitest.setup.ts'],
         alias: {
             '@': path.resolve(__dirname, './src'),
+            'better-sqlite3': path.resolve(__dirname, './__mocks__/better-sqlite3.ts'),
         }
     },
 });

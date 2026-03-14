@@ -12,40 +12,37 @@ export const WORKSHOPS: { code: WorkshopCode; name: string }[] = [
 ];
 
 export const PERMISSIONS: { [key in Permission]: string } = {
-  MANAGE_WAREHOUSE: 'Phòng kho',
-  MANAGE_PLANNING: 'Phòng kế hoạch',
-  EXPORT_DATA: 'Xuất dữ liệu',
+  VIEW_MATERIAL: 'Xem vật tư',
+  MANAGE_WAREHOUSE: 'Quản lý nhập/xuất kho',
+  VIEW_TRANSACTION: 'Xem lịch sử giao dịch',
+  MANAGE_SUPPLIERS: 'Quản lý nhà cung cấp',
+  PLANNING_PROJECTS: 'Xem dự án',
+  PLANNING_ESTIMATES: 'Xem dự toán',
+  MANAGE_PLANNING: 'Quản lý kế hoạch (Dự án/Dự toán)',
+  VIEW_REPORT: 'Xem báo cáo',
   MANAGE_USERS: 'Quản lý người dùng',
-  MANAGE_SETTINGS: 'Quản lý cài đặt'
+  MANAGE_SETTINGS: 'Quản lý cài đặt',
+  MANAGE_ROLES: 'Quản lý phân quyền',
+  APPROVE_TRANSACTION: 'Duyệt phiếu xuất kho',
+  EXPORT_DATA: 'Xuất dữ liệu Excel/PDF'
 };
-
-// Permissions visible in user management UI (hide admin-only ones)
-export const VISIBLE_PERMISSIONS: Permission[] = [
-  'MANAGE_WAREHOUSE',
-  'MANAGE_PLANNING',
-  'EXPORT_DATA'
-];
 
 export const ROLE_PERMISSIONS: { [key in UserRole]: Permission[] } = {
   ADMIN: [
-    'MANAGE_WAREHOUSE',
-    'MANAGE_PLANNING',
-    'EXPORT_DATA',
-    'MANAGE_USERS',
-    'MANAGE_SETTINGS'
-  ],
-  MANAGER: [
-    'MANAGE_WAREHOUSE',
-    'MANAGE_PLANNING',
-    'EXPORT_DATA'
+    'VIEW_MATERIAL', 'MANAGE_WAREHOUSE', 'VIEW_TRANSACTION', 'MANAGE_SUPPLIERS',
+    'PLANNING_PROJECTS', 'PLANNING_ESTIMATES', 'MANAGE_PLANNING', 'VIEW_REPORT',
+    'MANAGE_USERS', 'MANAGE_SETTINGS', 'MANAGE_ROLES', 'EXPORT_DATA', 'APPROVE_TRANSACTION'
   ],
   WAREHOUSE: [
-    'MANAGE_WAREHOUSE',
-    'EXPORT_DATA'
+    'VIEW_MATERIAL', 'MANAGE_WAREHOUSE', 'VIEW_TRANSACTION', 'MANAGE_SUPPLIERS',
+    'PLANNING_PROJECTS', 'PLANNING_ESTIMATES', 'EXPORT_DATA',
+    'APPROVE_TRANSACTION'
   ],
-  STAFF: [
-    // Staff can view, but limited in management actions (will be handled by RequireRole and logic)
+  PLANNING: [
+    'VIEW_MATERIAL', 'VIEW_TRANSACTION', 'PLANNING_PROJECTS', 'PLANNING_ESTIMATES',
+    'MANAGE_PLANNING', 'EXPORT_DATA'
   ],
-  GUEST: []
+  GUEST: [
+    'VIEW_MATERIAL', 'VIEW_TRANSACTION', 'PLANNING_PROJECTS', 'PLANNING_ESTIMATES'
+  ]
 };
-

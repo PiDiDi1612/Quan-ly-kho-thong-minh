@@ -6,9 +6,9 @@ describe('InventoryService', () => {
     let service: InventoryService;
 
     const mockTransactions: Transaction[] = [
-        { id: '1', receiptId: 'PNK/OG/24/00001', type: TransactionType.IN, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 100, date: '2024-01-01', user: 'admin', orderCode: 'ORD01' },
-        { id: '2', receiptId: 'PXK/OG/24/00001', type: TransactionType.OUT, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 30, date: '2024-01-02', user: 'admin', orderCode: 'ORD02' },
-        { id: '3', receiptId: 'PNK/OG/24/00002', type: TransactionType.IN, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 50, date: '2024-01-03', user: 'admin', orderCode: 'ORD03' },
+        { id: '1', receiptId: 'PNK/OG/24/00001', type: TransactionType.IN, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 100, date: '2024-01-01', user: 'admin', orderCode: 'ORD01', status: 'approved' },
+        { id: '2', receiptId: 'PXK/OG/24/00001', type: TransactionType.OUT, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 30, date: '2024-01-02', user: 'admin', orderCode: 'ORD02', status: 'approved' },
+        { id: '3', receiptId: 'PNK/OG/24/00002', type: TransactionType.IN, materialId: 'MAT001', materialName: 'Test Material 1', workshop: 'OG' as WorkshopCode, quantity: 50, date: '2024-01-03', user: 'admin', orderCode: 'ORD03', status: 'approved' },
     ];
 
     beforeEach(() => {

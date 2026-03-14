@@ -4,14 +4,22 @@ export enum TransactionType {
   TRANSFER = 'TRANSFER'
 }
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'WAREHOUSE' | 'STAFF' | 'PLANNING' | 'GUEST';
+export type UserRole = 'ADMIN' | 'WAREHOUSE' | 'PLANNING' | 'GUEST';
 
 export type Permission =
   | 'MANAGE_WAREHOUSE'
   | 'MANAGE_PLANNING'
   | 'EXPORT_DATA'
   | 'MANAGE_USERS'
-  | 'MANAGE_SETTINGS';
+  | 'MANAGE_SETTINGS'
+  | 'VIEW_MATERIAL'
+  | 'VIEW_TRANSACTION'
+  | 'VIEW_REPORT'
+  | 'MANAGE_SUPPLIERS'
+  | 'PLANNING_PROJECTS'
+  | 'PLANNING_ESTIMATES'
+  | 'MANAGE_ROLES'
+  | 'APPROVE_TRANSACTION';
 
 export interface User {
   id: string;

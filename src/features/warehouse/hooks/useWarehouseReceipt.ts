@@ -15,6 +15,7 @@ export interface UseWarehouseReceiptProps {
     createBatchReceipt: (data: any) => Promise<{ success: boolean; error?: string }>;
     generateReceiptId: (type: TransactionType, workshop: WorkshopCode) => string;
     parseNumber: (val: any) => number;
+    canManage?: boolean;
 }
 
 export const useWarehouseReceipt = ({
@@ -28,9 +29,11 @@ export const useWarehouseReceipt = ({
     closeConfirmDialog,
     createBatchReceipt,
     generateReceiptId,
-    parseNumber
+    parseNumber,
+    canManage: propCanManage
 }: UseWarehouseReceiptProps) => {
     const toast = useToast();
+    const canManage = propCanManage !== undefined ? propCanManage : (userRole === 'ADMIN' || (currentUser?.permissions?.includes('MANAGE_WAREHOUSE') ?? false));
     // Basic Form State
     const [receiptType, setReceiptType] = useState<TransactionType>(TransactionType.IN);
     const [receiptWorkshop, setReceiptWorkshop] = useState<WorkshopCode>(WORKSHOPS[0].code);
@@ -49,8 +52,14 @@ export const useWarehouseReceipt = ({
         return selectedItems.reduce((sum, item) => sum + (parseNumber(item.quantity) || 0), 0);
     }, [selectedItems, parseNumber]);
 
-    const handleCreateReceipt = () => {
-        if (selectedItems.length === 0) return;
+    const handleCreateReceipt = async () => {
+        if (!canManage) {
+            toast.error('Bạn không có quyền thực hiện thao tác này');
+            return;
+        }
+        if (selectedItems.length === 0) {
+            return;
+        }
         requestConfirm('Xác nhận lập phiếu', `Hệ thống sẽ ${receiptType === 'IN' ? 'Nhập' : 'Xuất'} hàng.`, async () => {
             const finalId = receiptId.trim() || generateReceiptId(receiptType, receiptWorkshop);
             try {
