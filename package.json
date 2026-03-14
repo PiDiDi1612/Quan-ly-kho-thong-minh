@@ -77,7 +77,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "server.cjs",
+      "server/**/*",
       "package.json"
     ],
     "win": {

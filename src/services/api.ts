@@ -28,9 +28,15 @@ class ApiService {
     private determineBaseUrl() {
         if (typeof window === 'undefined') return;
 
-        // 1. If running from file system (Production Electron), ALWAYS use 127.0.0.1:3000
+        // 1. If running from file system (Production Electron)
         if (window.location.protocol === 'file:') {
-            this.baseUrl = 'http://127.0.0.1:3000';
+            // CLIENT mode: dùng IP máy chủ đã lưu
+            if (this.config.mode === 'CLIENT' && this.config.serverIp) {
+                this.baseUrl = `http://${this.config.serverIp}:3000`;
+            } else {
+                // SERVER mode hoặc chưa config: dùng local
+                this.baseUrl = 'http://127.0.0.1:3000';
+            }
             return;
         }
 
@@ -125,7 +131,7 @@ class ApiService {
                     if (typeof window !== 'undefined') {
                         // Avoid infinite reload if we are already on login
                         if (!window.location.search.includes('auth_error=401')) {
-                            window.location.href = '/?auth_error=401'; 
+                            window.location.href = '/?auth_error=401';
                         }
                     }
                 }

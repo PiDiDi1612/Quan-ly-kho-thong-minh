@@ -180,7 +180,7 @@ const App: React.FC = () => {
       if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER')) {
         apiService.get<{ count: number }>('/api/approval/count').then(res => {
           if (res && typeof res.count === 'number') setPendingApprovalCount(res.count);
-        }).catch(() => {});
+        }).catch(() => { });
       }
     } catch (error) {
       console.error("Failed to load data", error);
@@ -571,12 +571,12 @@ const App: React.FC = () => {
                     activeTab === 'warehouse_receipt' ? 'Lập Phiếu Kho' :
                       activeTab === 'warehouse_approval' ? 'Duyệt Phiếu Xuất Kho' :
                         activeTab === 'warehouse_transfer' ? 'Điều Chuyển' :
-                        activeTab === 'warehouse_inventory_check' ? 'Kiểm Kê Kho' :
-                        activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
-                          activeTab === 'planning_projects' ? 'Dự Án' :
-                            activeTab === 'planning_estimates' ? 'Dự Toán' :
-                              activeTab === 'users' ? 'Người Dùng' :
-                                activeTab === 'about' ? 'Tác Giả & Giới Thiệu' : 'SmartStock'}
+                          activeTab === 'warehouse_inventory_check' ? 'Kiểm Kê Kho' :
+                            activeTab === 'supplier_management' ? 'Nhà Cung Cấp' :
+                              activeTab === 'planning_projects' ? 'Dự Án' :
+                                activeTab === 'planning_estimates' ? 'Dự Toán' :
+                                  activeTab === 'users' ? 'Người Dùng' :
+                                    activeTab === 'about' ? 'Tác Giả & Giới Thiệu' : 'SmartStock'}
             </h2>
           </div>
 
@@ -665,12 +665,12 @@ const App: React.FC = () => {
                     <AreaChart data={last7DaysData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -702,7 +702,7 @@ const App: React.FC = () => {
                       {summary.lowStockCount > 0 ? (
                         <Badge variant="destructive" className="font-black px-3 py-1 rounded-lg shadow-sm">{summary.lowStockCount} MỤC</Badge>
                       ) : (
-                         <Badge className="font-black px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 shadow-none border border-emerald-200 dark:border-emerald-800">0 MỤC</Badge>
+                        <Badge className="font-black px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-950/30 shadow-none border border-emerald-200 dark:border-emerald-800">0 MỤC</Badge>
                       )}
                     </div>
                   </CardHeader>
@@ -760,9 +760,9 @@ const App: React.FC = () => {
                           <History size={40} className="text-slate-200 dark:text-slate-700 mb-3" />
                           <p className="font-bold text-slate-400">Chưa có giao dịch nào.</p>
                           <p className="text-xs text-muted-foreground mt-1 mb-5">Bắt đầu bằng cách lập phiếu nhập kho.</p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="h-9 px-4 text-[10px] font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg dark:bg-emerald-950 dark:hover:bg-emerald-900 shadow-sm"
                             onClick={() => { setActiveTab('warehouse_receipt'); setReceiptType(TransactionType.IN); }}
                           >
@@ -879,8 +879,8 @@ const App: React.FC = () => {
               {showInventoryHistory ? (
                 <InventoryHistory onBack={() => setShowInventoryHistory(false)} />
               ) : (
-                <InventoryCheck 
-                  materials={materials} 
+                <InventoryCheck
+                  materials={materials}
                   onSave={handleSaveInventoryCheck}
                   onViewHistory={() => setShowInventoryHistory(true)}
                 />
@@ -926,8 +926,8 @@ const App: React.FC = () => {
                         <Badge variant="outline" className="h-7 px-3 text-[10px] font-bold border-emerald-600/20 text-emerald-600 bg-emerald-50/50">
                           <Clock size={12} className="mr-1" /> Tự động: 23:30 hàng ngày
                         </Badge>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 font-bold text-xs uppercase"
                           onClick={handleTriggerServerBackup}
                           disabled={isBackingUp}
@@ -960,7 +960,7 @@ const App: React.FC = () => {
                                         <FileText size={18} />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-xs font-bold truncate pr-4">{b.name}</p>
+                                        <p className="text-xs font-bold truncate pr-4">{b.filename}</p>
                                         <div className="flex items-center gap-2 mt-0.5">
                                           <span className="text-[10px] text-muted-foreground font-medium">{new Date(b.mtime).toLocaleString('vi-VN')}</span>
                                           <span className="w-1 h-1 rounded-full bg-border" />
@@ -969,12 +969,12 @@ const App: React.FC = () => {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
                                         className="h-8 px-2.5 text-[10px] font-bold uppercase border-emerald-600/20 text-emerald-600 hover:bg-emerald-50"
                                         onClick={() => {
-                                          const url = `${apiService.getBaseUrl()}/api/download-db-file?filename=${b.name}`;
+                                          const url = `${apiService.getBaseUrl()}/api/download-db`;
                                           const token = localStorage.getItem('auth_token');
                                           fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
                                             .then(res => res.blob())
@@ -990,11 +990,11 @@ const App: React.FC = () => {
                                         <Download size={12} className="mr-1" /> Tải về
                                       </Button>
                                       <RequireRole role={userRole} allowedRoles={['ADMIN']}>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
                                           className="h-8 px-2.5 text-[10px] font-bold uppercase text-amber-600 hover:bg-amber-50 hover:text-amber-700"
-                                          onClick={() => handleRestoreBackup(b.name)}
+                                          onClick={() => handleRestoreBackup(b.filename)}
                                         >
                                           <RefreshCcw size={12} className="mr-1" /> Khôi phục
                                         </Button>
@@ -1007,7 +1007,7 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-6">
                         <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30">
                           <h5 className="text-[11px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-500 mb-3 flex items-center gap-2">

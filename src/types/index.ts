@@ -4,7 +4,7 @@ export enum TransactionType {
   TRANSFER = 'TRANSFER'
 }
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'WAREHOUSE' | 'STAFF' | 'GUEST';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'WAREHOUSE' | 'STAFF' | 'PLANNING' | 'GUEST';
 
 export type Permission =
   | 'MANAGE_WAREHOUSE'
