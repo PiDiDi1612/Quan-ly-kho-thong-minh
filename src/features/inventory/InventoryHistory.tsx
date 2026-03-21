@@ -102,45 +102,35 @@ export const InventoryHistory: React.FC<InventoryHistoryProps> = ({ onBack }) =>
           ) : (
             <Table>
               <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="w-[180px]">Mã Phiếu</TableHead>
-                  <TableHead>Kho / Phân Xưởng</TableHead>
-                  <TableHead>Ngày Kiểm</TableHead>
-                  <TableHead>Người Kiểm</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
-                  <TableHead className="text-right">Thao Tác</TableHead>
+                <TableRow className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 font-bold uppercase tracking-wider text-[10px] text-slate-500">
+                  <TableHead className="px-6 py-4 table-header-text w-[180px]">Mã Phiếu</TableHead>
+                  <TableHead className="px-6 py-4 table-header-text">Kho / Phân Xưởng</TableHead>
+                  <TableHead className="px-6 py-4 table-header-text text-center">Ngày Kiểm</TableHead>
+                  <TableHead className="px-6 py-4 table-header-text text-center">Người Kiểm</TableHead>
+                  <TableHead className="px-6 py-4 table-header-text text-center">Trạng Thái</TableHead>
+                  <TableHead className="px-6 py-4 table-header-text text-right">Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {Array.isArray(filteredHistory) && filteredHistory.map(item => (
-                  <TableRow key={item.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => setSelectedCheck(item)}>
-                    <TableCell className="font-mono text-xs font-bold">{item.id}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 rounded-lg">
-                        {getWorkshopName(item.warehouse)}
-                      </Badge>
+                  <TableRow key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-50 dark:border-slate-800/50 cursor-pointer group" onClick={() => setSelectedCheck(item)}>
+                    <TableCell className="px-6 py-4">
+                      <span className="data-label text-sky-600 tabular-nums">{item.id}</span>
                     </TableCell>
-                    <TableCell className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} className="text-muted-foreground" />
-                        {new Date(item.checkDate).toLocaleDateString('vi-VN')}
-                      </div>
+                    <TableCell className="px-6 py-4">
+                      <span className="data-label text-sky-600 bg-sky-50 dark:bg-sky-900/20 px-2.5 py-1 rounded-xl uppercase">{getWorkshopName(item.warehouse)}</span>
                     </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <User size={14} className="text-muted-foreground" />
-                        {item.checkedBy}
-                      </div>
+                    <TableCell className="px-6 py-4 text-center">
+                      <span className="content-text text-[11px] font-bold bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl">{new Date(item.checkDate).toLocaleDateString('vi-VN')}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-6 py-4 text-center">
+                      <span className="content-text text-[11px] font-bold text-slate-600 dark:text-slate-400">{item.checkedBy}</span>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-center">
                       {item.status === 'COMPLETED' ? (
-                        <Badge className="bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm">
-                          <CheckCircle2 size={12} className="mr-1" /> Đã chốt
-                        </Badge>
+                        <span className="data-label text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-lg shadow-sm">Đã chốt</span>
                       ) : (
-                        <Badge variant="secondary" className="rounded-lg">
-                          <Clock size={12} className="mr-1" /> Bản nháp
-                        </Badge>
+                        <span className="data-label text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg">Bản nháp</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

@@ -175,27 +175,26 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex justify-between items-center">
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="content-text text-sm">
                     Tổng số người dùng: <span className="text-sky-600 font-bold">{users.length}</span>
                 </p>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2"
+                    className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2"
                 >
                     <Plus size={18} className="stroke-[3]" />
-                    Thêm người dùng
+                    <span className="data-label">Thêm người dùng</span>
                 </button>
             </div>
 
             <div className="bg-transparent">
                 <table className="w-full text-left text-sm border-separate border-spacing-y-3 px-1">
                     <thead>
-                        <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><UserIcon size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Người dùng</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Shield size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Vai trò</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><Key size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Quyền hạn</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider"><ToggleLeft size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Trạng thái</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
+                        <tr className="border-b border-slate-100 dark:border-slate-800">
+                            <th className="px-6 py-4 table-header-text"><UserIcon size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />NGƯỜI DÙNG</th>
+                            <th className="px-6 py-4 table-header-text"><Shield size={12} className="inline mr-1 text-indigo-500 -mt-0.5 stroke-[3]" />VAI TRÒ</th>
+                            <th className="px-6 py-4 table-header-text"><ToggleLeft size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />TRẠNG THÁI</th>
+                            <th className="px-6 py-4 table-header-text text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -207,13 +206,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                             {(u.fullName || u.username || '?')[0].toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{u.fullName || u.username}</p>
-                                            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">@{u.username} {u.email && `• ${u.email}`}</p>
+                                            <p className="font-bold text-foreground text-sm font-inter uppercase tracking-tight">{u.fullName || u.username}</p>
+                                            <p className="content-text text-[11px] italic opacity-70">@{u.username} {u.email && `• ${u.email}`}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.role === 'ADMIN' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
+                                    <span className={`px-3 py-1.5 rounded-lg data-label ${u.role === 'ADMIN' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
                                         u.role === 'WAREHOUSE' ? 'bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' :
                                             u.role === 'PLANNING' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
                                                 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
@@ -221,32 +220,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                         {u.role === 'ADMIN' ? 'Quản trị viên' : u.role === 'WAREHOUSE' ? 'Quản lý kho' : u.role === 'PLANNING' ? 'Phòng kế hoạch' : 'Khách'}
                                     </span>
                                 </td>
+
                                 <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                        {u.role === 'ADMIN' ? (
-                                            <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 rounded text-[9px] font-bold uppercase">Toàn quyền hệ thống</span>
-                                        ) : (
-                                            <>
-                                                {u.permissions.slice(0, 3).map(p => (
-                                                    <span key={p} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-bold uppercase truncate max-w-[80px]">
-                                                        {PERMISSIONS[p]?.split(' ')[0]}...
-                                                    </span>
-                                                ))}
-                                                {u.permissions.length > 3 && (
-                                                    <span className="px-2 py-0.5 bg-slate-50 text-slate-400 rounded text-[9px] font-bold">+{u.permissions.length - 3}</span>
-                                                )}
-                                                {u.permissions.length === 0 && (
-                                                    <span className="text-[10px] text-slate-400 italic">Chưa cấp quyền</span>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                    <p className="text-[9px] text-slate-400 dark:text-slate-600 font-medium mt-1">
-                                        {u.lastLogin ? `Đăng nhập: ${new Date(u.lastLogin).toLocaleDateString('en-GB')}` : 'Chưa đăng nhập'}
-                                    </p>
-                                </td>
-                                <td className="px-6 py-5 border-y border-slate-100 dark:border-slate-700 group-hover:border-sky-100 dark:group-hover:border-sky-900/50">
-                                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${u.isActive ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                                    <span className={`px-3 py-1.5 rounded-lg data-label ${u.isActive ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                         }`}>
                                         {u.isActive ? 'Hoạt động' : 'Vô hiệu'}
                                     </span>
@@ -297,7 +273,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                 <div className="space-y-5">
                     <div className="grid grid-cols-2 gap-5">
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Tên đăng nhập <span className="text-red-500 font-bold">*</span></label>
+                            <label className="data-label text-sky-600 ml-1">Tên đăng nhập <span className="text-red-500 font-bold">*</span></label>
                             <div className="relative group">
                                 <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                 <input
@@ -306,12 +282,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     onChange={e => setFormData({ ...formData, username: e.target.value })}
                                     placeholder="VD: ADMIN"
                                     disabled={!!editingUser}
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-foreground uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400"
                                 />
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Họ và tên <span className="text-red-500 font-bold">*</span></label>
+                            <label className="data-label text-sky-600 ml-1">Họ và tên <span className="text-red-500 font-bold">*</span></label>
                             <div className="relative group">
                                 <UserIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                 <input
@@ -319,7 +295,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     value={formData.fullName}
                                     onChange={e => setFormData({ ...formData, fullName: e.target.value })}
                                     placeholder="VD: NGUYỄN VĂN A"
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-foreground uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
                         </div>
@@ -327,7 +303,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
 
                     <div className="grid grid-cols-2 gap-5">
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Mật khẩu {!editingUser && <span className="text-red-500 font-bold">*</span>}</label>
+                            <label className="data-label text-sky-600 ml-1">Mật khẩu {!editingUser && <span className="text-red-500 font-bold">*</span>}</label>
                             <div className="relative group">
                                 <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                 <input
@@ -335,12 +311,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                                     placeholder={editingUser ? "ĐỂ TRỐNG NẾU KHÔNG ĐỔI" : "******"}
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-foreground uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-black text-sky-600 dark:text-sky-400 uppercase ml-1 tracking-wider">Email</label>
+                            <label className="data-label text-sky-600 ml-1">Email</label>
                             <div className="relative group">
                                 <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors" />
                                 <input
@@ -348,14 +324,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                     value={formData.email || ''}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     placeholder="VD: EMAIL@EXAMPLE.COM"
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-foreground uppercase outline-none focus:ring-2 focus:ring-sky-500/20 shadow-sm transition-all"
                                 />
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vai trò & Trạng thái</label>
+                        <label className="data-label text-slate-500 ml-1">Vai trò & Trạng thái</label>
                         {editingUser?.role === 'ADMIN' && (
                             <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-100 flex items-center gap-2">
                                 <Shield size={14} /> Không thể thay đổi vai trò của Quản trị viên.
@@ -375,7 +351,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                                         key={r}
                                         disabled={editingUser?.role === 'ADMIN'}
                                         onClick={() => setFormData({ ...formData, role: r, permissions: ROLE_PERMISSIONS[r] })}
-                                        className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all active:scale-95 ${isActive
+                                        className={`flex-1 py-3 rounded-xl data-label transition-all active:scale-95 ${isActive
                                             ? `bg-gradient-to-r ${colors} text-white shadow-lg`
                                             : editingUser?.role === 'ADMIN'
                                                 ? 'bg-transparent text-slate-300 cursor-not-allowed'
@@ -389,35 +365,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                         </div>
                     </div>
 
-                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex justify-between items-center">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                                <Shield size={14} /> Quyền hạn của vai trò
-                            </label>
-                            <span className="text-[10px] text-slate-400">{(ROLE_PERMISSIONS[formData.role as UserRole] || []).length} quyền hệ thống</span>
-                        </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <div className="flex flex-wrap gap-2">
-                                {(ROLE_PERMISSIONS[formData.role as UserRole] || []).map(perm => (
-                                    <span key={perm} className="px-2 py-1 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold border border-slate-100 dark:border-slate-800">
-                                        {PERMISSIONS[perm]}
-                                    </span>
-                                ))}
-                                {(ROLE_PERMISSIONS[formData.role as UserRole] || []).length === 0 && (
-                                    <span className="text-[10px] text-slate-400 italic">Vai trò này không có quyền thực hiện hành động</span>
-                                )}
-                            </div>
-                            <p className="mt-3 text-[10px] text-amber-600 font-medium italic">
-                                * Hệ thống hiện tại áp dụng phân quyền tự động theo vai trò.
-                            </p>
-                        </div>
-                    </div>
 
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                        <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-black text-xs uppercase text-slate-400 hover:text-rose-500 transition-all">Hủy bỏ</button>
-                        <button onClick={handleSave} className="px-10 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 active:scale-95 transition-all uppercase text-xs tracking-widest flex items-center gap-2">
-                            <Save size={16} /> Lưu thông tin
+                        <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 data-label text-slate-400 hover:text-rose-500 transition-all">Hủy bỏ</button>
+                        <button onClick={handleSave} className="px-10 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2">
+                            <Save size={16} /> <span className="data-label text-white">Lưu thông tin</span>
                         </button>
                     </div>
                 </div>

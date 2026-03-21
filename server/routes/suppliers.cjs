@@ -50,7 +50,7 @@ router.get('/customer-codes', verifyToken, (req, res) => {
     }
 });
 
-router.post('/customer-codes/save', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.post('/customer-codes/save', verifyToken, requirePermission('MANAGE_SUPPLIERS'), (req, res) => {
     try {
         const code = req.body;
         const now = new Date().toISOString();
@@ -72,7 +72,7 @@ router.post('/customer-codes/save', verifyToken, requirePermission('MANAGE_MATER
     }
 });
 
-router.post('/customer-codes/delete', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.post('/customer-codes/delete', verifyToken, requirePermission('MANAGE_SUPPLIERS'), (req, res) => {
     try {
         const { id } = req.body;
         const materialsUsingCode = db.prepare(
@@ -87,7 +87,7 @@ router.post('/customer-codes/delete', verifyToken, requirePermission('MANAGE_MAT
     }
 });
 
-router.post('/customer-codes/import', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.post('/customer-codes/import', verifyToken, requirePermission('MANAGE_SUPPLIERS'), (req, res) => {
     try {
         const { codes } = req.body;
         if (!Array.isArray(codes) || codes.length === 0)
@@ -120,7 +120,7 @@ router.post('/customer-codes/import', verifyToken, requirePermission('MANAGE_MAT
     }
 });
 
-router.post('/customer-codes/merge', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.post('/customer-codes/merge', verifyToken, requirePermission('MANAGE_SUPPLIERS'), (req, res) => {
     try {
         const { supplierIds, primaryCode, primaryName, description } = req.body;
         if (!Array.isArray(supplierIds) || supplierIds.length < 2)

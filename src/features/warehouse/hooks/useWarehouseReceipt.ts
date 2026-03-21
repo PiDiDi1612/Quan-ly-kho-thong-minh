@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Material, WorkshopCode, TransactionType } from '@/types';
 import { WORKSHOPS } from '@/constants';
 import { ActivityLog } from '@/types';
@@ -41,6 +41,10 @@ export const useWarehouseReceipt = ({
     const [receiptSupplier, setReceiptSupplier] = useState('');
     const [orderCode, setOrderCode] = useState('');
     const [receiptId, setReceiptId] = useState('');
+
+    useEffect(() => {
+        setReceiptId(generateReceiptId(receiptType, receiptWorkshop));
+    }, [receiptType, receiptWorkshop, generateReceiptId]);
 
     // UI State
     const [receiptSearchClass, setReceiptSearchClass] = useState<string>('ALL');

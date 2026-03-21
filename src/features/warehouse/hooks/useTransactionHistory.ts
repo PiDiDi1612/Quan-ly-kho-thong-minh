@@ -4,6 +4,7 @@ import { transactionService } from '@/domain';
 import { apiService } from '@/services/api';
 import { useToast } from '@/hooks/useToast';
 import { useDebounce } from '@/hooks/useDebounce';
+import { formatDateStr } from '@/utils/dateUtils';
 import * as XLSX from 'xlsx-js-style';
 
 export const useTransactionHistory = (
@@ -160,7 +161,7 @@ export const useTransactionHistory = (
             const dataToExport = Array.isArray(result) ? result : (result.data || []);
 
             const data = dataToExport.map((t: any) => ({
-                'Ngày': new Date(t.date).toLocaleDateString('vi-VN') + ' ' + (t.transactionTime || ''),
+                'Ngày': formatDateStr(t.date) + ' ' + (t.transactionTime || ''),
                 'Mã Giao Dịch': t.id,
                 'Mã Vật tư': t.materialId,
                 'Loại': t.type === 'IN' ? 'Nhập' : 'Xuất',

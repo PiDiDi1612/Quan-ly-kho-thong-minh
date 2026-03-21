@@ -50,7 +50,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard, permission: null },
         { id: 'warehouse_inventory', label: 'Danh Sách Vật Tư', icon: Package, permission: 'VIEW_MATERIAL' },
         { id: 'warehouse_receipt', label: 'Lập Phiếu (Nhập/Xuất)', icon: Plus, permission: 'MANAGE_WAREHOUSE' },
-        { id: 'warehouse_approval', label: 'Duyệt Phiếu', icon: ListChecks, permission: 'APPROVE_TRANSACTION', badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
+        { id: 'warehouse_approval', label: 'Duyệt Phiếu', icon: ListChecks, permission: 'VIEW_TRANSACTION', badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
         { id: 'warehouse_transfer', label: 'Chuyển Kho', icon: ArrowRightLeft, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_inventory_check', label: 'Kiểm Kê Kho', icon: ClipboardList, permission: 'MANAGE_WAREHOUSE' },
         { id: 'warehouse_history', label: 'Lịch Sử Giao Dịch', icon: History, permission: 'VIEW_TRANSACTION' },
@@ -64,13 +64,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       items: [
         { id: 'planning_projects', label: 'Cấu Hình Dự Án', icon: Map, permission: 'PLANNING_PROJECTS' },
         { id: 'planning_estimates', label: 'Dự Toán Đơn Hàng', icon: ClipboardList, permission: 'PLANNING_ESTIMATES' },
-      ]
-    },
-    {
-      title: 'BÁO CÁO',
-      items: [
-        { id: 'reports_history', label: 'Lịch Sử Giao Dịch', icon: BarChart, permission: 'VIEW_REPORT' },
-        { id: 'reports_inventory', label: 'Báo Cáo Tồn Kho', icon: FileSpreadsheet, permission: 'VIEW_REPORT' },
       ]
     },
     {
@@ -112,18 +105,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Nav Items */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-1 no-scrollbar">
-        <TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={0}>
+        <div className="flex-1 overflow-y-auto pb-4 no-scrollbar">
           {menuGroups.map((group, idx) => {
             const visibleItems = group.items.filter(
               item => !item.permission || hasPermission(item.permission as Permission)
             );
             if (visibleItems.length === 0) return null;
-
             return (
-              <div key={idx} className="mb-4">
+              <div key={idx} className={idx === 0 ? "pt-4 mb-4" : "mb-4"}>
                 {!isCollapsed && (
-                  <p className="px-6 pt-8 pb-3 text-[12px] font-extrabold text-emerald-800 dark:text-emerald-400 tracking-[0.25em] uppercase flex items-center gap-2 border-b border-emerald-100/50 dark:border-emerald-900/30 mx-4 mb-2">
+                  <p className="px-6 pt-2 pb-3 text-[12px] font-extrabold text-emerald-800 dark:text-emerald-400 tracking-[0.25em] uppercase flex items-center gap-2 border-b border-emerald-100/50 dark:border-emerald-900/30 mx-4 mb-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-600 shadow-sm" />
                     {group.title}
                   </p>
@@ -135,7 +127,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   {visibleItems.map(item => {
                     const isActive = activeTab === item.id;
                     const Icon = item.icon;
-
                     const btn = (
                       <button
                         key={item.id}
@@ -147,7 +138,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground border-l-[4px] border-transparent rounded-l-none font-medium'
                           }`}
                       >
-                        <div className={`shrink-0 flex items-center justify-center w-5 h-5`}>
+                        <div className="shrink-0 flex items-center justify-center w-5 h-5">
                           <Icon size={20} className={`${isActive ? 'text-emerald-600' : 'text-muted-foreground group-hover:text-foreground'} transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         </div>
                         {!isCollapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
@@ -160,9 +151,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                           <div className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-card animate-pulse" />
                         )}
                       </button>
-
                     );
-
                     return isCollapsed ? (
                       <Tooltip key={item.id}>
                         <TooltipTrigger asChild>{btn}</TooltipTrigger>
@@ -178,8 +167,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </div>
             );
           })}
-        </TooltipProvider>
-      </div>
+        </div>
+      </TooltipProvider>
 
     </aside>
   );

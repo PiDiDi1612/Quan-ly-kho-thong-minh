@@ -50,20 +50,20 @@ export const MaterialToolbar: React.FC<MaterialToolbarProps> = ({
             value={searchTerm}
             onChange={onSearchChange}
             placeholder="Tìm kiếm vật tư theo mã, tên..."
-            className="pl-12 h-12 bg-white dark:bg-slate-900 border-slate-200 rounded-xl focus-visible:ring-emerald-600/20 font-bold shadow-sm w-full min-w-[350px]"
+            className="pl-12 h-12 bg-white dark:bg-slate-900 border-slate-200 rounded-xl focus-visible:ring-emerald-600/20 font-bold shadow-sm max-w-[300px]"
           />
 
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl h-12 border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
-            <button onClick={() => onWorkshopFilterChange('ALL')} className={`px-4 rounded-lg text-[10px] font-black tracking-widest transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>TẤT CẢ</button>
+            <button onClick={() => onWorkshopFilterChange('ALL')} className={`px-4 rounded-lg data-label transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>TẤT CẢ</button>
             {WORKSHOPS.map((w) => (
-              <button key={w.code} onClick={() => onWorkshopFilterChange(w.code)} className={`px-4 rounded-lg text-[10px] font-black tracking-widest transition-all ${workshopFilter === w.code ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{w.code}</button>
+              <button key={w.code} onClick={() => onWorkshopFilterChange(w.code)} className={`px-4 rounded-lg data-label transition-all ${workshopFilter === w.code ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{w.code}</button>
             ))}
           </div>
 
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl h-12 border border-slate-200 dark:border-slate-700 shrink-0 shadow-inner">
-            <button onClick={() => onClassFilterChange('ALL')} className={`px-4 rounded-lg text-[10px] font-black transition-all ${classFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}>TẤT CẢ</button>
+            <button onClick={() => onClassFilterChange('ALL')} className={`px-4 rounded-lg data-label transition-all ${classFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}>TẤT CẢ</button>
             {CLASSIFICATIONS.map((c) => (
-              <button key={c} onClick={() => onClassFilterChange(c as MaterialClassification)} className={`px-4 rounded-lg text-[10px] font-black transition-all ${classFilter === c ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{c === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</button>
+              <button key={c} onClick={() => onClassFilterChange(c as MaterialClassification)} className={`px-4 rounded-lg data-label transition-all ${classFilter === c ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500'}`}>{c === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</button>
             ))}
           </div>
         </div>
@@ -87,7 +87,7 @@ export const MaterialToolbar: React.FC<MaterialToolbarProps> = ({
                 onClick={onCreate}
               >
                 <Plus size={20} />
-                <span className="text-[11px] tracking-wider">THÊM MỚI</span>
+                <span className="data-label">THÊM MỚI</span>
               </Button>
             </div>
           )}

@@ -271,14 +271,18 @@ export const InventoryCheck: React.FC<InventoryCheckProps> = ({
                     {filteredItems.map(item => {
                       const diff = item.actualQty - item.systemQty;
                       return (
-                        <TableRow key={item.materialId} className="hover:bg-emerald-50/30 transition-colors">
-                          <TableCell className="font-mono text-xs">{item.materialId}</TableCell>
-                          <TableCell className="font-medium">
-                            {item.materialName}
-                            <div className="text-[10px] text-muted-foreground">{item.unit}</div>
+                        <TableRow key={item.materialId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-50 dark:border-slate-800/50">
+                          <TableCell className="px-6 py-4">
+                            <span className="data-label text-slate-500">{item.materialId}</span>
                           </TableCell>
-                          <TableCell className="text-right font-bold text-blue-600">
-                            {item.systemQty.toLocaleString()}
+                          <TableCell className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-foreground uppercase">{item.materialName}</span>
+                              <span className="content-text text-[10px] text-slate-400 uppercase font-bold">{item.unit}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-6 py-4 text-right">
+                            <span className="data-label text-sm text-sky-600 bg-sky-50 dark:bg-sky-900/20 px-2.5 py-1 rounded-xl tabular-nums font-bold">{item.systemQty.toLocaleString()}</span>
                           </TableCell>
                           <TableCell>
                             <Input 

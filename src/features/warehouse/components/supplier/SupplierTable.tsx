@@ -2,6 +2,7 @@ import React from 'react';
 import { Supplier } from '@/types';
 import { Edit2, Trash2, Hash, Building2, FileText, Calendar, Settings } from 'lucide-react';
 import { EmptyState } from '@/components/business';
+import { formatDateStr } from '@/utils/dateUtils';
 import { FileSpreadsheet } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -41,11 +42,11 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                                     }}
                                 />
                             </th>
-                            <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Mã NCC</th>
-                            <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Building2 size={12} className="inline mr-1 text-indigo-500 -mt-0.5 stroke-[3]" />Tên NCC</th>
-                            <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><FileText size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Mô tả</th>
-                            <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />Ngày tạo</th>
-                            <th className="px-6 py-5 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />Thao tác</th>
+                            <th className="px-6 py-5 table-header-text"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Mã NCC</th>
+                            <th className="px-6 py-5 table-header-text"><Building2 size={12} className="inline mr-1 text-indigo-500 -mt-0.5 stroke-[3]" />Tên NCC</th>
+                            <th className="px-6 py-5 table-header-text"><FileText size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Mô tả</th>
+                            <th className="px-6 py-5 table-header-text"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />Ngày tạo</th>
+                            <th className="px-6 py-5 table-header-text text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -64,16 +65,16 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                                     />
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest text-[11px] px-2.5 py-1 bg-sky-50 dark:bg-sky-900/20 rounded-xl">{supplier.code}</span>
+                                    <span className="data-label text-sky-600 bg-sky-50 dark:bg-sky-900/20 px-2.5 py-1 rounded-xl">{supplier.code}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight text-sm">{supplier.name}</span>
+                                    <span className="font-bold text-foreground text-sm">{supplier.name}</span>
                                 </td>
                                 <td className="px-6 py-4 max-w-xs truncate">
-                                    <span className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed">{supplier.description || '-'}</span>
+                                    <span className="content-text text-xs leading-relaxed">{supplier.description || '-'}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="text-slate-400 text-[11px] font-black tracking-widest bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl">{new Date(supplier.createdAt).toLocaleDateString('en-GB')}</span>
+                                    <span className="content-text text-[11px] font-bold bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-xl">{formatDateStr(supplier.createdAt)}</span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -35,6 +35,7 @@ import { InventoryCheck } from './features/inventory/InventoryCheck';
 import { InventoryHistory } from './features/inventory/InventoryHistory';
 import { ApprovalQueue } from './features/approval/ApprovalQueue';
 import { RequireRole } from './components/RequireRole';
+import { NotificationBell } from './components/NotificationBell';
 import { apiService } from './services/api';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
@@ -218,7 +219,7 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="h-16 shrink-0 bg-card border-b border-border flex items-center justify-between px-8 gap-6 z-20 backdrop-blur-md bg-card/80 sticky top-0">
           <div className="flex items-center gap-4 min-w-0">
-            <h2 className="text-lg font-extrabold text-foreground tracking-tight whitespace-nowrap">
+            <h2 className="page-title">
               {activeTab === 'dashboard' ? '📊 Dashboard' :
                 activeTab === 'warehouse_inventory' ? 'Kho Vật Tư' :
                   activeTab === 'warehouse_history' ? 'Lịch Sử Giao Dịch' :
@@ -235,20 +236,27 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden lg:flex flex-col items-end leading-none mr-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic flex items-center gap-1 mb-1">
-                <Clock size={10} /> {currentTime.toLocaleDateString('vi-VN')}
-              </span>
-              <span className="text-2xl font-black text-emerald-600 tabular-nums tracking-tighter shadow-emerald-500/10 transition-all">
-                {currentTime.toLocaleTimeString('vi-VN', { hour12: false })}
-              </span>
+            <div className="hidden lg:flex items-center bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 rounded-xl h-10 px-1 gap-0 shadow-sm">
+              <div className="flex items-center px-3 border-r border-sky-200/60 dark:border-sky-700/50 h-full">
+                <span className="text-lg font-black text-sky-700 dark:text-sky-300 tabular-nums tracking-tight leading-none">
+                  {currentTime.toLocaleTimeString('vi-VN', { hour12: false })}
+                </span>
+              </div>
+              <div className="flex flex-col items-start px-3 leading-none justify-center">
+                <span className="text-[9px] font-black text-sky-500 dark:text-sky-400 uppercase tracking-wider">
+                  {currentTime.toLocaleDateString('vi-VN', { weekday: 'long' }).toUpperCase()}
+                </span>
+                <span className="text-[11px] font-extrabold text-sky-700 dark:text-sky-300 tabular-nums">
+                  {currentTime.toLocaleDateString('vi-VN')}
+                </span>
+              </div>
             </div>
 
             <div className="h-8 w-px bg-border mx-1 hidden lg:block"></div>
 
             <div className="hidden lg:flex flex-col items-end leading-none mr-2">
-              <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Server IP</span>
-              <span className="text-xs font-bold text-foreground tabular-nums">{serverIp || 'Local'}</span>
+              <span className="data-label text-muted-foreground">Server IP</span>
+              <span className="text-sm font-bold text-foreground tabular-nums">{serverIp || 'Local'}</span>
             </div>
 
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-muted-foreground hover:text-emerald-600 transition-all" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
@@ -258,11 +266,9 @@ const App: React.FC = () => {
             <div className="h-8 w-px bg-border mx-1 hidden sm:block"></div>
 
             <div className="flex items-center gap-3 pl-2">
+              <NotificationBell currentUser={currentUser} />
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-foreground leading-none mb-1">{currentUser?.fullName || 'User'}</p>
-                <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-black uppercase text-emerald-600 border-emerald-600/20 bg-emerald-50/50 dark:bg-emerald-950/20">
-                  {userRole}
-                </Badge>
               </div>
               <Avatar className="h-10 w-10 cursor-pointer ring-2 ring-emerald-600/10 hover:ring-emerald-600/40 transition-all shadow-sm" onClick={() => setIsAccountModalOpen(true)}>
                 <AvatarFallback className="bg-emerald-600 text-white font-black">{currentUser?.fullName?.charAt(0) || 'U'}</AvatarFallback>
@@ -292,7 +298,7 @@ const App: React.FC = () => {
                   <Card key={i} className={`overflow-hidden border-t-4 border-t-emerald-600 card-lift group`}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-6">
                       <div className="space-y-1">
-                        <p className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground">{stat.label}</p>
+                        <p className="data-label text-muted-foreground">{stat.label}</p>
                         <h3 className="text-4xl font-black tracking-tighter tabular-nums decoration-emerald-500/30 group-hover:underline underline-offset-4 decoration-2">{stat.value}</h3>
                       </div>
                       <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -310,12 +316,12 @@ const App: React.FC = () => {
 
               <Card className="shadow-sm mt-8 border-t-4 border-t-emerald-600 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
                 <CardHeader className="p-6 pb-2">
-                  <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+                  <CardTitle className="section-title flex items-center gap-2">
                     <Activity className="text-emerald-600" size={20} /> Tổng quan nhập xuất 7 ngày gần đây
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="h-[280px] mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" debounce={100}>
                     <AreaChart data={last7DaysData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorIn" x1="0" y1="0" x2="0" y2="1">
@@ -344,7 +350,7 @@ const App: React.FC = () => {
                   <CardHeader className="p-6 pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+                        <CardTitle className="section-title flex items-center gap-2">
                           {summary.lowStockCount > 0 ? (
                             <><AlertTriangle className="text-rose-500" size={20} /> Cảnh báo tồn kho thấp</>
                           ) : (
@@ -402,7 +408,7 @@ const App: React.FC = () => {
 
                 <Card className="lg:col-span-12 xl:col-span-5 shadow-sm overflow-hidden">
                   <CardHeader className="p-6 pb-2">
-                    <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+                    <CardTitle className="section-title flex items-center gap-2">
                       <History className="text-emerald-600" size={20} /> Giao dịch gần đây
                     </CardTitle>
                     <CardDescription>5 phiếu giao dịch mới nhất được thực hiện</CardDescription>
@@ -463,8 +469,8 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'warehouse_approval' && (
-            <RequireRole role={userRole} allowedRoles={['ADMIN']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
-              <ApprovalQueue onUpdate={loadData} />
+            <RequireRole role={userRole} allowedRoles={['ADMIN', 'WAREHOUSE']} fallback={<div className="p-8 text-center text-muted-foreground">Bạn không có quyền truy cập tính năng này</div>}>
+              <ApprovalQueue onUpdate={loadData} canApprove={userRole === 'ADMIN'} userRole={userRole} />
             </RequireRole>
           )}
 
@@ -752,7 +758,6 @@ const App: React.FC = () => {
         title={confirmDialog.title} message={confirmDialog.message}
         onConfirm={confirmDialog.onConfirm} type={confirmDialog.type}
       />
-      <Toaster />
     </div>
   );
 };

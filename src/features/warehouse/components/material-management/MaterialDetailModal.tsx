@@ -3,6 +3,7 @@ import { History, Info, Package } from 'lucide-react';
 import { Material, Transaction } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatDateStr } from '@/utils/dateUtils';
 import { Modal } from '@/components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -92,7 +93,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
                         .slice(0, 50)
                         .map((t) => (
                           <TableRow key={t.id} className="border-slate-100 dark:border-slate-800">
-                            <TableCell className="text-[11px] font-bold text-slate-500 whitespace-nowrap">{new Date(t.date).toLocaleDateString('vi-VN')} {t.transactionTime || ''}</TableCell>
+                            <TableCell className="text-[11px] font-bold text-slate-500 whitespace-nowrap">{formatDateStr(t.date)} {t.transactionTime || ''}</TableCell>
                             <TableCell><span className={`inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${t.type === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{t.type === 'IN' ? 'Nhập' : 'Xuất'}</span></TableCell>
                             <TableCell className="text-right font-black text-sm tabular-nums"><span className={t.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}>{t.type === 'IN' ? '+' : '-'}{formatNumber(t.quantity)}</span></TableCell>
                             <TableCell className="text-[10px] font-black text-slate-400 uppercase">{t.user}</TableCell>

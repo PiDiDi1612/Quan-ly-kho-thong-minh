@@ -106,6 +106,13 @@ db.exec(`
     id TEXT PRIMARY KEY, warehouse TEXT, checkDate TEXT, checkedBy TEXT,
     items TEXT, status TEXT, note TEXT, createdAt TEXT
   );
+  CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY, userId TEXT, role TEXT, type TEXT, message TEXT, 
+    referenceId TEXT, isRead INTEGER DEFAULT 0, createdAt TEXT
+  );
+  CREATE TABLE IF NOT EXISTS system_settings (
+    key TEXT PRIMARY KEY, value TEXT
+  );
 `);
 
 // ===== INDEXES =====
@@ -124,6 +131,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tx_date_time        ON transactions(date DESC, transactionTime DESC);
   CREATE INDEX IF NOT EXISTS idx_tx_receipt_date     ON transactions(receiptId, date DESC);
   CREATE INDEX IF NOT EXISTS idx_mat_ws_name         ON materials(workshop, name);
+  CREATE INDEX IF NOT EXISTS idx_notify_user         ON notifications(userId, createdAt DESC);
+  CREATE INDEX IF NOT EXISTS idx_notify_role         ON notifications(role, createdAt DESC);
 `);
 
 // ===== MIGRATIONS =====

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Supplier } from '@/types';
 import { supplierService } from '@/domain/services/SupplierService';
 import { useToast } from '@/hooks/useToast';
+import { formatDateStr } from '@/utils/dateUtils';
 import * as XLSX from 'xlsx-js-style';
 
 export const useSupplierManagement = (onUpdate: () => void) => {
@@ -131,7 +132,7 @@ export const useSupplierManagement = (onUpdate: () => void) => {
         }
         const data = suppliers.map(c => ({
             'Mã NCC': c.code, 'Tên NCC': c.name, 'Mô tả': c.description || '',
-            'Ngày tạo': new Date(c.createdAt).toLocaleDateString('vi-VN')
+            'Ngày tạo': formatDateStr(c.createdAt)
         }));
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();

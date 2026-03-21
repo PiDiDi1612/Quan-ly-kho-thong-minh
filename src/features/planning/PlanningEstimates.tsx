@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DateInput } from '../../components/ui/date-input';
 import { ExcelMappingModal, ExcelField } from '../../components/ui/excel-mapping-modal';
 import { ConfirmModal } from '../../components/ui/confirm-modal';
+import { DateRangeFilter } from '../../components/business/DateRangeFilter';
 import { usePlanningEstimates } from './hooks/usePlanningEstimates';
 
 interface PlanningEstimatesProps {
@@ -103,7 +104,7 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             placeholder="MÃ/TÊN ĐƠN HÀNG..."
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl font-black text-[10px] text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl data-label text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
                         />
                     </div>
                     <div className="relative group flex-1">
@@ -113,29 +114,22 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                             value={projectSearch}
                             onChange={e => setProjectSearch(e.target.value)}
                             placeholder="TÊN DỰ ÁN..."
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl font-black text-[10px] text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl data-label text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl h-10 border border-slate-200 dark:border-slate-700 shadow-inner">
-                    <div className="flex items-center px-2 gap-2 border-r border-slate-200 dark:border-slate-700">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Từ</span>
-                        <DateInput value={startDate} onChange={val => setStartDate(val)} className="w-24 border-none bg-transparent h-auto p-0 text-[11px] font-bold text-sky-600" />
-                    </div>
-                    <div className="flex items-center px-2 gap-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Đến</span>
-                        <DateInput value={endDate} onChange={val => setEndDate(val)} className="w-24 border-none bg-transparent h-auto p-0 text-[11px] font-bold text-sky-600" />
-                    </div>
-                    {(startDate || endDate) && (
-                        <button onClick={() => { setStartDate(''); setEndDate(''); }} className="ml-1 p-1 text-rose-400 hover:text-rose-600 rounded-lg transition-colors"><X size={14} /></button>
-                    )}
-                </div>
+                <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                />
 
                 <div className="flex p-0.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl h-10">
-                    <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tất cả</button>
+                    <button onClick={() => setWorkshopFilter('ALL')} className={`px-4 py-1.5 rounded-lg data-label transition-all ${workshopFilter === 'ALL' ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tất cả</button>
                     {WORKSHOPS.map(w => (
-                        <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${workshopFilter === w.code ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{w.code}</button>
+                        <button key={w.code} onClick={() => setWorkshopFilter(w.code)} className={`px-4 py-1.5 rounded-lg data-label transition-all ${workshopFilter === w.code ? 'bg-white dark:bg-slate-700 text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{w.code}</button>
                     ))}
                 </div>
 
@@ -143,10 +137,10 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                     <div className="flex gap-2 ml-auto">
                         <button
                             onClick={() => handleOpenModal()}
-                            className="h-10 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2"
+                            className="h-10 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-2"
                         >
                             <Plus size={16} className="stroke-[3]" />
-                            Lập Dự Toán
+                            <span className="data-label">Lập Dự Toán</span>
                         </button>
                     </div>
                 )}
@@ -157,12 +151,12 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><ClipboardList size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Dự án / Đơn hàng</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />Ngày tạo</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Warehouse size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Xưởng</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Layers size={12} className="inline mr-1 text-indigo-500 -mt-0.5" />Vật tư</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Users size={12} className="inline mr-1 text-slate-400 -mt-0.5" />Người lập</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
+                            <th className="px-6 py-4 table-header-text"><ClipboardList size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Dự án / Đơn hàng</th>
+                            <th className="px-6 py-4 table-header-text text-center"><Calendar size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />Ngày tạo</th>
+                            <th className="px-6 py-4 table-header-text text-center"><Warehouse size={12} className="inline mr-1 text-amber-500 -mt-0.5 stroke-[3]" />Xưởng</th>
+                            <th className="px-6 py-4 table-header-text text-center"><Layers size={12} className="inline mr-1 text-indigo-500 -mt-0.5 stroke-[3]" />Vật tư</th>
+                            <th className="px-6 py-4 table-header-text text-center"><Users size={12} className="inline mr-1 text-slate-400 -mt-0.5 stroke-[3]" />Người lập</th>
+                            <th className="px-6 py-4 table-header-text text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -170,24 +164,24 @@ export const PlanningEstimates: React.FC<PlanningEstimatesProps> = (props) => {
                             <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest">{b.projectName || 'KHÔNG CÓ DỰ ÁN'}</span>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{b.orderCode}</span>
+                                        <span className="data-label text-sky-600 mb-1">{b.projectName || 'KHÔNG CÓ DỰ ÁN'}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-foreground line-clamp-1">{b.orderName}</span>
                                         </div>
-                                        <span className="text-[11px] text-slate-400 italic line-clamp-1">{b.orderName}</span>
+                                        <span className="data-label text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{b.orderCode}</span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className="text-xs font-bold text-slate-500">{new Date(b.createdAt).toLocaleDateString('vi-VN')}</span>
+                                    <span className="content-text text-[11px] font-bold bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-lg">{new Date(b.createdAt).toLocaleDateString('vi-VN')}</span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-400">{b.workshop}</span>
+                                    <span className="px-2.5 py-1 bg-sky-50 dark:bg-sky-900/20 rounded-lg data-label text-sky-600">{b.workshop}</span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className="text-xs font-bold text-sky-500 bg-sky-50 dark:bg-sky-900/20 px-2 py-1 rounded-lg">{b.items.length} hạng mục</span>
+                                    <span className="content-text text-[11px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg tabular-nums">{b.items.length} hạng mục</span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{b.createdByName || 'Admin'}</span>
+                                    <span className="content-text text-[11px] font-bold text-slate-600 dark:text-slate-400">{b.createdByName || 'Admin'}</span>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex justify-end gap-2">

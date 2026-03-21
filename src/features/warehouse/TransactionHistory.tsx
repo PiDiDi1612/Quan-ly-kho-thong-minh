@@ -1,6 +1,7 @@
 import React from 'react';
 import { Transaction, User } from '@/types';
 import { transactionService } from '@/domain';
+import { formatDateStr } from '@/utils/dateUtils';
 import { useToast } from '@/hooks/useToast';
 import { ConfirmDialog } from '@/components/business';
 import { useTransactionHistory } from './hooks/useTransactionHistory';
@@ -110,11 +111,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ material
                         <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
                             <h1 className="text-2xl font-bold uppercase tracking-widest">PHIẾU {r.type === 'IN' ? 'NHẬP KHO' : 'XUẤT KHO'}</h1>
                             <p className="text-sm mt-1">Mã phiếu: <span className="font-mono font-bold">{r.receiptId}</span></p>
-                            <p className="text-xs mt-1 italic">Ngày lập: {new Date().toLocaleDateString('vi-VN')} - {new Date().toLocaleTimeString('vi-VN')}</p>
+                            <p className="text-xs mt-1 italic">Ngày lập: {formatDateStr(new Date())} - {new Date().toLocaleTimeString('vi-VN')}</p>
                         </div>
                         <div className="grid grid-cols-3 gap-10 pb-4 border-b border-slate-200">
                             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Loại phiếu</label><p className="text-sm font-bold uppercase">{r.type === 'IN' ? 'Nhập kho' : 'Xuất kho'}</p></div>
-                            <div><label className="text-[10px] font-bold text-slate-500 uppercase">Thời gian</label><p className="text-sm font-bold">{new Date(r.date).toLocaleDateString('vi-VN')} {r.transactions[0]?.transactionTime || ''}</p></div>
+                            <div><label className="text-[10px] font-bold text-slate-500 uppercase">Thời gian</label><p className="text-sm font-bold">{formatDateStr(r.date)} {r.transactions[0]?.transactionTime || ''}</p></div>
                             <div><label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label><p className="text-sm font-bold uppercase">{r.user}</p></div>
                         </div>
                         <div className="mt-6">

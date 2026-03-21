@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Trash2, Clock, Hash, Layers, Users, RefreshCcw, History as HistoryIcon } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
+import { formatDateStr } from '@/utils/dateUtils';
 
 interface TransactionTableProps {
     receiptData: any[];
@@ -32,12 +33,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         return material || { name: materialId, unit: 'N/A' };
     };
     return (
-        <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
+            <div className="flex-1 overflow-y-auto min-h-0">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase tracking-widest font-bold text-[10px]">
+                    <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                            <th className="px-4 py-4 w-10 text-center">
+                            <th className="px-4 py-4 w-10 text-center table-header-text">
                                 <input
                                     type="checkbox"
                                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 focus:ring-sky-500"
@@ -48,14 +49,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                     }}
                                 />
                             </th>
-                            <th className="px-6 py-4"><Clock size={12} className="inline mr-1 text-sky-500" />Thời gian</th>
-                            <th className="px-6 py-4"><Hash size={12} className="inline mr-1 text-sky-500" />Mã phiếu</th>
-                            <th className="px-6 py-4"><Layers size={12} className="inline mr-1 text-sky-500" />Loại</th>
-                            <th className="px-6 py-4"><Users size={12} className="inline mr-1 text-sky-500" />Thực hiện</th>
-                            <th className="px-6 py-4 text-center">Vật tư</th>
-                            <th className="px-6 py-4 text-right">Tổng SL</th>
-                            <th className="px-6 py-4 text-center">Trạng thái</th>
-                            <th className="px-6 py-4 text-right">Thao tác</th>
+                            <th className="px-6 py-4 table-header-text"><Clock size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Thời gian</th>
+                            <th className="px-6 py-4 table-header-text"><Hash size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Mã phiếu</th>
+                            <th className="px-6 py-4 table-header-text"><Layers size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Loại</th>
+                            <th className="px-6 py-4 table-header-text"><Users size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Thực hiện</th>
+                            <th className="px-6 py-4 text-center table-header-text">Vật tư</th>
+                            <th className="px-6 py-4 text-right table-header-text">Tổng SL</th>
+                            <th className="px-6 py-4 text-center table-header-text">Trạng thái</th>
+                            <th className="px-6 py-4 text-right table-header-text">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -101,24 +102,24 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                             onClick={(e) => e.stopPropagation()}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 text-xs">
-                                        <div className="font-bold text-slate-700 dark:text-slate-300">{new Date(receipt.date).toLocaleDateString('vi-VN')}</div>
-                                        <div className="text-[10px] text-slate-400 font-mono">{receipt.transactions[0]?.transactionTime || ''}</div>
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-sm text-slate-700 dark:text-slate-300">{formatDateStr(receipt.date)}</div>
+                                        <div className="text-[10px] text-slate-400 font-mono italic">{receipt.transactions[0]?.transactionTime || ''}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="font-mono font-black text-sky-600 dark:text-sky-400 text-xs px-2 py-1 bg-sky-50 dark:bg-sky-900/30 rounded-lg border border-sky-100 dark:border-sky-800/50">
+                                        <span className="data-label text-sky-600 dark:text-sky-400 px-2 py-1 bg-sky-50 dark:bg-sky-900/30 rounded-lg border border-sky-100 dark:border-sky-800/50">
                                             {receipt.receiptId}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${receipt.type === 'IN'
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg data-label ${receipt.type === 'IN'
                                             ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
                                             : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
                                             }`}>
                                             {receipt.type === 'IN' ? 'Nhập' : 'Xuất'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-xs font-black text-slate-600 dark:text-slate-400 tracking-tight uppercase">
+                                    <td className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-400 tracking-tight uppercase">
                                         {receipt.user}
                                     </td>
                                     <td className="px-6 py-4">
@@ -140,15 +141,15 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <span className={`font-black text-xs ${receipt.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        <span className={`font-black text-sm tabular-nums ${receipt.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'}`}>
                                             {receipt.type === 'IN' ? '+' : '-'}{formatNumber(receipt.totalQuantity)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                            receipt.transactions[0]?.status === 'pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                            receipt.transactions[0]?.status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg data-label ${
+                                            receipt.transactions[0]?.status === 'pending' ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                                            receipt.transactions[0]?.status === 'approved' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                            'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
                                         }`}>
                                             {receipt.transactions[0]?.status === 'pending' ? 'Chờ duyệt' :
                                              receipt.transactions[0]?.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
@@ -190,7 +191,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700">
+            <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-700">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200/60 shadow-sm">
                     Hiển thị <span className="text-sky-600">{(txPage - 1) * txLimit + 1}</span> - <span className="text-sky-600">{Math.min(txPage * txLimit, txTotal)}</span> / {txTotal} phiếu
                 </div>

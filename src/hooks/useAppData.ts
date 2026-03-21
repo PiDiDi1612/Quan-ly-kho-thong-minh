@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Material, Transaction, User, ActivityLog, Project, OrderBudget } from '@/types';
 import { materialService, transactionService, userService, inventoryService, supplierService } from '@/domain';
 import { apiService } from '../services/api';
@@ -14,6 +14,7 @@ export const useAppData = (currentUser: User | null, setCurrentUser: (user: User
   const [suppliers, setSuppliers] = useState<any[]>([]);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const isSyncingRef = useRef(false);
   const [serverSummary, setServerSummary] = useState<any>(null);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
 
@@ -27,8 +28,11 @@ export const useAppData = (currentUser: User | null, setCurrentUser: (user: User
 
   const loadData = useCallback(async (isBackground = false) => {
     if (!isAuthenticated) return;
-    if (isSyncing && !isBackground) return;
-    if (!isBackground) setIsSyncing(true);
+    if (isSyncingRef.current && !isBackground) return;
+    if (!isBackground) {
+      setIsSyncing(true);
+      isSyncingRef.current = true;
+    }
     try {
       const [matRes, txData, projData, budData, suppData, usersData, logsData, summaryData, planningTxData] = await Promise.all([
         materialService.listMaterials({}),
@@ -74,9 +78,12 @@ export const useAppData = (currentUser: User | null, setCurrentUser: (user: User
     } catch (error) {
       console.error("Failed to load data", error);
     } finally {
-      if (!isBackground) setIsSyncing(false);
+      if (!isBackground) {
+        setIsSyncing(false);
+        isSyncingRef.current = false;
+      }
     }
-  }, [isAuthenticated, isSyncing, currentUser, setCurrentUser]);
+  }, [isAuthenticated, currentUser, setCurrentUser]);
 
   const debouncedLoadData = useMemo(() => debounce(() => {
     loadData(true);

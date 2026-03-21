@@ -86,6 +86,27 @@
   .card-lift {
     @apply hover:shadow-lg hover:-translate-y-1 transition-all duration-300;
   }
+
+  /* Typography System */
+  .page-title {
+    @apply text-2xl font-black uppercase tracking-tight text-foreground sm:text-3xl;
+  }
+
+  .section-title {
+    @apply text-lg font-bold text-foreground tracking-tight sm:text-xl;
+  }
+
+  .table-header-text {
+    @apply text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground/80;
+  }
+
+  .content-text {
+    @apply text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+
+  .data-label {
+    @apply text-[10px] font-black uppercase tracking-widest;
+  }
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

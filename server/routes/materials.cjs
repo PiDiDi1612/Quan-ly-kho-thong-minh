@@ -120,7 +120,7 @@ router.post('/save', verifyToken, (req, res) => {
 });
 
 // DELETE /api/materials/:id
-router.delete('/:id(*)', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.delete('/:id(*)', verifyToken, requirePermission('MANAGE_WAREHOUSE'), (req, res) => {
     const { id } = req.params;
     const hasTransactions = db.prepare('SELECT COUNT(*) as count FROM transactions WHERE materialId = ? OR targetMaterialId = ?').get(id, id);
     if (hasTransactions.count > 0) {

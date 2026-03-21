@@ -4,6 +4,8 @@ const router = express.Router();
 const { db, roundQty, todayISO, txId, generateMaterialIdForWorkshop } = require('../db/database.cjs');
 const { verifyToken } = require('../middleware/auth.cjs');
 const { requirePermission, hasPermission } = require('../middleware/permission.cjs');
+const { createNotification } = require('./notifications.cjs');
+const { isApprovalRequired } = require('./approval.cjs');
 
 let _io = null;
 const setIo = (io) => { _io = io; };
@@ -136,9 +138,9 @@ router.post('/delete', (req, res) => {
 router.post('/commit', (req, res) => {
     const { mode } = req.body || {};
     if (mode === 'TRANSFER') {
-        if (!hasPermission(req.auth?.user, 'TRANSFER_MATERIALS'))
+        if (!hasPermission(req.auth?.user, 'MANAGE_WAREHOUSE'))
             return res.status(403).json({ success: false, error: 'Forbidden' });
-    } else if (!hasPermission(req.auth?.user, 'CREATE_RECEIPT')) {
+    } else if (!hasPermission(req.auth?.user, 'MANAGE_WAREHOUSE')) {
         return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
@@ -148,7 +150,9 @@ router.post('/commit', (req, res) => {
         if (!receiptWorkshop || !receiptType) throw new Error('Thiếu thông tin phiếu.');
 
         const isPrivileged = userRole === 'ADMIN';
-        const needsApproval = receiptType === 'OUT' && !isPrivileged;
+        // Check approval toggle: if disabled, all OUT receipts auto-approve
+        const approvalEnabled = isApprovalRequired();
+        const needsApproval = receiptType === 'OUT' && !isPrivileged && approvalEnabled;
         const txStatus = needsApproval ? 'pending' : 'approved';
         const approvedBy = !needsApproval && receiptType === 'OUT' ? user : null;
 
@@ -176,6 +180,17 @@ router.post('/commit', (req, res) => {
             }
             if (!targetMat) throw new Error(`Vật tư ${baseMat.name} chưa có tại xưởng ${receiptWorkshop}.`);
 
+            // For OUT receipts: check total pending + new qty vs current stock
+            if (receiptType === 'OUT') {
+                const pendingSum = db.prepare("SELECT COALESCE(SUM(quantity), 0) as total FROM transactions WHERE materialId = ? AND status = 'pending' AND type = 'OUT'").get(targetMat.id);
+                const currentMat = db.prepare("SELECT quantity FROM materials WHERE id = ?").get(targetMat.id);
+                const currentStock = currentMat ? roundQty(currentMat.quantity) : 0;
+                const totalPending = roundQty(pendingSum.total);
+                if (totalPending + qty > currentStock) {
+                    throw new Error(`Không đủ tồn kho cho ${targetMat.name}. Hiện có: ${currentStock} ${baseMat.unit}, đang chờ duyệt: ${totalPending} ${baseMat.unit}, yêu cầu thêm: ${qty} ${baseMat.unit}`);
+                }
+            }
+
             if (txStatus === 'approved') {
                 if (receiptType === 'OUT') {
                     const result = db.prepare("UPDATE materials SET quantity = quantity - ?, lastUpdated = ? WHERE id = ? AND quantity >= ?")
@@ -202,7 +217,7 @@ router.post('/commit', (req, res) => {
 
         if (txRows.length === 0) throw new Error('Không có vật tư hợp lệ để tạo phiếu.');
         for (const row of txRows) insertTx.run(row);
-        return { affected: txRows.length, status: txStatus };
+        return { affected: txRows.length, status: txStatus, receiptId: txRows[0] ? txRows[0].receiptId : null };
     });
 
     const commitTransfer = db.transaction((payload) => {
@@ -254,9 +269,19 @@ router.post('/commit', (req, res) => {
     });
 
     try {
-        const result = mode === 'TRANSFER'
-            ? commitTransfer(req.body.payload || {})
-            : commitReceipt(req.body.payload || {}, req.auth?.user?.role || req.user?.role || 'GUEST');
+        let result;
+        if (mode === 'TRANSFER') {
+            result = commitTransfer(req.body.payload || {});
+        } else {
+            result = commitReceipt(req.body.payload || {}, req.auth?.user?.role || req.user?.role || 'GUEST');
+            if (result.status === 'pending') {
+                createNotification(
+                    null, 'ADMIN', 'receipt_pending',
+                    `Có phiếu xuất kho mới cần duyệt từ ${req.auth?.user?.fullName || req.auth?.user?.username || 'nhân viên'}`,
+                    result.receiptId
+                );
+            }
+        }
         notifyUpdate();
         return res.json({ success: true, ...result });
     } catch (error) {
@@ -265,7 +290,7 @@ router.post('/commit', (req, res) => {
 });
 
 // POST /api/transactions/delete_with_revert
-router.post('/delete_with_revert', requirePermission('DELETE_TRANSACTION'), (req, res) => {
+router.post('/delete_with_revert', requirePermission('MANAGE_WAREHOUSE'), (req, res) => {
     const revertDelete = db.transaction((id) => {
         const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(id);
         if (!tx) throw new Error('Không tìm thấy giao dịch.');
@@ -313,7 +338,7 @@ router.post('/delete_with_revert', requirePermission('DELETE_TRANSACTION'), (req
 });
 
 // POST /api/transactions/update
-router.post('/update', verifyToken, requirePermission('MANAGE_MATERIALS'), (req, res) => {
+router.post('/update', verifyToken, requirePermission('MANAGE_WAREHOUSE'), (req, res) => {
     const { id, quantity } = req.body;
     if (!id || !quantity || quantity <= 0)
         return res.status(400).json({ success: false, error: 'Dữ liệu không hợp lệ.' });

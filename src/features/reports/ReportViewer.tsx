@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import {
     FileText, Calendar, Search, Filter, Download, Trash2, Printer,
@@ -398,14 +398,14 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                                                 onChange={toggleAllSelection}
                                             />
                                         </th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Mã phiếu</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Ngày</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Loại</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Vật tư & Chi tiết</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Số lượng</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Xưởng</th>
-                                        <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Người lập</th>
-                                        <th className="px-6 py-5 text-center font-black uppercase tracking-widest text-[10px] text-slate-400">Thao tác</th>
+                                        <th className="px-6 py-5 table-header-text">Mã phiếu</th>
+                                        <th className="px-6 py-5 table-header-text">Ngày</th>
+                                        <th className="px-6 py-5 table-header-text">Loại</th>
+                                        <th className="px-6 py-5 table-header-text">Vật tư & Chi tiết</th>
+                                        <th className="px-6 py-5 table-header-text text-center">Số lượng</th>
+                                        <th className="px-6 py-5 table-header-text">Xưởng</th>
+                                        <th className="px-6 py-5 table-header-text">Người lập</th>
+                                        <th className="px-6 py-5 text-center table-header-text">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -593,12 +593,12 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({
                             <table className="w-full text-sm text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400">Vật tư & Mã</th>
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Phân loại</th>
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Kho</th>
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-right">Tồn hiện tại</th>
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-right">Định mức</th>
-                                        <th className="px-6 py-5 font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">Trạng thái</th>
+                                        <th className="px-6 py-5 table-header-text">Vật tư & Mã</th>
+                                        <th className="px-6 py-5 table-header-text text-center">Phân loại</th>
+                                        <th className="px-6 py-5 table-header-text text-center">Kho</th>
+                                        <th className="px-6 py-5 table-header-text text-right">Tồn hiện tại</th>
+                                        <th className="px-6 py-5 table-header-text text-right">Định mức</th>
+                                        <th className="px-6 py-5 table-header-text text-center">Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">

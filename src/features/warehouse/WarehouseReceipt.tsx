@@ -54,8 +54,29 @@ export const WarehouseReceipt: React.FC<WarehouseReceiptProps> = ({
                         receiptType={state.receiptType} setReceiptType={actions.setReceiptType}
                         receiptWorkshop={state.receiptWorkshop} setReceiptWorkshop={actions.setReceiptWorkshop}
                         receiptId={state.receiptId} setReceiptId={actions.setReceiptId}
-                        receiptTimeDisplay={state.receiptTime} setReceiptTimeDisplay={actions.setReceiptTime}
-                        handleDateChange={actions.setReceiptTime}
+                        receiptTimeDisplay={(() => {
+                            if (!state.receiptTime) return "";
+                            const [y, m, d] = state.receiptTime.split('-');
+                            return y && m && d ? `${d}/${m}/${y}` : state.receiptTime;
+                        })()}
+                        setReceiptTimeDisplay={(val) => {
+                            const parts = val.split('/');
+                            if (parts.length === 3) {
+                                const [d, m, y] = parts;
+                                if (d.length === 2 && m.length === 2 && y.length === 4) {
+                                    actions.setReceiptTime(`${y}-${m}-${d}`);
+                                }
+                            }
+                        }}
+                        handleDateChange={(val) => {
+                            const parts = val.split('/');
+                            if (parts.length === 3) {
+                                const [d, m, y] = parts;
+                                if (d.length === 2 && m.length === 2 && y.length === 4) {
+                                    actions.setReceiptTime(`${y}-${m}-${d}`);
+                                }
+                            }
+                        }}
                         receiptSupplier={state.receiptSupplier} setReceiptSupplier={actions.setReceiptSupplier}
                         orderCode={state.orderCode} setOrderCode={actions.setOrderCode}
                         safeSuppliers={safeSuppliers} activeOrders={activeOrders}

@@ -35,6 +35,8 @@ const { router: approvalRouter, setIo: approvalSetIo } = require('./routes/appro
 const usersRouter = require('./routes/users.cjs');
 const { router: suppliersRouter, setIo: suppliersSetIo } = require('./routes/suppliers.cjs');
 const { router: backupsRouter, performBackup, setIo: backupsSetIo } = require('./routes/backups.cjs');
+const planningRouter = require('./routes/planning.cjs');
+const { router: notificationsRouter } = require('./routes/notifications.cjs');
 
 // Pass io to routes that need it
 txSetIo(io);
@@ -68,12 +70,24 @@ app.use('/api', authMiddleware);
 // ===== PROTECTED ROUTES =====
 app.use('/api', systemRouter);
 app.use('/api/auth', authRoutes);
+app.use('/api', planningRouter);
 app.use('/api/materials', materialsRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/approval', approvalRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/suppliers', suppliersRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/customer-codes', (req, res, next) => {
+    // Alias to suppliersRouter for customer-codes compatibility
+    req.url = '/customer-codes' + (req.url === '/' ? '' : req.url);
+    suppliersRouter(req, res, next);
+});
 app.use('/api/backups', backupsRouter);
+
+// JSON 404 for API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ success: false, error: `API route not found: ${req.originalUrl}` });
+});
 
 // ===== STATIC FRONTEND =====
 const distPath = path.join(__dirname, '..', 'dist');

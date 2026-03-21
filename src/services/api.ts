@@ -169,6 +169,10 @@ class ApiService {
             this.socket = null;
         }
     }
+
+    public getSocket() {
+        return this.socket;
+    }
 }
 
 export const apiService = new ApiService();

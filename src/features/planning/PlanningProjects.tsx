@@ -208,7 +208,7 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             placeholder="TÌM DỰ ÁN THEO TÊN, ĐỊA CHỈ..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl font-black text-[10px] text-slate-800 dark:text-slate-200 uppercase outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 rounded-xl data-label text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
                         />
                     </div>
                 </div>
@@ -221,14 +221,14 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                                 className="h-10 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black uppercase text-[10px] tracking-wider shadow-md active:scale-95 transition-all flex items-center gap-2"
                             >
                                 <FileSpreadsheet size={16} />
-                                Nhập Excel
+                                <span className="data-label">Nhập Excel</span>
                             </button>
                             <button
                                 onClick={() => handleOpenModal()}
                                 className="h-10 px-5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-black uppercase text-[10px] tracking-wider rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition-all flex items-center gap-1"
                             >
                                 <Plus size={16} className="stroke-[3]" />
-                                Thêm Dự Án
+                                <span className="data-label">Thêm Dự Án</span>
                             </button>
                         </>
                     )}
@@ -240,35 +240,35 @@ export const PlanningProjects: React.FC<PlanningProjectsProps> = ({ projects, cu
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest min-w-[150px]"><Database size={12} className="inline mr-1 text-sky-500 -mt-0.5" />Công trình</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><MapPin size={12} className="inline mr-1 text-red-400 -mt-0.5" />Địa chỉ</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-center"><Phone size={12} className="inline mr-1 text-emerald-500 -mt-0.5" />SĐT</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest"><StickyNote size={12} className="inline mr-1 text-amber-500 -mt-0.5" />Ghi chú</th>
-                            <th className="px-6 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right"><Settings size={12} className="inline mr-1 -mt-0.5" />Thao tác</th>
+                            <th className="px-6 py-4 table-header-text min-w-[150px]"><Database size={12} className="inline mr-1 text-sky-500 -mt-0.5 stroke-[3]" />Công trình</th>
+                            <th className="px-6 py-4 table-header-text"><MapPin size={12} className="inline mr-1 text-red-400 -mt-0.5 stroke-[3]" />Địa chỉ</th>
+                            <th className="px-6 py-4 table-header-text text-center"><Phone size={12} className="inline mr-1 text-emerald-500 -mt-0.5 stroke-[3]" />SĐT</th>
+                            <th className="px-6 py-4 table-header-text"><StickyNote size={12} className="inline mr-1 text-amber-500 -mt-0.5 stroke-[3]" />Ghi chú</th>
+                            <th className="px-6 py-4 table-header-text text-right"><Settings size={12} className="inline mr-1 -mt-0.5 stroke-[3]" />Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                         {filteredProjects.map(pj => (
-                            <tr key={pj.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                            <tr key={pj.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-sky-50 dark:bg-sky-900/20 text-sky-600 rounded-xl flex items-center justify-center shrink-0">
                                             <Database size={18} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-sky-600 uppercase tracking-widest leading-none mb-1">{pj.code}</span>
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{pj.name}</span>
+                                            <span className="data-label text-sky-600 leading-none mb-1.5">{pj.code}</span>
+                                            <span className="text-sm font-bold text-foreground line-clamp-1 font-inter">{pj.name}</span>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{pj.address || '---'}</span>
+                                <td className="px-6 py-4 text-xs font-semibold text-slate-500">
+                                    <span className="content-text opacity-80 leading-relaxed line-clamp-2">{pj.address || '---'}</span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-300 text-center">
-                                    {pj.phone || '---'}
+                                <td className="px-6 py-4 text-center">
+                                    <span className="data-label text-sm text-slate-600 dark:text-slate-400 font-bold">{pj.phone || '---'}</span>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="text-xs text-slate-400 italic line-clamp-1">{pj.description || '---'}</span>
+                                    <span className="content-text text-xs italic line-clamp-1 opacity-70">{pj.description || '---'}</span>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex justify-end gap-2">

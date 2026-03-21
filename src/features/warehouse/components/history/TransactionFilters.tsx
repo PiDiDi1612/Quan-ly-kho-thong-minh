@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Download, Printer, X } from 'lucide-react';
 import { TransactionType } from '@/types';
 import { Button } from '@/components/ui/button';
+import { DateRangeFilter } from '@/components/business/DateRangeFilter';
 
 interface TransactionFiltersProps {
     searchTerm: string;
@@ -36,26 +37,12 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto ml-auto">
-                <div className="flex items-center border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#1E293B] rounded-xl h-11 shadow-sm px-3">
-                    <input 
-                        type="date" 
-                        value={dateRange?.from || ''} 
-                        onChange={(e) => setDateRange({ from: e.target.value, to: dateRange?.to || '' })}
-                        className="text-xs bg-transparent outline-none text-slate-600 dark:text-slate-300 font-bold"
-                    />
-                    <span className="text-slate-400 mx-2 text-xs">tới</span>
-                    <input 
-                        type="date" 
-                        value={dateRange?.to || ''} 
-                        onChange={(e) => setDateRange({ from: dateRange?.from || '', to: e.target.value })}
-                        className="text-xs bg-transparent outline-none text-slate-600 dark:text-slate-300 font-bold"
-                    />
-                    {(dateRange?.from || dateRange?.to) && (
-                        <button onClick={() => setDateRange(undefined)} className="ml-2 text-slate-400 hover:text-rose-500 transition-colors">
-                            <X size={14} />
-                        </button>
-                    )}
-                </div>
+                <DateRangeFilter
+                    startDate={dateRange?.from || ''}
+                    endDate={dateRange?.to || ''}
+                    onStartDateChange={(val) => setDateRange({ from: val, to: dateRange?.to || '' })}
+                    onEndDateChange={(val) => setDateRange({ from: dateRange?.from || '', to: val })}
+                />
 
                 <div className="flex p-1 bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-white/5 rounded-xl h-11 shadow-sm">
                     <button onClick={() => setTypeFilter('ALL')} className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${typeFilter === 'ALL' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>Tất cả</button>

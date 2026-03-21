@@ -25,7 +25,7 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                         value={state.searchTerm}
                         onChange={e => actions.setSearchTerm(e.target.value)}
                         placeholder="Tìm kiếm theo mã, tên NCC, mô tả..."
-                        className="w-full pl-12 pr-10 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all placeholder:text-slate-400"
+                        className="w-full pl-12 pr-10 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl data-label outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all placeholder:text-slate-400"
                     />
                     {state.searchTerm && (
                         <button
@@ -40,24 +40,24 @@ export const SupplierManagement: React.FC<SupplierManagementProps> = ({ onUpdate
                 <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
                     <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:border-emerald-200 dark:hover:text-emerald-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={actions.handleExportExcel}>
                         <Download size={16} className="text-emerald-500 group-hover:scale-110 transition-transform stroke-[3]" />
-                        <span className="hidden sm:inline">Xuất Excel</span>
+                        <span className="hidden sm:inline data-label">Xuất Excel</span>
                     </button>
                     {canManage && (
                         <>
                             <button className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:border-sky-200 dark:hover:text-sky-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm" onClick={actions.handleImportExcel}>
                                 <FileSpreadsheet size={16} className="text-sky-500 group-hover:scale-110 transition-transform stroke-[3]" />
-                                <span className="hidden sm:inline">Nhập Excel</span>
+                                <span className="hidden sm:inline data-label">Nhập Excel</span>
                             </button>
                             <button
                                 className="h-11 px-5 border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-purple-600 hover:border-purple-200 dark:hover:text-purple-400 font-black uppercase text-[11px] tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 group bg-white dark:bg-slate-900 shadow-sm"
                                 onClick={actions.handleOpenMergeModal}
                             >
                                 <Settings size={16} className="text-purple-500 group-hover:rotate-90 transition-transform stroke-[3]" />
-                                <span className="hidden sm:inline">Hợp nhất</span>
+                                <span className="hidden sm:inline data-label">Hợp nhất</span>
                             </button>
                             <button className="h-11 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 ml-1" onClick={() => actions.handleOpenModal()}>
                                 <Plus size={18} className="stroke-[3]" />
-                                Thêm Mới
+                                <span className="data-label">Thêm Mới</span>
                             </button>
                         </>
                     )}

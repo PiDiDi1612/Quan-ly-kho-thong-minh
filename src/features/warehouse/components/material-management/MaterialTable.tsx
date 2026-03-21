@@ -45,15 +45,15 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
         <Table>
           <TableHeader className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[60px] font-black uppercase text-[10px] tracking-widest text-slate-400 text-center">ẢNH</TableHead>
-              <TableHead className="w-[250px] font-black uppercase text-[10px] tracking-widest text-slate-400">VẬT TƯ & MÃ</TableHead>
-              <TableHead className="w-[100px] text-center font-black uppercase text-[10px] tracking-widest text-slate-400">PHÂN LOẠI</TableHead>
-              <TableHead className="w-[80px] text-center font-black uppercase text-[10px] tracking-widest text-slate-400">KHO</TableHead>
-              <TableHead className="w-[100px] text-right font-black uppercase text-[10px] tracking-widest text-slate-400">TỒN ĐẦU</TableHead>
-              <TableHead className="w-[100px] text-right font-black uppercase text-[10px] tracking-widest text-emerald-500">NHẬP</TableHead>
-              <TableHead className="w-[100px] text-right font-black uppercase text-[10px] tracking-widest text-rose-500">XUẤT</TableHead>
-              <TableHead className="w-[120px] text-right font-black uppercase text-[10px] tracking-widest text-sky-600">TỒN CUỐI</TableHead>
-              <TableHead className="w-[100px] text-right font-black uppercase text-[10px] tracking-widest text-slate-400">THAO TÁC</TableHead>
+              <TableHead className="w-[60px] table-header-text text-center">ẢNH</TableHead>
+              <TableHead className="w-[250px] table-header-text">VẬT TƯ & MÃ</TableHead>
+              <TableHead className="w-[100px] text-center table-header-text">PHÂN LOẠI</TableHead>
+              <TableHead className="w-[80px] text-center table-header-text">KHO</TableHead>
+              <TableHead className="w-[100px] text-right table-header-text">TỒN ĐẦU</TableHead>
+              <TableHead className="w-[100px] text-right table-header-text text-emerald-500">NHẬP</TableHead>
+              <TableHead className="w-[100px] text-right table-header-text text-rose-500">XUẤT</TableHead>
+              <TableHead className="w-[120px] text-right table-header-text text-sky-600">TỒN CUỐI</TableHead>
+              <TableHead className="w-[100px] text-right table-header-text">THAO TÁC</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,22 +80,22 @@ export const MaterialTable: React.FC<MaterialTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <span className="font-black text-sm text-slate-700 dark:text-slate-200 line-clamp-1 group-hover:text-emerald-600 transition-colors">{m.name}</span>
+                      <span className="font-bold text-sm text-foreground line-clamp-1 group-hover:text-emerald-600 transition-colors">{m.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-black text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-1.5 rounded uppercase">{m.id}</span>
+                        <span className="data-label text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-1.5 rounded">{m.id}</span>
                         {m.customerCode && <span className="text-[9px] font-black text-emerald-600/70 uppercase">KH: {m.customerCode}</span>}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-center"><span className={`inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${m.classification === 'Vật tư chính' ? 'bg-sky-50 text-sky-600 dark:bg-sky-900/20 dark:text-sky-400' : 'bg-rose-50 text-rose-500 dark:bg-rose-900/20 dark:text-rose-400'}`}>{m.classification === 'Vật tư chính' ? 'CHÍNH' : 'PHỤ'}</span></TableCell>
-                  <TableCell className="text-center font-black text-[10px] text-slate-400">{m.workshop}</TableCell>
-                  <TableCell className="text-right text-xs font-bold text-slate-400 tabular-nums">{formatNumber(m.openingStock ?? 0)}</TableCell>
-                  <TableCell className="text-right text-xs font-black text-emerald-600 tabular-nums">{formatNumber(m.periodIn ?? 0)}</TableCell>
-                  <TableCell className="text-right text-xs font-black text-rose-500 tabular-nums">{formatNumber(m.periodOut ?? 0)}</TableCell>
+                  <TableCell className="text-center font-bold text-[10px] text-muted-foreground">{m.workshop}</TableCell>
+                  <TableCell className="text-right text-xs font-bold text-muted-foreground tabular-nums">{formatNumber(m.openingStock ?? 0)}</TableCell>
+                  <TableCell className="text-right text-xs font-bold text-emerald-600 tabular-nums">{formatNumber(m.periodIn ?? 0)}</TableCell>
+                  <TableCell className="text-right text-xs font-bold text-rose-500 tabular-nums">{formatNumber(m.periodOut ?? 0)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     <div className="flex items-baseline justify-end gap-1.5">
-                      <span className={`text-base font-black ${(m.closingStock ?? m.quantity) <= m.minThreshold ? 'text-rose-600 animate-pulse' : 'text-sky-600'}`}>{formatNumber(m.closingStock ?? m.quantity)}</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{m.unit}</span>
+                      <span className={`text-base font-bold tabular-nums ${(m.closingStock ?? m.quantity) <= m.minThreshold ? 'text-rose-600 animate-pulse' : 'text-sky-600'}`}>{formatNumber(m.closingStock ?? m.quantity)}</span>
+                      <span className="data-label text-muted-foreground/60">{m.unit}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">

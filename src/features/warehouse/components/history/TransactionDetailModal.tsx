@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal';
+import { formatDateStr } from '@/utils/dateUtils';
 import { Check, X, Edit2, Trash2, Printer } from 'lucide-react';
 
 interface TransactionDetailModalProps {
@@ -48,7 +49,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                     <div>
                         <label className="text-[10px] font-black uppercase text-slate-500 block mb-1 tracking-widest">Thời gian</label>
                         <p className="text-sm font-black text-slate-700 dark:text-slate-200">
-                            {new Date(viewingReceipt.date).toLocaleDateString('vi-VN')} {viewingReceipt.transactions[0]?.transactionTime || ''}
+                            {formatDateStr(viewingReceipt.date)} {viewingReceipt.transactions[0]?.transactionTime || ''}
                         </p>
                     </div>
                     <div>
